@@ -1,0 +1,6 @@
+.vscode
+*.yaml
+*.toml
+*.json
+!deploy/
+__debug_bin
