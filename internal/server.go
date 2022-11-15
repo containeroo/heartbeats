@@ -23,6 +23,7 @@ func NewRouter() *mux.Router {
 	router.HandleFunc("/", HandlerHome)
 	router.HandleFunc("/healthz", HandlerHealthz)
 	router.HandleFunc("/ping/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerPing)
+	router.HandleFunc("/status", HandlerStatus)
 	router.HandleFunc("/status/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerStatus)
 
 	return router
