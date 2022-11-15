@@ -77,7 +77,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Config.Path, "config", "c", "./notifications.yaml", "path to notifications config file (default is ./notifications.yaml)")
+	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Config.Path, "config", "c", "./config.yaml", "path to notifications config file")
 
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Verbose logging.")
 	rootCmd.Flags().BoolVarP(&internal.HeartbeatsServer.Config.PrintVersion, "version", "v", false, "Print the current version and exit.")
