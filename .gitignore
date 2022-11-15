@@ -2,5 +2,6 @@
 *.yaml
 *.toml
 *.json
+!.goreleaser.yaml
 !deploy/
 __debug_bin

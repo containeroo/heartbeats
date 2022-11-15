@@ -1,0 +1,69 @@
+---
+project_name: Heartbeats
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - main: ./main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - arm
+dockers:
+  - image_templates:
+      - ghcr.io/gi8lino/heartbeats:{{ .Tag }}-amd64
+    use: buildx
+    dockerfile: Dockerfile
+    extra_files:
+      - go.mod
+      - go.sum
+      - cmd
+      - internal
+    build_flag_templates:
+      - --pull
+      - --platform=linux/amd64
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.description={{ .ProjectName }}
+      - --label=org.opencontainers.image.url=https://github.com/gi8lino/heartbeats
+      - --label=org.opencontainers.image.source=https://github.com/gi8lino/heartbeats
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.licenses="GNU General Public License v3.0"
+  - image_templates:
+      - ghcr.io/gi8lino/heartbeats:{{ .Tag }}-arm64
+      - gi8lino/heartbeats:{{ .Tag }}-arm64
+    use: buildx
+    dockerfile: Dockerfile
+    extra_files:
+      - go.mod
+      - go.sum
+      - cmd
+      - internal
+    goarch: arm64
+    build_flag_templates:
+      - --pull
+      - --platform=linux/arm64
+      - --label=org.opencontainers.image.title={{ .ProjectName }}
+      - --label=org.opencontainers.image.description={{ .ProjectName }}
+      - --label=org.opencontainers.image.url=https://github.com/gi8lino/heartbeats
+      - --label=org.opencontainers.image.source=https://github.com/gi8lino/heartbeats
+      - --label=org.opencontainers.image.version={{ .Version }}
+      - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
+      - --label=org.opencontainers.image.revision={{ .FullCommit }}
+      - --label=org.opencontainers.image.licenses="GNU General Public License v3.0"
+docker_manifests:
+  - name_template: ghcr.io/gi8lino/heartbeats:{{ .Tag }}
+    image_templates:
+      - ghcr.io/gi8lino/heartbeats:{{ .Tag }}-amd64
+      - ghcr.io/gi8lino/heartbeats:{{ .Tag }}-arm64
+  - name_template: ghcr.io/gi8lino/heartbeats:latest
+    image_templates:
+      - ghcr.io/gi8lino/heartbeats:{{ .Tag }}-amd64
+      - ghcr.io/gi8lino/heartbeats:{{ .Tag }}-arm64
