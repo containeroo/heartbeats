@@ -15,12 +15,13 @@ Small helper service to monitor heartbeats.
 
 ## Endpoints
 
-| flag                  | description                         |
-| :-------------------- | :---------------------------------- |
-| `/`                   | show current version                |
-| `/healthz`            | show if heartbeats is healthy       |
-| `/ping/{HEARTBEAT}`   | reset timer at given interval       |
-| `/status/{HEARTBEAT}` | returns current status of Heartbeat |
+| flag                  | description                              |
+| :-------------------- | :--------------------------------------- |
+| `/`                   | show current version                     |
+| `/healthz`            | show if heartbeats is healthy            |
+| `/ping/{HEARTBEAT}`   | reset timer at configured interval       |
+| `/status/{HEARTBEAT}` | returns current status of Heartbeat      |
+| `/status/`            | returns current status of all Heartbeats |
 
 ## Parameters
 
@@ -87,4 +88,4 @@ notifications:
 ## notifications
 
 `Defaults` (`notification.defaults`) set the general subject & message for each service.
-Each service can override these settings by adding the correspoding key (`subject` and/or `message`)
+Each service can override these settings by adding the corresponding key (`subject` and/or `message`)
