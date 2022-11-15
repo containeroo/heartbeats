@@ -22,6 +22,7 @@ dockers:
     extra_files:
       - go.mod
       - go.sum
+      - main.go
       - cmd
       - internal
     build_flag_templates:
@@ -43,6 +44,7 @@ dockers:
     extra_files:
       - go.mod
       - go.sum
+      - main.go
       - cmd
       - internal
     goarch: arm64
