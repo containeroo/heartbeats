@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"heartbeats/internal/notifications"
 	"strings"
 	"text/template"
+
+	"github.com/gi8lino/heartbeats/internal/notifications"
 
 	"github.com/nikoksr/notify"
 

@@ -16,7 +16,7 @@ limitations under the License.
 package main
 
 import (
-	"heartbeats/cmd"
+	"github.com/gi8lino/heartbeats/cmd"
 )
 
 func main() {

@@ -17,9 +17,10 @@ package cmd
 
 import (
 	"fmt"
-	"heartbeats/internal"
 	"os"
 	"time"
+
+	"github.com/gi8lino/heartbeats/internal"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

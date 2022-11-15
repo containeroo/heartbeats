@@ -2,11 +2,12 @@ package internal
 
 import (
 	"fmt"
-	"heartbeats/internal/notifications"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/gi8lino/heartbeats/internal/notifications"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/nikoksr/notify"
