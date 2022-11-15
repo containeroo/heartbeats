@@ -38,7 +38,6 @@ dockers:
       - --label=org.opencontainers.image.licenses="GNU General Public License v3.0"
   - image_templates:
       - ghcr.io/gi8lino/heartbeats:{{ .Tag }}-arm64
-      - gi8lino/heartbeats:{{ .Tag }}-arm64
     use: buildx
     dockerfile: Dockerfile
     extra_files:
