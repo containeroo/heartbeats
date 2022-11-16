@@ -74,12 +74,16 @@ type HeartbeatsConfig struct {
 func ReadConfigFile(configPath string) error {
 
 	parentDir := filepath.Dir(configPath)
+	absolutePath, err := filepath.Abs(parentDir)
+	if err != nil {
+		return err
+	}
 	fileExtension := filepath.Ext(configPath)
-	filenameWithoutExtension := strings.TrimSuffix(configPath, fileExtension)
+	fileExtensionWithoutDot := strings.TrimPrefix(fileExtension, ".")
 
-	viper.AddConfigPath(parentDir)  // necessary for notify
-	viper.SetConfigFile(filenameWithoutExtension)
-	viper.SetConfigType(strings.TrimPrefix(".", fileExtension))
+	viper.AddConfigPath(absolutePath) // necessary for notify
+	viper.SetConfigFile(configPath)
+	viper.SetConfigType(fileExtensionWithoutDot)
 
 	if err := viper.ReadInConfig(); err != nil {
 		return err
