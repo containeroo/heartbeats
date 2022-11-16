@@ -34,6 +34,7 @@ type Server struct {
 
 type Heartbeat struct {
 	Name          string        `mapstructure:"name"`
+	Description   string        `mapstructure:"description"`
 	Interval      time.Duration `mapstructure:"interval"`
 	Grace         time.Duration `mapstructure:"grace"`
 	LastPing      time.Time     `mapstructure:"lastPing"`

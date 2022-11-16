@@ -50,20 +50,22 @@ Examples:
 ---
 heartbeats:
   - name: watchdog-prometheus-prd
+    description: test promethues -> alertmanager workflow
     interval: 5m
     grace: 30s
     notifications: # must match with notifications.services[*].name
       - slack
       - mail
   - name: watchdog-prometheus-int
+    description: test promethues -> alertmanager workflow
     interval: 60s
     grace: 1m
     notifications:
       - slack
 notifications:
   defaults:
-    subject: Heartbeat {{ .Name }}
-    message: "Heartbeat is missing. interval: {{.Interval}}, grace: {{.Grace}}"
+    subject: Heartbeat {{ .Name }} «{{ .Status }}»
+    message: "{{.Description}}. Last ping: {{ .LastPing }}"
   services:
     - name: slack
       enabled: false
@@ -75,7 +77,7 @@ notifications:
       enabled: true
       type: mail
       subject: "[Heartbeat]: {{ .Name }}"
-      message: "Heartbeat is missing.\n interval: {{.Interval}}, grace: {{.Grace}}\nPlease check your sending service!"
+      message: "Heartbeat is missing.\n\n{{.Description}}\n interval: {{.Interval}}, grace: {{.Grace}}\nPlease check your sending service!"
       senderAddress: heartbeat@example.com
       smtpHostAddr: smtp.example.com
       smtpHostPort: 587
