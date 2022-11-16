@@ -15,6 +15,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type Server struct {
+	Hostname string `mapstructure:"hostname"`
+	Port     int    `mapstructure:"port"`
+}
+
 // NewRouter generates the router used in the HTTP Server
 func NewRouter() *mux.Router {
 	// Create router and define routes and return that router

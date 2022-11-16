@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/gi8lino/heartbeats/internal/notifications"
 
@@ -26,30 +25,6 @@ type Config struct {
 	Path         string `mapstructure:"path"`
 	PrintVersion bool   `mapstructure:"printVersion"`
 	Debug        bool   `mapstructure:"debug"`
-}
-
-type Server struct {
-	Hostname string `mapstructure:"hostname"`
-	Port     int    `mapstructure:"port"`
-}
-
-type Heartbeat struct {
-	Name          string        `mapstructure:"name"`
-	Description   string        `mapstructure:"description"`
-	Interval      time.Duration `mapstructure:"interval"`
-	Grace         time.Duration `mapstructure:"grace"`
-	LastPing      time.Time     `mapstructure:"lastPing"`
-	Status        string        `mapstructure:"status"`
-	Notifications []string      `mapstructure:"notifications"`
-	IntervalTimer *Timer
-	GraceTimer    *Timer
-}
-
-func (h *Heartbeat) Ago(t time.Time) string {
-	if t.IsZero() {
-		return "never"
-	}
-	return CalculateAgo.Format(t)
 }
 
 type Defaults struct {
@@ -184,11 +159,11 @@ func CheckSendDetails() error {
 	if HeartbeatsServer.Notifications.Defaults.Subject == "" {
 		return fmt.Errorf("default subject is not set")
 	}
-	if _, err := Substitute("default", HeartbeatsServer.Notifications.Defaults.Subject, heartbeat); err != nil {
+	if _, err := FormatTemplate(HeartbeatsServer.Notifications.Defaults.Subject, heartbeat); err != nil {
 		return err
 	}
 
-	if _, err := Substitute("default", HeartbeatsServer.Notifications.Defaults.Message, heartbeat); err != nil {
+	if _, err := FormatTemplate(HeartbeatsServer.Notifications.Defaults.Message, heartbeat); err != nil {
 		return err
 	}
 
@@ -196,7 +171,6 @@ func CheckSendDetails() error {
 		return fmt.Errorf("default message is not set")
 	}
 
-	var name string
 	var subject string
 	var message string
 
@@ -204,22 +178,20 @@ func CheckSendDetails() error {
 		switch notification.(type) {
 		case notifications.SlackSettings:
 			settings := notification.(notifications.SlackSettings)
-			name = settings.Name
 			subject = settings.Subject
 			message = settings.Message
 		case notifications.MailSettings:
 			settings := notification.(notifications.MailSettings)
-			name = settings.Name
 			subject = settings.Subject
 			message = settings.Message
 		default:
 			return fmt.Errorf("invalid service type in notifications config file")
 		}
 
-		if _, err := Substitute(name, subject, heartbeat); err != nil {
+		if _, err := FormatTemplate(subject, heartbeat); err != nil {
 			return fmt.Errorf("Error in notification settings: %s", err)
 		}
-		if _, err := Substitute(name, message, heartbeat); err != nil {
+		if _, err := FormatTemplate(message, heartbeat); err != nil {
 			return fmt.Errorf("Error in notification settings: %s", err)
 		}
 	}

@@ -1,25 +1,21 @@
 package internal
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"text/template"
 	"time"
 
 	"github.com/gorilla/mux"
-	"gopkg.in/yaml.v3"
 )
 
 // State represents the response
-type Status struct {
+type ResponseStatus struct {
 	Status string `json:"status"`
 	Error  string `json:"error"`
 }
 
 // State represents a heardbeat state
-type State struct {
+type HeartbeatStatus struct {
 	Name     string     `json:"name"`
 	Status   string     `json:"status"`
 	LastPing *time.Time `json:"lastPing"`
@@ -55,7 +51,7 @@ func HandlerPing(w http.ResponseWriter, req *http.Request) {
 
 	heartbeat.GotPing()
 
-	WriteOutput(w, http.StatusOK, outputFormat, &Status{Status: "ok", Error: ""}, textTemplate)
+	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, textTemplate)
 }
 
 // HandlerState is the handler for the /status endpoint
@@ -69,9 +65,9 @@ func HandlerStatus(w http.ResponseWriter, req *http.Request) {
 	heartbeatName := vars["heartbeat"]
 
 	if heartbeatName == "" {
-		var h []State
+		var h []HeartbeatStatus
 		for _, heartbeat := range HeartbeatsServer.Heartbeats {
-			s := State{
+			s := HeartbeatStatus{
 				Name:     heartbeat.Name,
 				Status:   heartbeat.Status,
 				LastPing: &heartbeat.LastPing,
@@ -89,11 +85,11 @@ LastPing: {{  .LastPing }}
 
 	heartbeat, err := GetHeartbeatByName(heartbeatName)
 	if err != nil {
-		WriteOutput(w, http.StatusNotFound, outputFormat, Status{Status: "nok", Error: err.Error()}, `Status: {{ .Status }} Error: {{  .Error }}`)
+		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: err.Error()}, `Status: {{ .Status }} Error: {{  .Error }}`)
 		return
 	}
 
-	state := &State{
+	state := &HeartbeatStatus{
 		Name:     heartbeat.Name,
 		Status:   heartbeat.Status,
 		LastPing: &heartbeat.LastPing,
@@ -112,12 +108,12 @@ func HandlerHealthz(w http.ResponseWriter, req *http.Request) {
 	if outputFormat == "" {
 		outputFormat = "txt"
 	}
-	WriteOutput(w, http.StatusOK, outputFormat, &Status{Status: "ok", Error: ""}, `{{ .Status }}`)
+	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, `{{ .Status }}`)
 }
 
 // WriteOutput writes the output to the response writer
 func WriteOutput(w http.ResponseWriter, StatusCode int, outputFormat string, output interface{}, textTemplate string) {
-	o, err := FormatOutput(w, outputFormat, output, textTemplate)
+	o, err := FormatOutput(outputFormat, textTemplate, output)
 	if err != nil {
 		w.WriteHeader(StatusCode)
 		w.Write([]byte(err.Error()))
@@ -126,52 +122,4 @@ func WriteOutput(w http.ResponseWriter, StatusCode int, outputFormat string, out
 	w.WriteHeader(StatusCode)
 	w.Write([]byte(o))
 	return
-}
-
-// FormatOutput formats the output according to outputFormat
-func FormatOutput(w http.ResponseWriter, outputFormat string, output interface{}, textTemplate string) (string, error) {
-	switch outputFormat {
-	case "json":
-		var b bytes.Buffer
-		jsonEncoder := json.NewEncoder(&b)
-		jsonEncoder.SetIndent("", "  ")
-		if err := jsonEncoder.Encode(&output); err != nil {
-			return "", err
-		}
-		return b.String(), nil
-
-	case "yaml", "yml":
-		var b bytes.Buffer
-		yamlEncoder := yaml.NewEncoder(&b)
-		yamlEncoder.SetIndent(2) // this is what you're looking for
-		if err := yamlEncoder.Encode(&output); err != nil {
-			return "", err
-		}
-		return b.String(), nil
-
-	case "txt", "text":
-		txt, err := FormatTextOutput(w, outputFormat, textTemplate, output)
-		if err != nil {
-			return "", fmt.Errorf("Error formatting output")
-		}
-		return fmt.Sprintf("%+v", txt), nil
-
-	default:
-		return "", fmt.Errorf("Output format %s not supported", outputFormat)
-	}
-}
-
-// FormatTextOutput format given output as text
-func FormatTextOutput(w http.ResponseWriter, outputFormat string, textTemplate string, intr interface{}) (string, error) {
-	tmpl, err := template.New("status").Parse(textTemplate)
-	if err != nil {
-		return "", fmt.Errorf("Error executing template: %s", err.Error())
-	}
-	b := bytes.NewBufferString("")
-	err = tmpl.Execute(b, &intr)
-	if err != nil {
-		return "", fmt.Errorf("Error executing template: %s", err.Error())
-	}
-
-	return b.String(), nil
 }

@@ -5,8 +5,28 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gi8lino/heartbeats/internal/notifications"
 	log "github.com/sirupsen/logrus"
 )
+
+type Heartbeat struct {
+	Name          string        `mapstructure:"name"`
+	Description   string        `mapstructure:"description"`
+	Interval      time.Duration `mapstructure:"interval"`
+	Grace         time.Duration `mapstructure:"grace"`
+	LastPing      time.Time     `mapstructure:"lastPing"`
+	Status        string        `mapstructure:"status"`
+	Notifications []string      `mapstructure:"notifications"`
+	IntervalTimer *Timer
+	GraceTimer    *Timer
+}
+
+func (h *Heartbeat) Ago(t time.Time) string {
+	if t.IsZero() {
+		return "never"
+	}
+	return CalculateAgo.Format(t)
+}
 
 // GotPing starts the timer for the heartbeat (heartbeatName)
 func (h *Heartbeat) GotPing() {
@@ -41,6 +61,27 @@ func (h *Heartbeat) GotPing() {
 
 	h.LastPing = time.Now()
 	h.Status = "OK"
+}
+
+// GetServiceByType returns notification settings by type
+func (h *HeartbeatsConfig) GetServiceByName(notificationType string) (interface{}, error) {
+	for _, notification := range h.Notifications.Services {
+		switch notification.(type) {
+		case notifications.SlackSettings:
+			service := notification.(notifications.SlackSettings)
+			if strings.EqualFold(service.Name, notificationType) {
+				return service, nil
+			}
+		case notifications.MailSettings:
+			service := notification.(notifications.MailSettings)
+			if strings.EqualFold(service.Name, notificationType) {
+				return service, nil
+			}
+		default:
+			return nil, fmt.Errorf("Unknown notification type")
+		}
+	}
+	return nil, fmt.Errorf("Notification settings for type «%s» not found", notificationType)
 }
 
 // GetHeartbeatByName search heartbeat in HeartbeatsConfig.Heartbeats by name

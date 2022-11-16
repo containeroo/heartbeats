@@ -1,11 +1,8 @@
 package internal
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"strings"
-	"text/template"
 
 	"github.com/gi8lino/heartbeats/internal/notifications"
 
@@ -86,38 +83,17 @@ func NotificationFunc(heartbeatName string, success bool) func() {
 	}
 }
 
-// GetServiceByType returns notification settings by type
-func (h *HeartbeatsConfig) GetServiceByName(notificationType string) (interface{}, error) {
-	for _, notification := range h.Notifications.Services {
-		switch notification.(type) {
-		case notifications.SlackSettings:
-			service := notification.(notifications.SlackSettings)
-			if strings.EqualFold(service.Name, notificationType) {
-				return service, nil
-			}
-		case notifications.MailSettings:
-			service := notification.(notifications.MailSettings)
-			if strings.EqualFold(service.Name, notificationType) {
-				return service, nil
-			}
-		default:
-			return nil, fmt.Errorf("Unknown notification type")
-		}
-	}
-	return nil, fmt.Errorf("Notification settings for type «%s» not found", notificationType)
-}
-
 // PrepareSend prepares subject & message to be sent
 func PrepareSend(subject string, message string, defaults *Defaults, values interface{}) (SendDetails, error) {
 
 	subject = CheckDefault(subject, defaults.Subject)
-	subject, err := Substitute("subject", subject, &values)
+	subject, err := FormatTemplate(subject, &values)
 	if err != nil {
 		return SendDetails{}, fmt.Errorf("Could not substitute subject: %s", err)
 	}
 
 	message = CheckDefault(message, defaults.Message)
-	message, err = Substitute("message", message, &values)
+	message, err = FormatTemplate(message, &values)
 	if err != nil {
 		return SendDetails{}, fmt.Errorf("Could not substitute message: %s", err)
 	}
@@ -131,21 +107,6 @@ func CheckDefault(value string, defaultValue string) string {
 		return defaultValue
 	}
 	return value
-}
-
-// Substitute substitutes values in tmpl
-func Substitute(title, tmpl string, values interface{}) (string, error) {
-	t, err := template.New(title).Parse(tmpl)
-	if err != nil {
-		return "", err
-	}
-
-	buf := &bytes.Buffer{}
-	if err := t.Execute(buf, &values); err != nil {
-		return "", err
-	}
-
-	return buf.String(), nil
 }
 
 // Send sends a notification
