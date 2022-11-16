@@ -20,10 +20,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/gi8lino/heartbeats/internal"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -64,6 +66,7 @@ You can configure the interval and grace period for each heartbeat separately an
 			fmt.Println(version)
 			os.Exit(0)
 		}
+
 		internal.HeartbeatsServer.Version = version
 
 		// Run the server
@@ -89,4 +92,12 @@ func initConfig() {
 	if err := internal.ReadConfigFile(internal.HeartbeatsServer.Config.Path); err != nil {
 		log.Fatal(err)
 	}
+
+	viper.New().OnConfigChange(func(e fsnotify.Event) {
+		log.Info("config file changed:", e.Name)
+		if err := internal.ReadConfigFile(internal.HeartbeatsServer.Config.Path); err != nil {
+			log.Fatal(err)
+		}
+	})
+	viper.WatchConfig()
 }
