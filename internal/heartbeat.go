@@ -21,7 +21,7 @@ type Heartbeat struct {
 	GraceTimer    *Timer
 }
 
-func (h *Heartbeat) Ago(t time.Time) string {
+func (h *Heartbeat) GetAgo(t time.Time) string {
 	if t.IsZero() {
 		return "never"
 	}

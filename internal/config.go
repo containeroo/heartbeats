@@ -47,7 +47,6 @@ type HeartbeatsConfig struct {
 
 // ReadConfigFile reads the notifications config file with and returns a Config struct
 func ReadConfigFile(configPath string) error {
-
 	parentDir := filepath.Dir(configPath)
 	absolutePath, err := filepath.Abs(parentDir)
 	if err != nil {
@@ -180,16 +179,16 @@ func CheckSendDetails() error {
 	if HeartbeatsServer.Notifications.Defaults.Subject == "" {
 		return fmt.Errorf("default subject is not set")
 	}
-	if _, err := FormatTemplate(HeartbeatsServer.Notifications.Defaults.Subject, heartbeat); err != nil {
+	if _, err := FormatTemplate(HeartbeatsServer.Notifications.Defaults.Subject, &heartbeat); err != nil {
 		return err
 	}
 
-	if _, err := FormatTemplate(HeartbeatsServer.Notifications.Defaults.Message, heartbeat); err != nil {
+	if _, err := FormatTemplate(HeartbeatsServer.Notifications.Defaults.Message, &heartbeat); err != nil {
 		return err
 	}
 
 	if HeartbeatsServer.Notifications.Defaults.Message == "" {
-		return fmt.Errorf("default message is not set")
+		log.Warnf("default message is not set")
 	}
 
 	var subject string
@@ -209,11 +208,11 @@ func CheckSendDetails() error {
 			return fmt.Errorf("invalid service type in notifications config file")
 		}
 
-		if _, err := FormatTemplate(subject, heartbeat); err != nil {
-			return fmt.Errorf("Error in notification settings: %s", err)
+		if _, err := FormatTemplate(subject, &heartbeat); err != nil {
+			log.Warnf("Cannot evaluate subject: %s", err)
 		}
-		if _, err := FormatTemplate(message, heartbeat); err != nil {
-			return fmt.Errorf("Error in notification settings: %s", err)
+		if _, err := FormatTemplate(message, &heartbeat); err != nil {
+			log.Warnf("Cannot evaluate message: %s", err)
 		}
 	}
 	return nil

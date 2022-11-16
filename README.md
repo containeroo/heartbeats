@@ -103,10 +103,10 @@ Each service can override these settings by adding the corresponding key (`subje
 
 You can use all properties from `heartbeats` in `subject` and/or `message`. Puth them double curley braces.
 
-There is a method (`Ago`) that calculates the time of the last ping to now. (borrowed from [here](https://github.com/xeonx/timeago/))
+There is a function (`GetAgo`) that calculates the time of the last ping to now. (borrowed from [here](https://github.com/xeonx/timeago/))
 
 Example:
 
 ```yaml
-message: "Last ping was: {{ .LastPing.Ago }}"
+message: "Last ping was: {{ .GetAgo .LastPing }}"
 ```

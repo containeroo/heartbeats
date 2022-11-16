@@ -31,7 +31,7 @@ func FormatOutput(outputFormat string, textTemplate string, output interface{}) 
 		return b.String(), nil
 
 	case "txt", "text":
-		txt, err := FormatTemplate(textTemplate, output)
+		txt, err := FormatTemplate(textTemplate, &output)
 		if err != nil {
 			return "", fmt.Errorf("Error formatting output")
 		}
@@ -43,7 +43,10 @@ func FormatOutput(outputFormat string, textTemplate string, output interface{}) 
 }
 
 // FormatTemplate format template with intr as input
-func FormatTemplate(tmpl string, intr interface{}) (string, error) {
+func FormatTemplate(tmpl string, intr any) (string, error) {
+	if tmpl == "" {
+		return "", fmt.Errorf("Template is empty")
+	}
 	t, err := template.New("status").Parse(tmpl)
 	if err != nil {
 		return "", fmt.Errorf("Error executing template: %s", err.Error())
