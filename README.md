@@ -50,14 +50,14 @@ Examples:
 ---
 heartbeats:
   - name: watchdog-prometheus-prd
-    description: test promethues -> alertmanager workflow
+    description: test prometheus -> alertmanager
     interval: 5m
     grace: 30s
     notifications: # must match with notifications.services[*].name
       - slack
       - mail
   - name: watchdog-prometheus-int
-    description: test promethues -> alertmanager workflow
+    description: test prometheus -> alertmanager
     interval: 60s
     grace: 1m
     notifications:
