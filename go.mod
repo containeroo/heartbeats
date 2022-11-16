@@ -14,6 +14,7 @@ require (
 )
 
 require (
+	github.com/atc0005/go-teams-notify/v2 v2.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
