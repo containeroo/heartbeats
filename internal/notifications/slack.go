@@ -2,7 +2,6 @@ package notifications
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/nikoksr/notify"
 	"github.com/nikoksr/notify/service/slack"
@@ -28,8 +27,7 @@ func GenerateSlackService(token string, channels []string) (*slack.Slack, error)
 	}
 
 	slackService := slack.New(token)
-	c := strings.Join(channels, ",")
-	slackService.AddReceivers(c)
+	slackService.AddReceivers(channels...)
 
 	return slackService, nil
 }

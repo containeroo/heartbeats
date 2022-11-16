@@ -2,7 +2,6 @@ package notifications
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/nikoksr/notify"
 	"github.com/nikoksr/notify/service/mail"
@@ -27,13 +26,10 @@ type MailSettings struct {
 func GenerateMailService(senderAddress string, smtpHostAddr string, smtpHostPort int, smtpAuthUser string, smtpAuthPassword string, receiverAddresses []string) (*mail.Mail, error) {
 
 	mailService := mail.New(senderAddress, fmt.Sprintf("%s:%d", smtpHostAddr, smtpHostPort))
-
 	if smtpAuthUser != "" && smtpAuthPassword != "" {
 		mailService.AuthenticateSMTP("", smtpAuthUser, smtpAuthPassword, smtpHostAddr)
 	}
-
-	r := strings.Join(receiverAddresses, ",")
-	mailService.AddReceivers(r)
+	mailService.AddReceivers(receiverAddresses...)
 
 	return mailService, nil
 }
