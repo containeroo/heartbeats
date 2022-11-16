@@ -20,12 +20,10 @@ func (h *Heartbeat) GotPing() {
 	// Heartbeat is running and not expired, so reset timer
 	if h.IntervalTimer != nil && !h.IntervalTimer.Completed {
 		log.Infof("%s got ping. Reset timer with interval %s", h.Name, h.Interval)
-
-		// format now to iso
 		h.IntervalTimer.Reset(h.Interval)
-		// send only notification when hearbeat was not OK
-		if h.Status != "OK" {
-			NotificationFunc(h.Name, true)()
+
+		if h.Status == "NOK" {
+			NotificationFunc(h.Name, true)() // notify user that heartbeat turned OK
 		}
 	}
 
