@@ -20,9 +20,9 @@ type Status struct {
 
 // State represents a heardbeat state
 type State struct {
-	Name     string `json:"name"`
-	Status   string `json:"status"`
-	LastPing string `json:"lastPing"`
+	Name     string     `json:"name"`
+	Status   string     `json:"status"`
+	LastPing *time.Time `json:"lastPing"`
 }
 
 // HandlerHome is the handler for the / endpoint
@@ -31,15 +31,8 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 	if outputFormat == "" {
 		outputFormat = "txt"
 	}
-
-	o := struct{ Message string }{Message: fmt.Sprintf("Welcome to the Heartbeat Server.\nVersion: %s", HeartbeatsServer.Version)}
-	if outputFormat == "txt" || outputFormat == "text" {
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte(o.Message))
-		return
-	}
-
-	WriteOutput(w, http.StatusOK, outputFormat, o)
+	msg := struct{ Message string }{Message: fmt.Sprintf("Welcome to the Heartbeat Server.\nVersion: %s", HeartbeatsServer.Version)}
+	WriteOutput(w, http.StatusOK, outputFormat, msg, `Message: {{ .Message }}`)
 }
 
 // HandlerPing is the handler for the /ping endpoint
@@ -52,20 +45,17 @@ func HandlerPing(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	heartbeatName := vars["heartbeat"]
 
+	textTemplate := `{{ .Status }}`
+
 	heartbeat, err := GetHeartbeatByName(heartbeatName)
 	if err != nil {
-		WriteOutput(w, http.StatusBadRequest, outputFormat, err.Error())
+		WriteOutput(w, http.StatusBadRequest, outputFormat, err.Error(), textTemplate)
 		return
 	}
 
 	heartbeat.GotPing()
 
-	if outputFormat == "txt" || outputFormat == "text" {
-		w.Write([]byte("ok"))
-		return
-	}
-
-	WriteOutput(w, http.StatusOK, outputFormat, &Status{Status: "ok", Error: ""})
+	WriteOutput(w, http.StatusOK, outputFormat, &Status{Status: "ok", Error: ""}, textTemplate)
 }
 
 // HandlerState is the handler for the /status endpoint
@@ -81,46 +71,39 @@ func HandlerStatus(w http.ResponseWriter, req *http.Request) {
 	if heartbeatName == "" {
 		var h []State
 		for _, heartbeat := range HeartbeatsServer.Heartbeats {
-			var lastPing string
-			if heartbeat.LastPing.IsZero() {
-				lastPing = "never"
-			} else {
-				lastPing = heartbeat.LastPing.Format(time.RFC1123)
-			}
 			s := State{
 				Name:     heartbeat.Name,
 				Status:   heartbeat.Status,
-				LastPing: lastPing,
+				LastPing: &heartbeat.LastPing,
 			}
 			h = append(h, s)
 		}
 
-		if outputFormat == "txt" || outputFormat == "text" {
-			state, err := GetStateAsText(w, outputFormat, &h)
-			if err != nil {
-				WriteOutput(w, http.StatusInternalServerError, outputFormat, err.Error())
-				return
-			}
-			w.Write([]byte(state))
-			return
-		}
-
-		WriteOutput(w, http.StatusNotFound, outputFormat, &h)
+		textTmpl := `{{ range . }}Name: {{ .Name }}
+Status: {{ .Status }}
+LastPing: {{  .LastPing }}
+{{ end }}`
+		WriteOutput(w, http.StatusNotFound, outputFormat, h, textTmpl)
 		return
 	}
 
 	heartbeat, err := GetHeartbeatByName(heartbeatName)
 	if err != nil {
-		WriteOutput(w, http.StatusNotFound, outputFormat, &Status{Status: "nok", Error: err.Error()})
+		WriteOutput(w, http.StatusNotFound, outputFormat, Status{Status: "nok", Error: err.Error()}, `Status: {{ .Status }} Error: {{  .Error }}`)
 		return
 	}
 
 	state := &State{
 		Name:     heartbeat.Name,
 		Status:   heartbeat.Status,
-		LastPing: heartbeat.LastPing.Format(time.RFC1123),
+		LastPing: &heartbeat.LastPing,
 	}
-	WriteOutput(w, http.StatusOK, outputFormat, state)
+
+	txtFormat := `Name: {{ .Name }}
+Status: {{ if .Status }}{{ .Status }}{{ else }}-{{ end }}
+LastPing: {{if .LastPing.IsZero }}never{{ else }}{{ .LastPing }}{{ end }}`
+
+	WriteOutput(w, http.StatusOK, outputFormat, state, txtFormat)
 }
 
 // HeartbeatsServer is the handler for the /healthz endpoint
@@ -129,33 +112,24 @@ func HandlerHealthz(w http.ResponseWriter, req *http.Request) {
 	if outputFormat == "" {
 		outputFormat = "txt"
 	}
-	WriteOutput(w, http.StatusOK, outputFormat, &Status{Status: "ok", Error: ""})
+	WriteOutput(w, http.StatusOK, outputFormat, &Status{Status: "ok", Error: ""}, `{{ .Status }}`)
 }
 
-// GetStateAsText writes the output to the response writer
-func GetStateAsText(w http.ResponseWriter, outputFormat string, state *[]State) (string, error) {
-	s := `
-{{ range . }}
-Name: {{ .Name }}
-Status: {{ .Status }}
-LastPing: {{  .LastPing }}
-{{ end }}
-`
-	tmpl, err := template.New("status").Parse(s)
+// WriteOutput writes the output to the response writer
+func WriteOutput(w http.ResponseWriter, StatusCode int, outputFormat string, output interface{}, textTemplate string) {
+	o, err := FormatOutput(w, outputFormat, output, textTemplate)
 	if err != nil {
-		return "", fmt.Errorf("Error executing template: %s", err.Error())
+		w.WriteHeader(StatusCode)
+		w.Write([]byte(err.Error()))
+		return
 	}
-	b := bytes.NewBufferString("")
-	err = tmpl.Execute(b, &state)
-	if err != nil {
-		return "", fmt.Errorf("Error executing template: %s", err.Error())
-	}
-
-	return b.String(), nil
+	w.WriteHeader(StatusCode)
+	w.Write([]byte(o))
+	return
 }
 
 // FormatOutput formats the output according to outputFormat
-func FormatOutput(w http.ResponseWriter, outputFormat string, output interface{}) (string, error) {
+func FormatOutput(w http.ResponseWriter, outputFormat string, output interface{}, textTemplate string) (string, error) {
 	switch outputFormat {
 	case "json":
 		var b bytes.Buffer
@@ -176,22 +150,28 @@ func FormatOutput(w http.ResponseWriter, outputFormat string, output interface{}
 		return b.String(), nil
 
 	case "txt", "text":
-		return fmt.Sprintf("%v", output), nil
+		txt, err := FormatTextOutput(w, outputFormat, textTemplate, output)
+		if err != nil {
+			return "", fmt.Errorf("Error formatting output")
+		}
+		return fmt.Sprintf("%+v", txt), nil
 
 	default:
 		return "", fmt.Errorf("Output format %s not supported", outputFormat)
 	}
 }
 
-// WriteOutput writes the output to the response writer
-func WriteOutput(w http.ResponseWriter, StatusCode int, outputFormat string, status interface{}) {
-	output, err := FormatOutput(w, outputFormat, status)
+// FormatTextOutput format given output as text
+func FormatTextOutput(w http.ResponseWriter, outputFormat string, textTemplate string, intr interface{}) (string, error) {
+	tmpl, err := template.New("status").Parse(textTemplate)
 	if err != nil {
-		w.WriteHeader(StatusCode)
-		w.Write([]byte(err.Error()))
-		return
+		return "", fmt.Errorf("Error executing template: %s", err.Error())
 	}
-	w.WriteHeader(StatusCode)
-	w.Write([]byte(output))
-	return
+	b := bytes.NewBufferString("")
+	err = tmpl.Execute(b, &intr)
+	if err != nil {
+		return "", fmt.Errorf("Error executing template: %s", err.Error())
+	}
+
+	return b.String(), nil
 }
