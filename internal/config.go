@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -44,6 +45,13 @@ type Heartbeat struct {
 	GraceTimer    *Timer
 }
 
+func (h *Heartbeat) Ago(t time.Time) string {
+	if t.IsZero() {
+		return "never"
+	}
+	return CalculateAgo.Format(t)
+}
+
 type Defaults struct {
 	Subject string `mapstructure:"subject" default:"Heartbeat"`
 	Message string `mapstructure:"message" default:"Heartbeat is missing"`
@@ -64,15 +72,14 @@ type HeartbeatsConfig struct {
 
 // ReadConfigFile reads the notifications config file with and returns a Config struct
 func ReadConfigFile(configPath string) error {
-	// extract parent directory
-	if strings.Contains(configPath, "/") { // set config file path
-		configPath = configPath[strings.LastIndex(configPath, "/")+1:] // extract filename
-	}
 
-	fileType := configPath[strings.LastIndex(configPath, ".")+1:] // extract file type
+	parentDir := filepath.Dir(configPath)
+	fileExtension := filepath.Ext(configPath)
+	filenameWithoutExtension := strings.TrimSuffix(configPath, fileExtension)
 
-	viper.SetConfigFile(configPath)
-	viper.SetConfigType(fileType)
+	viper.AddConfigPath(parentDir)  // necessary for notify
+	viper.SetConfigFile(filenameWithoutExtension)
+	viper.SetConfigType(strings.TrimPrefix(".", fileExtension))
 
 	if err := viper.ReadInConfig(); err != nil {
 		return err
