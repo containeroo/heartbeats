@@ -77,6 +77,11 @@ func (h *HeartbeatsConfig) GetServiceByName(notificationType string) (interface{
 			if strings.EqualFold(service.Name, notificationType) {
 				return service, nil
 			}
+		case notifications.MsteamsSettings:
+			service := notification.(notifications.MsteamsSettings)
+			if strings.EqualFold(service.Name, notificationType) {
+				return service, nil
+			}
 		default:
 			return nil, fmt.Errorf("Unknown notification type")
 		}
@@ -87,7 +92,6 @@ func (h *HeartbeatsConfig) GetServiceByName(notificationType string) (interface{
 // GetHeartbeatByName search heartbeat in HeartbeatsConfig.Heartbeats by name
 func GetHeartbeatByName(name string) (*Heartbeat, error) {
 	for i, heartbeat := range HeartbeatsServer.Heartbeats {
-		// compare lowercase strings
 		if strings.EqualFold(heartbeat.Name, name) {
 			return &HeartbeatsServer.Heartbeats[i], nil
 		}

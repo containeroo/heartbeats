@@ -33,7 +33,7 @@ Small helper service to monitor heartbeats.
 
 Heartbeat uses the library [https://github.com/nikoksr/notify](https://github.com/nikoksr/notify) for notification.
 
-For the moment only `mail` and `slack` are implemented. Feel free to create a Pull Request.
+For the moment only `mail`, `slack` and `msteams` are implemented. Feel free to create a Pull Request.
 
 ## Config files
 
@@ -58,10 +58,10 @@ heartbeats:
       - mail
   - name: watchdog-prometheus-int
     description: test prometheus -> alertmanager
-    interval: 60s
-    grace: 1m
+    interval: 60m
+    grace: 5m
     notifications:
-      - slack
+      - msteams
 notifications:
   defaults:
     subject: Heartbeat {{ .Name }} «{{ .Status }}»
@@ -85,6 +85,15 @@ notifications:
       smtpAuthPassword: env:ENV_VARIABLE_YOU_DEFINE
       receiverAddresses:
         - heartbeat@example.com
+    - name: msTeams
+      enabled: true
+      type: msteams
+      subject: "[Heartbeat]: {{ .Name }}"
+      message: "Heartbeat is missing.\n\n{{.Description}}\n interval: {{.Interval}}, grace: {{.Grace}}\nPlease check your sending service!"
+      webhooks:
+        - <YOUR WEBHOOK URL>/teams1
+        - <YOUR WEBHOOK URL>/teams2
+        - env:WHY_NOT_A_SECRET_WEBHOOK
 ```
 
 ## Notifications

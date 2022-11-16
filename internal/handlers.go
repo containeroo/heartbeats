@@ -8,13 +8,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// State represents the response
+// StResponseStatus represents the response
 type ResponseStatus struct {
 	Status string `json:"status"`
 	Error  string `json:"error"`
 }
 
-// State represents a heardbeat state
+// HeartbeatStatus represents a heartbeat status
 type HeartbeatStatus struct {
 	Name     string     `json:"name"`
 	Status   string     `json:"status"`

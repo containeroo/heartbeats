@@ -61,6 +61,14 @@ func NotificationFunc(heartbeatName string, success bool) func() {
 				notifier = service.Notifier
 				enabled = service.Enabled
 
+			case notifications.MsteamsSettings:
+				service := notificationService.(notifications.MsteamsSettings)
+				serviceName = service.Name
+				subject = service.Subject
+				message = service.Message
+				notifier = service.Notifier
+				enabled = service.Enabled
+
 			default:
 				log.Errorf("%s Unknown notification type: %v", heartbeatName, notification)
 			}

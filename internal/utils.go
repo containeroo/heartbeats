@@ -24,7 +24,7 @@ func FormatOutput(outputFormat string, textTemplate string, output interface{}) 
 	case "yaml", "yml":
 		var b bytes.Buffer
 		yamlEncoder := yaml.NewEncoder(&b)
-		yamlEncoder.SetIndent(2) // this is what you're looking for
+		yamlEncoder.SetIndent(2)
 		if err := yamlEncoder.Encode(&output); err != nil {
 			return "", err
 		}

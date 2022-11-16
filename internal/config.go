@@ -144,6 +144,27 @@ func ProcessServiceSettings() error {
 
 			log.Debugf("Mail service «%s» is enabled: %t", result.Name, result.Enabled)
 
+		case "msteams":
+			var result notifications.MsteamsSettings
+			if err := mapstructure.Decode(service, &result); err != nil {
+				return err
+			}
+
+			for name, value := range SubstituteFieldsWithEnv(EnvPrefix, result) {
+				reflect.ValueOf(&result).Elem().FieldByName(name).Set(value)
+			}
+
+			svc, err := notifications.GenerateMsteamsService(result.WebHooks)
+			if err != nil {
+				return fmt.Errorf("error while generating MS Teams service: %s", err)
+			}
+			result.Notifier = notify.New()
+			result.Notifier.UseServices(svc)
+
+			HeartbeatsServer.Notifications.Services[i] = result
+
+			log.Debugf("MS Teams service «%s» is enabled: %t", result.Name, result.Enabled)
+
 		default:
 			return fmt.Errorf("Unknown notification service type")
 		}
