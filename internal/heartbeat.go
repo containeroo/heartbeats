@@ -43,9 +43,12 @@ func (h *Heartbeat) GotPing() {
 		h.IntervalTimer.Reset(h.Interval)
 	}
 
-	// Timer is not running
 	// This is the first ping or after a grace period has expired
-	if h.IntervalTimer == nil || h.IntervalTimer.Completed {
+	// IntervalTimer is nil when never started
+	// IntervalTimer.Completed is true when expired
+	// GraceTimer is nil when never started
+	// GraceTimer.Completed is true when expired
+	if (h.IntervalTimer == nil || h.IntervalTimer.Completed) && (h.GraceTimer == nil || h.GraceTimer.Completed) {
 		log.Infof("%s Start timer with interval %s", h.Name, h.Interval)
 		h.IntervalTimer = NewTimer(h.Interval, func() {
 			log.Infof("%s Timer is expired. Start grace timer with duration %s", h.Name, h.Grace)
@@ -55,7 +58,7 @@ func (h *Heartbeat) GotPing() {
 		})
 		// inform the user that the heartbeat is running again
 		if h.Status == "NOK" {
-			NotificationFunc(h.Name, true)()
+			go NotificationFunc(h.Name, true)()
 		}
 	}
 
