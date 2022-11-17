@@ -72,6 +72,14 @@ func ReadConfigFile(configPath string) error {
 		return err
 	}
 
+	if len(HeartbeatsServer.Heartbeats) == 0 {
+		return fmt.Errorf("no heartbeats configured")
+	}
+
+	if len(HeartbeatsServer.Notifications.Services) == 0 {
+		return fmt.Errorf("no notifications configured")
+	}
+
 	if err := ProcessServiceSettings(); err != nil {
 		return fmt.Errorf("error while processing notification services: %s", err)
 	}
