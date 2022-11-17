@@ -85,7 +85,7 @@ heartbeats:
 notifications:
   defaults:
     subject: Heartbeat {{ .Name }} «{{ .Status }}»
-    message: "*Description:*\n{{.Description}}.\n\nLast ping: {{ .GetAgo .LastPing }}"
+    message: "*Description:*\n{{.Description}}.\n\nLast ping: {{ .TimeAgo .LastPing }}"
   services:
     - name: slack
       enabled: false
@@ -125,10 +125,10 @@ Each service can override these settings by adding the corresponding key (`subje
 
 You can use all properties from `heartbeats` in `subject` and/or `message`. They must start with a capital letter and be surrounded by double curly brackets.
 
-There is a function (`GetAgo`) that calculates the time of the last ping to now. (borrowed from [here](https://github.com/xeonx/timeago/))
+There is a function (`TimeAgo`) that calculates the time of the last ping to now. (borrowed from [here](https://github.com/xeonx/timeago/))
 
 Example:
 
 ```yaml
-message: "Last ping was: {{ .GetAgo .LastPing }}"
+message: "Last ping was: {{ .TimeAgo .LastPing }}"
 ```
