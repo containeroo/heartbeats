@@ -18,6 +18,7 @@ import (
 type Server struct {
 	Hostname string `mapstructure:"hostname"`
 	Port     int    `mapstructure:"port"`
+	SiteRoot string `mapstructure:"siteRoot"`
 }
 
 // NewRouter generates the router used in the HTTP Server
@@ -27,6 +28,7 @@ func NewRouter() *mux.Router {
 
 	router.HandleFunc("/", HandlerHome)
 	router.HandleFunc("/healthz", HandlerHealthz)
+	router.HandleFunc("/ping", HandlerPingHelp)
 	router.HandleFunc("/ping/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerPing)
 	router.HandleFunc("/status", HandlerStatus)
 	router.HandleFunc("/status/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerStatus)

@@ -66,8 +66,11 @@ You can configure the interval and grace period for each heartbeat separately an
 			fmt.Println(version)
 			os.Exit(0)
 		}
-
 		internal.HeartbeatsServer.Version = version
+
+		if internal.HeartbeatsServer.Server.SiteRoot == "" {
+			internal.HeartbeatsServer.Server.SiteRoot = fmt.Sprintf("http://%s:%d", internal.HeartbeatsServer.Server.Hostname, internal.HeartbeatsServer.Server.Port)
+		}
 
 		if err := internal.ReadConfigFile(internal.HeartbeatsServer.Config.Path); err != nil {
 			log.Fatal(err)
@@ -97,4 +100,5 @@ func init() {
 	rootCmd.Flags().BoolVarP(&internal.HeartbeatsServer.Config.PrintVersion, "version", "v", false, "Print the current version and exit.")
 	rootCmd.Flags().StringVar(&internal.HeartbeatsServer.Server.Hostname, "host", "127.0.0.1", "Host of Heartbeat service.")
 	rootCmd.Flags().IntVarP(&internal.HeartbeatsServer.Server.Port, "port", "p", 8090, "Port to listen on")
+	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Server.SiteRoot, "site-root", "s", "", "Site root for the heartbeat service (default \"http://host:port\")")
 }
