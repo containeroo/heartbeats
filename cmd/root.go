@@ -69,6 +69,10 @@ You can configure the interval and grace period for each heartbeat separately an
 
 		internal.HeartbeatsServer.Version = version
 
+		if err := internal.ReadConfigFile(internal.HeartbeatsServer.Config.Path); err != nil {
+			log.Fatal(err)
+		}
+
 		// watch config
 		viper.OnConfigChange(func(e fsnotify.Event) {
 			log.Info("%s has changed. reload it", e.Name)
@@ -85,17 +89,9 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
 	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Config.Path, "config", "c", "./config.yaml", "path to notifications config file")
-
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Verbose logging.")
 	rootCmd.Flags().BoolVarP(&internal.HeartbeatsServer.Config.PrintVersion, "version", "v", false, "Print the current version and exit.")
 	rootCmd.Flags().StringVar(&internal.HeartbeatsServer.Server.Hostname, "host", "127.0.0.1", "Host of Heartbeat service.")
 	rootCmd.Flags().IntVarP(&internal.HeartbeatsServer.Server.Port, "port", "p", 8090, "Port to listen on")
-}
-
-func initConfig() {
-	if err := internal.ReadConfigFile(internal.HeartbeatsServer.Config.Path); err != nil {
-		log.Fatal(err)
-	}
 }
