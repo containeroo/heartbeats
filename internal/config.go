@@ -191,17 +191,18 @@ func CheckSendDetails() error {
 		log.Warnf("default message is not set")
 	}
 
-	var subject string
-	var message string
+	var name, subject, message string
 
 	for _, notification := range HeartbeatsServer.Notifications.Services {
 		switch notification.(type) {
 		case notifications.SlackSettings:
 			settings := notification.(notifications.SlackSettings)
+			name = settings.Name
 			subject = settings.Subject
 			message = settings.Message
 		case notifications.MailSettings:
 			settings := notification.(notifications.MailSettings)
+			name = settings.Name
 			subject = settings.Subject
 			message = settings.Message
 		default:
@@ -209,10 +210,10 @@ func CheckSendDetails() error {
 		}
 
 		if _, err := FormatTemplate(subject, &heartbeat); err != nil {
-			log.Warnf("Cannot evaluate subject: %s", err)
+			log.Warnf("service «%s». Cannot evaluate subject: %s", name, err)
 		}
 		if _, err := FormatTemplate(message, &heartbeat); err != nil {
-			log.Warnf("Cannot evaluate message: %s", err)
+			log.Warnf("service «%s». Cannot evaluate message: %s", name, err)
 		}
 	}
 	return nil
