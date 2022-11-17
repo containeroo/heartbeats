@@ -65,7 +65,7 @@ heartbeats:
 notifications:
   defaults:
     subject: Heartbeat {{ .Name }} «{{ .Status }}»
-    message: "{{.Description}}. Last ping: {{ .LastPing }}"
+    message: "*Description:*\n{{.Description}}.\n\nLast ping: {{ .GetAgo .LastPing }}"
   services:
     - name: slack
       enabled: false
