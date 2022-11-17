@@ -95,7 +95,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Config.Path, "config", "c", "./config.yaml", "path to notifications config file")
+	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Config.Path, "config", "c", "./config.yaml", "Path to notifications config file")
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Verbose logging.")
 	rootCmd.Flags().BoolVarP(&internal.HeartbeatsServer.Config.PrintVersion, "version", "v", false, "Print the current version and exit.")
 	rootCmd.Flags().StringVar(&internal.HeartbeatsServer.Server.Hostname, "host", "127.0.0.1", "Host of Heartbeat service.")
