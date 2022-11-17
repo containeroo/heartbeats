@@ -33,7 +33,7 @@ func FormatOutput(outputFormat string, textTemplate string, output interface{}) 
 	case "txt", "text":
 		txt, err := FormatTemplate(textTemplate, &output)
 		if err != nil {
-			return "", fmt.Errorf("Error formatting output")
+			return "", fmt.Errorf("Error formatting output. %s", err.Error())
 		}
 		return fmt.Sprintf("%+v", txt), nil
 
