@@ -59,6 +59,11 @@ func ReadConfigFile(configPath string) error {
 	viper.SetConfigFile(configPath)
 	viper.SetConfigType(fileExtensionWithoutDot)
 
+	var previousHeartbeats []Heartbeat
+	if HeartbeatsServer.Heartbeats != nil {
+		previousHeartbeats = HeartbeatsServer.Heartbeats
+	}
+
 	if err := viper.ReadInConfig(); err != nil {
 		return err
 	}
@@ -75,7 +80,41 @@ func ReadConfigFile(configPath string) error {
 		return err
 	}
 
+	ResetTimerIfRunning(&previousHeartbeats)
+
 	return nil
+}
+
+// ResetTimerIfRunning resets existing timers if they are running
+func ResetTimerIfRunning(previousHeartbeats *[]Heartbeat) {
+	for _, currentHeartbeat := range HeartbeatsServer.Heartbeats {
+
+		var previousHeartbeat *Heartbeat
+		var err error
+		for _, p := range *previousHeartbeats {
+			previousHeartbeat, err = GetHeartbeatByName(p.Name)
+			if err != nil {
+				continue
+			}
+		}
+		if previousHeartbeat == nil {
+			log.Errorf("%s not found in previous heartbeats", currentHeartbeat.Name)
+			continue
+		}
+
+		// Heartbeat Interval is running
+		if (currentHeartbeat.IntervalTimer != nil && !currentHeartbeat.IntervalTimer.Completed) && (currentHeartbeat.Interval != previousHeartbeat.Interval) {
+			currentHeartbeat.IntervalTimer.Reset(currentHeartbeat.Interval)
+			log.Debugf("%s Interval timer resetted to %s", currentHeartbeat.Name, currentHeartbeat.Interval)
+			return
+		}
+
+		// Heartbeat Grace is running
+		if (currentHeartbeat.GraceTimer != nil && !currentHeartbeat.GraceTimer.Completed) && (currentHeartbeat.Grace != previousHeartbeat.Grace) {
+			currentHeartbeat.GraceTimer.Reset(currentHeartbeat.Grace)
+			log.Debugf("%s Grace timer resetted to %s", currentHeartbeat.Name, currentHeartbeat.Grace)
+		}
+	}
 }
 
 // ProcessNotificationSettings processes the list with notifications

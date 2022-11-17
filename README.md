@@ -38,7 +38,8 @@ For the moment only `mail`, `slack` and `msteams` are implemented. Feel free to 
 ## Config files
 
 Heartbeats and notifications must be configured in a file.
-Config files can be `yaml`, `json` or `toml`. The file will be loaded automatically if changed.
+Config files can be `yaml`, `json` or `toml`. The config file will be loaded automatically if changed.
+If `interval` and `grace` where changed, they will be resetted to the corresponding *new value*!
 
 To avoid using "secrets" directly in your config file, you can use the prefix `env:` followed by the environment variable.
 
