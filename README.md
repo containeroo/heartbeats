@@ -29,11 +29,30 @@ Small helper service to monitor heartbeats.
 | :---------- | :---------------------------------------------------- |
 | `output=txt|json| yaml` | return server response in selected format |
 
-## Notifications
+*Example:*
 
-Heartbeat uses the library [https://github.com/nikoksr/notify](https://github.com/nikoksr/notify) for notification.
+Execute ping:
 
-For the moment only `mail`, `slack` and `msteams` are implemented. Feel free to create a Pull Request.
+```sh
+curl "http://localhost:8090/status?output=json"
+```
+
+Reuslt:
+
+```json
+[
+  {
+    "name": "watchdog-prometheus-prd",
+    "status": "",
+    "lastPing": "never"
+  },
+  {
+    "name": "watchdog-prometheus-int",
+    "status": "OK",
+    "lastPing": "30 seconds ago"
+  }
+]
+```
 
 ## Config files
 
@@ -51,18 +70,18 @@ Examples:
 ---
 heartbeats:
   - name: watchdog-prometheus-prd
-    description: test prometheus -> alertmanager
+    description: test prometheus -> alertmanager workflow
     interval: 5m
     grace: 30s
     notifications: # must match with notifications.services[*].name
       - slack
-      - mail
+      - mail_provider_x
   - name: watchdog-prometheus-int
-    description: test prometheus -> alertmanager
+    description: test prometheus -> alertmanager workflow
     interval: 60m
     grace: 5m
     notifications:
-      - msteams
+      - msTeams
 notifications:
   defaults:
     subject: Heartbeat {{ .Name }} «{{ .Status }}»
@@ -74,7 +93,7 @@ notifications:
       oauthToken: env:ENV_VARIABLE_YOU_DEFINE
       channels:
       - test
-    - name: mail
+    - name: mail_provider_x
       enabled: true
       type: mail
       subject: "[Heartbeat]: {{ .Name }}"
@@ -91,17 +110,20 @@ notifications:
       type: msteams
       message: "Heartbeat is missing.\n\n{{.Description}}\n interval: {{.Interval}}, grace: {{.Grace}}\nPlease check your sending service!"
       webhooks:
-        - <YOUR WEBHOOK URL>/teams1
-        - <YOUR WEBHOOK URL>/teams2
+        - http://example.webhook.office.com/webhook2/...
         - env:WHY_NOT_A_SECRET_WEBHOOK
 ```
 
 ## Notifications
 
+Heartbeat uses the library [https://github.com/nikoksr/notify](https://github.com/nikoksr/notify) for notification.
+
+For the moment only `mail`, `slack` and `msteams` are implemented. Feel free to create a Pull Request.
+
 `Defaults` (`notification.defaults`) set the general subject & message for each service.
 Each service can override these settings by adding the corresponding key (`subject` and/or `message`)
 
-You can use all properties from `heartbeats` in `subject` and/or `message`. Puth them double curley braces.
+You can use all properties from `heartbeats` in `subject` and/or `message`. They must start with a capital letter and be surrounded by double curly brackets.
 
 There is a function (`GetAgo`) that calculates the time of the last ping to now. (borrowed from [here](https://github.com/xeonx/timeago/))
 
