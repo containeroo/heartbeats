@@ -16,9 +16,16 @@ type ResponseStatus struct {
 
 // HeartbeatStatus represents a heartbeat status
 type HeartbeatStatus struct {
-	Name     string     `json:"name"`
-	Status   string     `json:"status"`
-	LastPing *time.Time `json:"lastPing"`
+	Name     string    `json:"name"`
+	Status   string    `json:"status"`
+	LastPing time.Time `json:"lastPing"`
+}
+
+func (h *HeartbeatStatus) TimeAgo(t time.Time) string {
+	if t.IsZero() {
+		return "never"
+	}
+	return CalculateAgo.Format(t)
 }
 
 // HandlerHome is the handler for the / endpoint
@@ -67,22 +74,21 @@ func HandlerStatus(w http.ResponseWriter, req *http.Request) {
 	var txtFormat string
 	txtFormat = `Name: {{ .Name }}
 Status: {{ if .Status }}{{ .Status }}{{ else }}-{{ end }}
-LastPing: {{if .LastPing.IsZero }}never{{ else }}{{ .LastPing }}{{ end }}`
+LastPing: {{ .TimeAgo .LastPing }}`
 
 	if heartbeatName == "" {
 		var h []HeartbeatStatus
 		for _, heartbeat := range HeartbeatsServer.Heartbeats {
-			s := HeartbeatStatus{
+			s := &HeartbeatStatus{
 				Name:     heartbeat.Name,
 				Status:   heartbeat.Status,
-				LastPing: &heartbeat.LastPing,
+				LastPing: heartbeat.LastPing,
 			}
-			h = append(h, s)
+			h = append(h, *s)
 		}
 
 		textTmpl := fmt.Sprintf("%s%s\n%s", "{{ range . }}", txtFormat, "{{end}}")
-
-		WriteOutput(w, http.StatusOK, outputFormat, h, textTmpl)
+		WriteOutput(w, http.StatusOK, outputFormat, &h, textTmpl)
 		return
 	}
 
@@ -92,13 +98,13 @@ LastPing: {{if .LastPing.IsZero }}never{{ else }}{{ .LastPing }}{{ end }}`
 		return
 	}
 
-	state := &HeartbeatStatus{
+	heartbeatStates := &HeartbeatStatus{
 		Name:     heartbeat.Name,
 		Status:   heartbeat.Status,
-		LastPing: &heartbeat.LastPing,
+		LastPing: heartbeat.LastPing,
 	}
 
-	WriteOutput(w, http.StatusOK, outputFormat, state, txtFormat)
+	WriteOutput(w, http.StatusOK, outputFormat, &heartbeatStates, txtFormat)
 }
 
 // HeartbeatsServer is the handler for the /healthz endpoint
