@@ -76,6 +76,9 @@ You can configure the interval and grace period for each heartbeat separately an
 		// watch config
 		viper.OnConfigChange(func(e fsnotify.Event) {
 			log.Infof("«%s» has changed. reload it", e.Name)
+			if err := internal.ReadConfigFile(internal.HeartbeatsServer.Config.Path); err != nil {
+				log.Fatal(err)
+			}
 		})
 		viper.WatchConfig()
 
