@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -38,7 +39,7 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 	WriteOutput(w, http.StatusOK, outputFormat, msg, `Message: {{ .Message }}`)
 }
 
-// HandlerPing is the handler for the /ping endpoint
+// HandlerPing is the handler for the /ping/<heartbeat> endpoint
 func HandlerPing(w http.ResponseWriter, req *http.Request) {
 	outputFormat := req.URL.Query().Get("output")
 	if outputFormat == "" {
@@ -59,6 +60,27 @@ func HandlerPing(w http.ResponseWriter, req *http.Request) {
 	heartbeat.GotPing()
 
 	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, textTemplate)
+}
+
+// HandlerPingHelp is the handler for the /ping endpoint
+func HandlerPingHelp(w http.ResponseWriter, req *http.Request) {
+	outputFormat := req.URL.Query().Get("output")
+	if outputFormat == "" {
+		outputFormat = "txt"
+	}
+
+	n := rand.Int() % len(HeartbeatsServer.Heartbeats)
+
+	usage := struct {
+		Status string `json:"status"`
+		Usage  string `json:"usage"`
+	}{
+		Status: "ok",
+		Usage: fmt.Sprintf(`you must specify the name of the wanted heartbeat in the URL.
+Example: %s/ping/%s`, HeartbeatsServer.Server.SiteRoot, HeartbeatsServer.Heartbeats[n].Name),
+	}
+
+	WriteOutput(w, http.StatusOK, outputFormat, &usage, `{{ .Usage }}`)
 }
 
 // HandlerState is the handler for the /status endpoint
