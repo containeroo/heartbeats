@@ -1,5 +1,7 @@
 # Heartbeat
 
+![heartbeats.pn](.github/icons/heartbeats.png)
+
 Small helper service to monitor heartbeats.
 
 ## Flags
