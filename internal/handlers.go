@@ -45,7 +45,7 @@ func HandlerPing(w http.ResponseWriter, req *http.Request) {
 
 	heartbeat, err := GetHeartbeatByName(heartbeatName)
 	if err != nil {
-		WriteOutput(w, http.StatusBadRequest, outputFormat, err.Error(), textTemplate)
+		WriteOutput(w, http.StatusNotFound, outputFormat, err.Error(), textTemplate)
 		return
 	}
 
@@ -79,7 +79,7 @@ func HandlerStatus(w http.ResponseWriter, req *http.Request) {
 Status: {{ .Status }}
 LastPing: {{  .LastPing }}
 {{ end }}`
-		WriteOutput(w, http.StatusNotFound, outputFormat, h, textTmpl)
+		WriteOutput(w, http.StatusOK, outputFormat, h, textTmpl)
 		return
 	}
 
