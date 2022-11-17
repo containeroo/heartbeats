@@ -64,6 +64,11 @@ func HandlerStatus(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	heartbeatName := vars["heartbeat"]
 
+	var txtFormat string
+	txtFormat = `Name: {{ .Name }}
+Status: {{ if .Status }}{{ .Status }}{{ else }}-{{ end }}
+LastPing: {{if .LastPing.IsZero }}never{{ else }}{{ .LastPing }}{{ end }}`
+
 	if heartbeatName == "" {
 		var h []HeartbeatStatus
 		for _, heartbeat := range HeartbeatsServer.Heartbeats {
@@ -75,10 +80,8 @@ func HandlerStatus(w http.ResponseWriter, req *http.Request) {
 			h = append(h, s)
 		}
 
-		textTmpl := `{{ range . }}Name: {{ .Name }}
-Status: {{ .Status }}
-LastPing: {{  .LastPing }}
-{{ end }}`
+		textTmpl := fmt.Sprintf("%s%s\n%s", "{{ range . }}", txtFormat, "{{end}}")
+
 		WriteOutput(w, http.StatusOK, outputFormat, h, textTmpl)
 		return
 	}
@@ -94,10 +97,6 @@ LastPing: {{  .LastPing }}
 		Status:   heartbeat.Status,
 		LastPing: &heartbeat.LastPing,
 	}
-
-	txtFormat := `Name: {{ .Name }}
-Status: {{ if .Status }}{{ .Status }}{{ else }}-{{ end }}
-LastPing: {{if .LastPing.IsZero }}never{{ else }}{{ .LastPing }}{{ end }}`
 
 	WriteOutput(w, http.StatusOK, outputFormat, state, txtFormat)
 }
