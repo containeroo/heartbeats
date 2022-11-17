@@ -89,7 +89,6 @@ notifications:
     - name: msTeams
       enabled: true
       type: msteams
-      subject: "[Heartbeat]: {{ .Name }}"
       message: "Heartbeat is missing.\n\n{{.Description}}\n interval: {{.Interval}}, grace: {{.Grace}}\nPlease check your sending service!"
       webhooks:
         - <YOUR WEBHOOK URL>/teams1
