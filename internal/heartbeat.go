@@ -39,8 +39,8 @@ func (h *Heartbeat) GotPing() {
 
 	// Heartbeat is running and not expired
 	if h.IntervalTimer != nil && !h.IntervalTimer.Completed {
-		log.Infof("%s got ping. Reset timer with interval %s", h.Name, h.Interval)
 		h.IntervalTimer.Reset(h.Interval)
+		log.Infof("%s got ping. Reset timer with interval %s", h.Name, h.Interval)
 	}
 
 	// This is the first ping or after a grace period has expired
@@ -64,6 +64,7 @@ func (h *Heartbeat) GotPing() {
 
 	h.LastPing = time.Now()
 	h.Status = "OK"
+	log.Tracef("heartbeat was updated. New values are: %s", h)
 }
 
 // GetServiceByType returns notification settings by type
