@@ -130,8 +130,7 @@ func ProcessServiceSettings() error {
 	for i, service := range HeartbeatsServer.Notifications.Services {
 		var serviceType string
 
-		// evaluate type of service
-		// this is needed because the type of the service is not known at compile time
+		// this is needed because the type of the service is not known when config is read
 		switch service.(type) {
 		case map[string]interface{}:
 			s, ok := service.(map[string]interface{})["type"].(string)
@@ -149,6 +148,7 @@ func ProcessServiceSettings() error {
 			return fmt.Errorf("invalid service type in notifications config file")
 		}
 
+		// now the type is known and the service can be processed
 		switch serviceType {
 		case "slack":
 			var result notifications.SlackSettings
