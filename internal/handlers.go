@@ -39,7 +39,7 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 		outputFormat = "txt"
 	}
 	msg := struct{ Message string }{Message: fmt.Sprintf("Welcome to the Heartbeat Server.\nVersion: %s", HeartbeatsServer.Version)}
-	WriteOutput(w, http.StatusOK, outputFormat, msg, `Message: {{ .Message }}`)
+	WriteOutput(w, http.StatusOK, outputFormat, msg, "Message: {{ .Message }}")
 }
 
 // HandlerPing is the handler for the /ping/<heartbeat> endpoint
@@ -54,17 +54,15 @@ func HandlerPing(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	heartbeatName := vars["heartbeat"]
 
-	textTemplate := `{{ .Status }}`
-
 	heartbeat, err := GetHeartbeatByName(heartbeatName)
 	if err != nil {
-		WriteOutput(w, http.StatusNotFound, outputFormat, err.Error(), textTemplate)
+		WriteOutput(w, http.StatusNotFound, outputFormat, err.Error(), "{{ .Status }}")
 		return
 	}
 
 	heartbeat.GotPing()
 
-	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, textTemplate)
+	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
 }
 
 // HandlerPingHelp is the handler for the /ping endpoint
@@ -82,11 +80,10 @@ func HandlerPingHelp(w http.ResponseWriter, req *http.Request) {
 		Usage  string `json:"usage"`
 	}{
 		Status: "ok",
-		Usage: fmt.Sprintf(`you must specify the name of the wanted heartbeat in the URL.
-Example: %s/ping/%s`, HeartbeatsServer.Server.SiteRoot, HeartbeatsServer.Heartbeats[n].Name),
+		Usage:  fmt.Sprintf("You must specify the name of the wanted heartbeat in the URL.\nExample: %s/ping/%s", HeartbeatsServer.Server.SiteRoot, HeartbeatsServer.Heartbeats[n].Name),
 	}
 
-	WriteOutput(w, http.StatusOK, outputFormat, &usage, `{{ .Usage }}`)
+	WriteOutput(w, http.StatusOK, outputFormat, &usage, "{{ .Usage }}")
 }
 
 // HandlerState is the handler for the /status endpoint
@@ -123,7 +120,7 @@ LastPing: {{ .TimeAgo .LastPing }}`
 
 	heartbeat, err := GetHeartbeatByName(heartbeatName)
 	if err != nil {
-		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: err.Error()}, `Status: {{ .Status }} Error: {{  .Error }}`)
+		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }} Error: {{  .Error }}")
 		return
 	}
 
@@ -144,7 +141,7 @@ func HandlerHealthz(w http.ResponseWriter, req *http.Request) {
 	if outputFormat == "" {
 		outputFormat = "txt"
 	}
-	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, `{{ .Status }}`)
+	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
 }
 
 // WriteOutput writes the output to the response writer
