@@ -143,6 +143,8 @@ func ProcessServiceSettings() error {
 			serviceType = "slack"
 		case notifications.MailSettings:
 			serviceType = "mail"
+		case notifications.MsteamsSettings:
+			serviceType = "msteams"
 		default:
 			return fmt.Errorf("invalid service type in notifications config file")
 		}
