@@ -32,7 +32,7 @@ const (
 	version = "v0.0.24"
 )
 
-var debug, trace bool
+var debug, trace, JsonLog bool
 
 type PlainFormatter struct{}
 
@@ -41,8 +41,11 @@ func (f *PlainFormatter) Format(entry *log.Entry) ([]byte, error) {
 }
 func toggleDebug(cmd *cobra.Command, args []string) {
 
-	plainFormatter := new(PlainFormatter)
-	log.SetFormatter(plainFormatter)
+	if JsonLog {
+		log.SetFormatter(&log.JSONFormatter{})
+	} else {
+		log.SetFormatter(&PlainFormatter{})
+	}
 
 	if debug {
 		internal.HeartbeatsServer.Config.Logging = "debug"
@@ -104,6 +107,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Verbose logging.")
 	rootCmd.Flags().BoolVarP(&trace, "trace", "t", false, "More verbose logging.")
 	rootCmd.MarkFlagsMutuallyExclusive("debug", "trace")
+	rootCmd.Flags().BoolVarP(&JsonLog, "json-log", "j", false, "Output logging as json.")
 
 	rootCmd.Flags().BoolVarP(&internal.HeartbeatsServer.Config.PrintVersion, "version", "v", false, "Print the current version and exit.")
 	rootCmd.Flags().StringVar(&internal.HeartbeatsServer.Server.Hostname, "host", "127.0.0.1", "Host of Heartbeat service.")

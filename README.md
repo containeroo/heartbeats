@@ -10,11 +10,13 @@ Small helper service to monitor heartbeats.
 -c, --config string      Path to notifications config file (default "./config.yaml")
 -d, --debug              Verbose logging.
 -t, --trace              More verbose logging.
--h, --help               Help for heartbeat
+-j, --json               Output logging as json.
+-v, --version            Print the current version and exit.
     --host string        Host of Heartbeat service. (default "127.0.0.1")
 -p, --port int           Port to listen on (default 8090)
 -s, --site-root string   Site root for the heartbeat service (default "http://host:port")
--v, --version            Print the current version and exit.
+-h, --help               help for heartbeat
+
 ```
 
 ## Endpoints
