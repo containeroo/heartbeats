@@ -19,19 +19,19 @@ Small helper service to monitor heartbeats.
 
 ## Endpoints
 
-| flag                  | description                              |
-| :-------------------- | :--------------------------------------- |
-| `/`                   | show current version                     |
-| `/healthz`            | show if heartbeats is healthy            |
-| `/ping/{HEARTBEAT}`   | reset timer at configured interval       |
-| `/status/{HEARTBEAT}` | returns current status of Heartbeat      |
-| `/status/`            | returns current status of all Heartbeats |
+| Path                  | Method          | Description                              |
+| :-------------------- | :-------------- | :--------------------------------------- |
+| `/`                   | `GET`           | show current version                     |
+| `/healthz`            | `GET`           | show if heartbeats is healthy            |
+| `/ping/{HEARTBEAT}`   | `GET`, `POST`   | reset timer at configured interval       |
+| `/status/{HEARTBEAT}` | `GET`           | returns current status of Heartbeat      |
+| `/status/`            | `GET`           | returns current status of all Heartbeats |
 
 ## Parameters
 
-| query       | description                                           |
-| :---------- | :---------------------------------------------------- |
-| `output=txt|json| yaml` | return server response in selected format |
+| Query                   | Description                               |
+| :---------------------- | :----------------------------------------- |
+| `output=txt|json|yaml`  | return server response in selected format |
 
 *Example:*
 
