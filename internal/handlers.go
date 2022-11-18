@@ -163,4 +163,5 @@ func WriteOutput(w http.ResponseWriter, StatusCode int, outputFormat string, out
 	if err != nil {
 		log.Errorf("Cannot write response: %s", err)
 	}
+	log.Tracef("Server respond with: %d %s", StatusCode, o)
 }
