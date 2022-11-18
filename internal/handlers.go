@@ -148,20 +148,20 @@ func HandlerHealthz(w http.ResponseWriter, req *http.Request) {
 }
 
 // WriteOutput writes the output to the response writer
-func WriteOutput(w http.ResponseWriter, StatusCode int, outputFormat string, output interface{}, textTemplate string) {
-	o, err := FormatOutput(outputFormat, textTemplate, output)
+func WriteOutput(w http.ResponseWriter, statusCode int, outputFormat string, output interface{}, textTemplate string) {
+	formatOutput, err := FormatOutput(outputFormat, textTemplate, output)
 	if err != nil {
-		w.WriteHeader(StatusCode)
+		w.WriteHeader(statusCode)
 		_, err = w.Write([]byte(err.Error()))
 		if err != nil {
 			log.Errorf("Cannot write response: %s", err)
 		}
 		return
 	}
-	w.WriteHeader(StatusCode)
-	_, err = w.Write([]byte(o))
+	w.WriteHeader(statusCode)
+	_, err = w.Write([]byte(formatOutput))
 	if err != nil {
 		log.Errorf("Cannot write response: %s", err)
 	}
-	log.Tracef("Server respond with: %d %s", StatusCode, o)
+	log.Tracef("Server respond with: %d %s", statusCode, formatOutput)
 }
