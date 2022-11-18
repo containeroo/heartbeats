@@ -69,19 +69,16 @@ func (h *Heartbeat) GotPing() {
 // GetServiceByType returns notification settings by type
 func (h *HeartbeatsConfig) GetServiceByName(notificationType string) (interface{}, error) {
 	for _, notification := range h.Notifications.Services {
-		switch notification.(type) {
+		switch service := notification.(type) {
 		case notifications.SlackSettings:
-			service := notification.(notifications.SlackSettings)
 			if strings.EqualFold(service.Name, notificationType) {
 				return service, nil
 			}
 		case notifications.MailSettings:
-			service := notification.(notifications.MailSettings)
 			if strings.EqualFold(service.Name, notificationType) {
 				return service, nil
 			}
 		case notifications.MsteamsSettings:
-			service := notification.(notifications.MsteamsSettings)
 			if strings.EqualFold(service.Name, notificationType) {
 				return service, nil
 			}

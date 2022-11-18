@@ -44,9 +44,8 @@ func NotificationFunc(heartbeatName string, success bool) func() {
 			var notifier notify.Notifier
 			var enabled bool
 
-			switch notificationService.(type) {
+			switch service := notificationService.(type) {
 			case notifications.SlackSettings:
-				service := notificationService.(notifications.SlackSettings)
 				serviceName = service.Name
 				subject = service.Subject
 				message = service.Message
@@ -54,7 +53,6 @@ func NotificationFunc(heartbeatName string, success bool) func() {
 				enabled = service.Enabled
 
 			case notifications.MailSettings:
-				service := notificationService.(notifications.MailSettings)
 				serviceName = service.Name
 				subject = service.Subject
 				message = service.Message
@@ -62,7 +60,6 @@ func NotificationFunc(heartbeatName string, success bool) func() {
 				enabled = service.Enabled
 
 			case notifications.MsteamsSettings:
-				service := notificationService.(notifications.MsteamsSettings)
 				serviceName = service.Name
 				subject = service.Subject
 				message = service.Message

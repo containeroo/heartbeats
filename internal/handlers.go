@@ -101,8 +101,7 @@ func HandlerStatus(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	heartbeatName := vars["heartbeat"]
 
-	var txtFormat string
-	txtFormat = `Name: {{ .Name }}
+	var txtFormat string = `Name: {{ .Name }}
 Status: {{ if .Status }}{{ .Status }}{{ else }}-{{ end }}
 LastPing: {{ .TimeAgo .LastPing }}`
 
@@ -153,10 +152,15 @@ func WriteOutput(w http.ResponseWriter, StatusCode int, outputFormat string, out
 	o, err := FormatOutput(outputFormat, textTemplate, output)
 	if err != nil {
 		w.WriteHeader(StatusCode)
-		w.Write([]byte(err.Error()))
+		_, err = w.Write([]byte(err.Error()))
+		if err != nil {
+			log.Errorf("Cannot write response: %s", err)
+		}
 		return
 	}
 	w.WriteHeader(StatusCode)
-	w.Write([]byte(o))
-	return
+	_, err = w.Write([]byte(o))
+	if err != nil {
+		log.Errorf("Cannot write response: %s", err)
+	}
 }

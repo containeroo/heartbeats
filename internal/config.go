@@ -241,14 +241,16 @@ func CheckSendDetails() error {
 	var name, subject, message string
 
 	for _, notification := range HeartbeatsServer.Notifications.Services {
-		switch notification.(type) {
+		switch settings := notification.(type) {
 		case notifications.SlackSettings:
-			settings := notification.(notifications.SlackSettings)
 			name = settings.Name
 			subject = settings.Subject
 			message = settings.Message
 		case notifications.MailSettings:
-			settings := notification.(notifications.MailSettings)
+			name = settings.Name
+			subject = settings.Subject
+			message = settings.Message
+		case notifications.MsteamsSettings:
 			name = settings.Name
 			subject = settings.Subject
 			message = settings.Message
