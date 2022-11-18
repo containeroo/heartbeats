@@ -32,7 +32,7 @@ const (
 	version = "v0.0.13"
 )
 
-var debug bool
+var debug, trace bool
 
 type PlainFormatter struct{}
 
@@ -45,9 +45,14 @@ func toggleDebug(cmd *cobra.Command, args []string) {
 	log.SetFormatter(plainFormatter)
 
 	if debug {
-		internal.HeartbeatsServer.Config.Debug = true
+		internal.HeartbeatsServer.Config.Logging = "debug"
 		log.SetLevel(log.DebugLevel)
 		log.Debug("Debug logs enabled")
+	}
+	if trace {
+		internal.HeartbeatsServer.Config.Logging = "trace"
+		log.SetLevel(log.TraceLevel)
+		log.Debug("Trace logs enabled")
 	}
 }
 
@@ -97,8 +102,12 @@ func Execute() {
 func init() {
 	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Config.Path, "config", "c", "./config.yaml", "Path to notifications config file")
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Verbose logging.")
+	rootCmd.Flags().BoolVarP(&trace, "trace", "t", false, "More verbose logging.")
+	rootCmd.MarkFlagsMutuallyExclusive("debug", "trace")
+
 	rootCmd.Flags().BoolVarP(&internal.HeartbeatsServer.Config.PrintVersion, "version", "v", false, "Print the current version and exit.")
 	rootCmd.Flags().StringVar(&internal.HeartbeatsServer.Server.Hostname, "host", "127.0.0.1", "Host of Heartbeat service.")
 	rootCmd.Flags().IntVarP(&internal.HeartbeatsServer.Server.Port, "port", "p", 8090, "Port to listen on")
 	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Server.SiteRoot, "site-root", "s", "", "Site root for the heartbeat service (default \"http://host:port\")")
+	rootCmd.Flags().SortFlags = false
 }

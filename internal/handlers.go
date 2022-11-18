@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 // StResponseStatus represents the response
@@ -31,6 +32,8 @@ func (h *HeartbeatStatus) TimeAgo(t time.Time) string {
 
 // HandlerHome is the handler for the / endpoint
 func HandlerHome(w http.ResponseWriter, req *http.Request) {
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+
 	outputFormat := req.URL.Query().Get("output")
 	if outputFormat == "" {
 		outputFormat = "txt"
@@ -41,6 +44,8 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 
 // HandlerPing is the handler for the /ping/<heartbeat> endpoint
 func HandlerPing(w http.ResponseWriter, req *http.Request) {
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+
 	outputFormat := req.URL.Query().Get("output")
 	if outputFormat == "" {
 		outputFormat = "txt"
@@ -64,13 +69,14 @@ func HandlerPing(w http.ResponseWriter, req *http.Request) {
 
 // HandlerPingHelp is the handler for the /ping endpoint
 func HandlerPingHelp(w http.ResponseWriter, req *http.Request) {
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+
 	outputFormat := req.URL.Query().Get("output")
 	if outputFormat == "" {
 		outputFormat = "txt"
 	}
 
 	n := rand.Int() % len(HeartbeatsServer.Heartbeats)
-
 	usage := struct {
 		Status string `json:"status"`
 		Usage  string `json:"usage"`
@@ -85,6 +91,8 @@ Example: %s/ping/%s`, HeartbeatsServer.Server.SiteRoot, HeartbeatsServer.Heartbe
 
 // HandlerState is the handler for the /status endpoint
 func HandlerStatus(w http.ResponseWriter, req *http.Request) {
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+
 	outputFormat := req.URL.Query().Get("output")
 	if outputFormat == "" {
 		outputFormat = "txt"
@@ -131,6 +139,8 @@ LastPing: {{ .TimeAgo .LastPing }}`
 
 // HeartbeatsServer is the handler for the /healthz endpoint
 func HandlerHealthz(w http.ResponseWriter, req *http.Request) {
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+
 	outputFormat := req.URL.Query().Get("output")
 	if outputFormat == "" {
 		outputFormat = "txt"

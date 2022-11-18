@@ -24,7 +24,7 @@ const (
 type Config struct {
 	Path         string `mapstructure:"path"`
 	PrintVersion bool   `mapstructure:"printVersion"`
-	Debug        bool   `mapstructure:"debug"`
+	Logging      string `mapstructure:"logging"`
 }
 
 type Defaults struct {
