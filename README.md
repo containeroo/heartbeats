@@ -41,7 +41,7 @@ Execute ping:
 curl "http://localhost:8090/status?output=json"
 ```
 
-Reuslt:
+Result:
 
 ```json
 [
