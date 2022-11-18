@@ -81,7 +81,7 @@ func NotificationFunc(heartbeatName string, success bool) func() {
 				continue
 			}
 			if err := Send(heartbeatName, serviceName, notifier, msg.Subject, msg.Message); err != nil {
-				log.Errorf("%s Could not send notification to «%s»", heartbeatName, serviceName, err)
+				log.Errorf("%s Could not send notification to «%s». %s", heartbeatName, serviceName, err)
 				continue
 			}
 		}
