@@ -102,6 +102,7 @@ func ResetTimerIfRunning(previousHeartbeats *[]Heartbeat) {
 		for _, p := range *previousHeartbeats {
 			previousHeartbeat, err = GetHeartbeatByName(p.Name)
 			if err != nil {
+				log.Errorf("%s not found in previous heartbeats. %s", currentHeartbeat.Name, err.Error())
 				continue
 			}
 		}
@@ -113,14 +114,14 @@ func ResetTimerIfRunning(previousHeartbeats *[]Heartbeat) {
 		// Heartbeat Interval is running
 		if (currentHeartbeat.IntervalTimer != nil && !currentHeartbeat.IntervalTimer.Completed) && (currentHeartbeat.Interval != previousHeartbeat.Interval) {
 			currentHeartbeat.IntervalTimer.Reset(currentHeartbeat.Interval)
-			log.Debugf("%s Interval timer resetted to %s", currentHeartbeat.Name, currentHeartbeat.Interval)
+			log.Debugf("%s Interval timer reset to %s", currentHeartbeat.Name, currentHeartbeat.Interval)
 			return
 		}
 
 		// Heartbeat Grace is running
 		if (currentHeartbeat.GraceTimer != nil && !currentHeartbeat.GraceTimer.Completed) && (currentHeartbeat.Grace != previousHeartbeat.Grace) {
 			currentHeartbeat.GraceTimer.Reset(currentHeartbeat.Grace)
-			log.Debugf("%s Grace timer resetted to %s", currentHeartbeat.Name, currentHeartbeat.Grace)
+			log.Debugf("%s Grace timer reset to %s", currentHeartbeat.Name, currentHeartbeat.Grace)
 		}
 	}
 }
