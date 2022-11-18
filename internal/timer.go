@@ -37,9 +37,10 @@ func NewTimerWithCancel(duration time.Duration, complete func(), cancel func()) 
 // Reset resets the timer with a new duration
 func (t *Timer) Reset(duration time.Duration) {
 	if !t.timer.Stop() {
-    <-t.timer.C
+		<-t.timer.C
+	}
+	t.timer.Reset(duration)
 }
-t.Reset(duration)}
 
 // Cancel cancels the timer
 func (t *Timer) Cancel() {

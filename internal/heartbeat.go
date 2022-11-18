@@ -64,7 +64,6 @@ func (h *Heartbeat) GotPing() {
 
 	h.LastPing = time.Now()
 	h.Status = "OK"
-	log.Tracef("heartbeat was updated. New values are: %s", h)
 }
 
 // GetServiceByType returns notification settings by type
