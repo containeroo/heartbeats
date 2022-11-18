@@ -18,7 +18,7 @@ type MailSettings struct {
 	SmtpHostAddr      string         `mapstructure:"smtpHostAddr,omitempty"`
 	SmtpHostPort      int            `mapstructure:"smtpHostPort,omitempty"`
 	SmtpAuthUser      string         `mapstructure:"smtpAuthUser,omitempty"`
-	SmtpAuthPassword  string         `mapstructure:"smtpAuthPassword,omitempty" redacted:"true"`
+	SmtpAuthPassword  string         `mapstructure:"smtpAuthPassword,omitempty"`
 	ReceiverAddresses []string       `mapstructure:"receiverAddresses,omitempty"`
 }
 
