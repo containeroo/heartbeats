@@ -1,4 +1,4 @@
-<svg width="1024" height="768" xmlns="http://www.w3.org/2000/svg">
+<svg width="1024" height="768" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
  <title>heartbeats</title>
  <defs>
   <linearGradient id="heartcolor" x1="0" y1="0" x2="1" y2="0">
@@ -12,7 +12,7 @@
   <title>beat</title>
   <path
      style="fill:none;stroke:#000000;stroke-width:20;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-     d="m 100,390 c 0,0 10,0 220,-0 l 90,-240 228,410 120,-290 100,120 h 90"
+     d="m 90,390 c 0,0 10,0 220,-0 l 90,-240 228,410 120,-280 100,100 h 100"
      id="path431" />
  </g>
 </svg>
