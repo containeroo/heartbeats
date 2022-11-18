@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	version = "v0.0.16"
+	version = "v0.0.17"
 )
 
 var debug, trace bool
