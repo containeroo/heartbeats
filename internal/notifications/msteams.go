@@ -18,8 +18,8 @@ type MsteamsSettings struct {
 // GenerateMailService generates a mail service
 func GenerateMsteamsService(webHooks []string) (*msteams.MSTeams, error) {
 
-	mailService := msteams.New()
-	mailService.AddReceivers(webHooks...)
+	MSTeams := msteams.New()
+	MSTeams.AddReceivers(webHooks...)
 
-	return mailService, nil
+	return MSTeams, nil
 }
