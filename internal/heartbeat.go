@@ -32,7 +32,7 @@ func (h *Heartbeat) TimeAgo(t time.Time) string {
 func (h *Heartbeat) GotPing() {
 
 	// Timer is expired, grace is running but not completed
-	if h.IntervalTimer != nil &&  h.IntervalTimer.Completed && h.GraceTimer != nil && !h.GraceTimer.Completed {
+	if h.IntervalTimer != nil && h.IntervalTimer.Completed && h.GraceTimer != nil && !h.GraceTimer.Completed {
 		log.Infof("%s got ping. Stop grace timer", h.Name)
 		h.GraceTimer.Cancel()
 	}
