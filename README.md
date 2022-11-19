@@ -1,6 +1,6 @@
 # Heartbeat
 
-![heartbeats.pn](.github/icons/heartbeats.png)
+![heartbeats.png](.github/icons/heartbeats.png)
 
 Small helper service to monitor heartbeats.
 
@@ -63,7 +63,7 @@ Result:
 ## Config files
 
 Heartbeats and notifications must be configured in a file.
-Config files can be `yaml`, `json` or `toml`. The config file will be loaded automatically if changed.
+Config files can be `yaml`, `json` or `toml`. The config file should be loaded automatically if changed. Please check the log output to control if the config reload works in your environment.
 If `interval` and `grace` where changed, they will be reset to the corresponding *new value*!
 
 To avoid using "secrets" directly in your config file, you can use the prefix `env:` followed by the environment variable.
@@ -129,7 +129,7 @@ For the moment only `mail`, `slack` and `msteams` are implemented. Feel free to 
 `Defaults` (`notification.defaults`) set the general subject & message for each service.
 Each service can override these settings by adding the corresponding key (`subject` and/or `message`)
 
-You can use all properties from `heartbeats` in `subject` and/or `message`. They must start with a capital letter and be surrounded by double curly brackets.
+You can use all properties from `heartbeats` in `subject` and/or `message`. The variables must start with a capital letter and be surrounded by double curly brackets. Example: `{{ .Status }}`
 
 There is a function (`TimeAgo`) that calculates the time of the last ping to now. (borrowed from [here](https://github.com/xeonx/timeago/))
 
