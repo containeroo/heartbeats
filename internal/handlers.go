@@ -174,6 +174,7 @@ func HandlerConfig(w http.ResponseWriter, req *http.Request) {
 	}
 
 	WriteOutput(w, http.StatusOK, outputFormat, &HeartbeatsServerCopy, "{{ . }}")
+	HeartbeatsServerCopy = nil // clear the copy
 }
 
 // WriteOutput writes the output to the response writer
