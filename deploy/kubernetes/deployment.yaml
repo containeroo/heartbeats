@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: heartbeats
-          image: ghcr.io/gi8lino/heartbeats:v0.1.3
+          image: ghcr.io/gi8lino/heartbeats:v0.1.4
           imagePullPolicy: IfNotPresent
           args:
             - --config

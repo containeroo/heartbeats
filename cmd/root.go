@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	version = "v0.1.3"
+	version = "v0.1.4"
 )
 
 var debug, trace, JsonLog bool
@@ -63,9 +63,8 @@ func toggleDebug(cmd *cobra.Command, args []string) {
 var rootCmd = &cobra.Command{
 	Use:   "heartbeat",
 	Short: "Wait for heartbeats and notify if they are missing",
-	Long: `Heartbeats waits for heartbeats and notifies if they are missing.
-You can configure the interval and grace period for each heartbeat separately and it will notify you if a heartbeat is missing.
-`,
+	Long: `Small helper service to monitor heartbeats (repeating "pings" from other systems).
+If a "ping" does not arrive in the given interval & grace period, Heartbeats will send notifications.`,
 
 	PersistentPreRun: toggleDebug,
 	Run: func(cmd *cobra.Command, args []string) {
