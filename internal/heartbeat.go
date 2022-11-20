@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Heartbeat is a struct for a heartbeat
 type Heartbeat struct {
 	Name          string        `mapstructure:"name"`
 	Description   string        `mapstructure:"description"`
@@ -22,6 +23,7 @@ type Heartbeat struct {
 	GraceTimer    *Timer        `mapstructure:"-,omitempty" deepcopier:"skip"`
 }
 
+// TimeAgo returns a string with the time since the last ping
 func (h *Heartbeat) TimeAgo(t time.Time) string {
 	if t.IsZero() {
 		return "never"
@@ -52,13 +54,14 @@ func (h *Heartbeat) GotPing() {
 	// GraceTimer is nil when never started
 	// GraceTimer.Completed is true when expired
 	if (h.IntervalTimer == nil || h.IntervalTimer.Completed) && (h.GraceTimer == nil || h.GraceTimer.Completed) {
-		log.Infof("%s Start timer with interval %s", h.Name, h.Interval)
+		log.Tracef("First ping or ping after a grace period has expired")
 		h.IntervalTimer = NewTimer(h.Interval, func() {
 			log.Infof("%s Timer is expired. Start grace timer with duration %s", h.Name, h.Grace)
 			h.Status = "GRACE"
 			h.GraceTimer = NewTimer(h.Grace,
 				NotificationFunc(h.Name, false))
 		})
+		log.Infof("%s Start timer with interval %s", h.Name, h.Interval)
 		// inform the user that the heartbeat is running again
 		if h.Status == "NOK" {
 			go NotificationFunc(h.Name, true)()
