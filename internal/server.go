@@ -17,6 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Server is the holds HTTP server settings
 type Server struct {
 	Hostname string `mapstructure:"hostname"`
 	Port     int    `mapstructure:"port"`

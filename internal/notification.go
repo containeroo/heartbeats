@@ -12,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// SendDetails holds prepared subject & message
 type SendDetails struct {
 	Subject string
 	Message string

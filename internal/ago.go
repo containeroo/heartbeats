@@ -1,6 +1,6 @@
 package internal
 
-//https://github.com/xeonx/timeago/
+// borrowed from https://github.com/xeonx/timeago/
 
 import (
 	"fmt"
@@ -32,7 +32,7 @@ type Ago struct {
 	Periods []FormatPeriod
 
 	Zero string
-	Max  time.Duration //Maximum duration for using the special formatting.
+	Max  time.Duration // Maximum duration for using the special formatting.
 	//DefaultLayout is used if delta is greater than the minimum of last period
 	//in Periods and Max. It is the desired representation of the date 2nd of
 	// January 2006.

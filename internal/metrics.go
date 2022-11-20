@@ -6,11 +6,13 @@ import (
 
 var PromMetrics Metrics
 
+// Metrics holds all prometheus metrics
 type Metrics struct {
 	HeartbeatStatus *prometheus.GaugeVec
 	TotalHeartbeats *prometheus.CounterVec
 }
 
+// NewMetrics registers all prometheus metrics
 func NewMetrics(reg prometheus.Registerer) *Metrics {
 	m := &Metrics{
 		HeartbeatStatus: prometheus.NewGaugeVec(

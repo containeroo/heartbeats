@@ -21,22 +21,26 @@ const (
 	EnvPrefix = "env:"
 )
 
+// Config holds general configuration
 type Config struct {
 	Path         string `mapstructure:"path"`
 	PrintVersion bool   `mapstructure:"printVersion"`
 	Logging      string `mapstructure:"logging"`
 }
 
+// Details holds defaults for notifications
 type Defaults struct {
 	Subject string `mapstructure:"subject" default:"Heartbeat"`
 	Message string `mapstructure:"message" default:"Heartbeat is missing"`
 }
 
+// NotifyConfig holds the configuration for the notifications
 type Notifications struct {
 	Defaults Defaults      `mapstructure:"defaults"`
 	Services []interface{} `mapstructure:"services"`
 }
 
+// HeartbeatsConfig is the main configuration struct
 type HeartbeatsConfig struct {
 	Version       string        `mapstructure:"version"`
 	Config        Config        `mapstructure:"config"`
@@ -45,7 +49,7 @@ type HeartbeatsConfig struct {
 	Notifications Notifications `mapstructure:"notifications"`
 }
 
-// ReadConfigFile reads the notifications config file with and returns a Config struct
+// ReadConfigFile reads the notifications config file
 func ReadConfigFile(configPath string) error {
 	parentDir := filepath.Dir(configPath)
 	absolutePath, err := filepath.Abs(parentDir)
