@@ -11,7 +11,7 @@ import (
 	"github.com/ulule/deepcopier"
 )
 
-// StResponseStatus represents the response
+// ResponseStatus represents a response
 type ResponseStatus struct {
 	Status string `json:"status"`
 	Error  string `json:"error"`
@@ -24,6 +24,7 @@ type HeartbeatStatus struct {
 	LastPing time.Time `json:"lastPing"`
 }
 
+// TimeAgo returns a string representing the time since the given time
 func (h *HeartbeatStatus) TimeAgo(t time.Time) string {
 	if t.IsZero() {
 		return "never"
@@ -39,8 +40,36 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 	if outputFormat == "" {
 		outputFormat = "txt"
 	}
-	msg := struct{ Message string }{Message: fmt.Sprintf("Welcome to the Heartbeat Server.\nVersion: %s", HeartbeatsServer.Version)}
-	WriteOutput(w, http.StatusOK, outputFormat, msg, "{{ .Message }}")
+
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head>
+<title>Heartbeats</title>
+</head>
+<body>
+<h1>Heartbeats</h1>
+<p><a href="/config">Config</a></p>
+<p><a href="/metrics">Metrics</a></p>
+<h2>Status</h2>
+<ul>
+<li><a href="/status">All</a></li>
+{{ range . }}
+<li><a href="/status/{{.Name}}">{{.Name}}</a></li>
+{{end}}
+</ul>
+</body>
+</html>
+`)
+
+	s, err := FormatTemplate(html, HeartbeatsServer.Heartbeats)
+	if err != nil {
+		WriteOutput(w, http.StatusOK, outputFormat, ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }} Error: {{  .Error }}")
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(s))
 }
 
 // HandlerPing is the handler for the /ping/<heartbeat> endpoint
@@ -75,7 +104,7 @@ func HandlerPingHelp(w http.ResponseWriter, req *http.Request) {
 		outputFormat = "txt"
 	}
 
-	n := rand.Int() % len(HeartbeatsServer.Heartbeats)
+	n := rand.Int() % len(HeartbeatsServer.Heartbeats) // pick a random heartbeat
 	usage := struct {
 		Status string `json:"status"`
 		Usage  string `json:"usage"`
@@ -104,18 +133,8 @@ Status: {{ if .Status }}{{ .Status }}{{ else }}-{{ end }}
 LastPing: {{ .TimeAgo .LastPing }}`
 
 	if heartbeatName == "" {
-		var h []HeartbeatStatus
-		for _, heartbeat := range HeartbeatsServer.Heartbeats {
-			s := &HeartbeatStatus{
-				Name:     heartbeat.Name,
-				Status:   heartbeat.Status,
-				LastPing: heartbeat.LastPing,
-			}
-			h = append(h, *s)
-		}
-
 		textTmpl := fmt.Sprintf("%s%s\n%s", "{{ range . }}", txtFormat, "{{end}}")
-		WriteOutput(w, http.StatusOK, outputFormat, &h, textTmpl)
+		WriteOutput(w, http.StatusOK, outputFormat, &HeartbeatsServer.Heartbeats, textTmpl)
 		return
 	}
 
@@ -174,23 +193,4 @@ func HandlerConfig(w http.ResponseWriter, req *http.Request) {
 	}
 
 	WriteOutput(w, http.StatusOK, outputFormat, &HeartbeatsServerCopy, "{{ . }}")
-}
-
-// WriteOutput writes the output to the response writer
-func WriteOutput(w http.ResponseWriter, statusCode int, outputFormat string, output interface{}, textTemplate string) {
-	formatOutput, err := FormatOutput(outputFormat, textTemplate, output)
-	if err != nil {
-		w.WriteHeader(statusCode)
-		_, err = w.Write([]byte(err.Error()))
-		if err != nil {
-			log.Errorf("Cannot write response: %s", err)
-		}
-		return
-	}
-	w.WriteHeader(statusCode)
-	_, err = w.Write([]byte(formatOutput))
-	if err != nil {
-		log.Errorf("Cannot write response: %s", err)
-	}
-	log.Tracef("Server respond with: %d %s", statusCode, formatOutput)
 }
