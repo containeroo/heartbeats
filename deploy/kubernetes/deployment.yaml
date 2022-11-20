@@ -22,7 +22,7 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - --config
-            - /app/config.yaml
+            - /config.yaml
             - --host
             - 0.0.0.0
           env:
