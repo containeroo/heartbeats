@@ -13,9 +13,8 @@ func RedactServices(services []interface{}) ([]interface{}, error) {
 	for i, service := range services {
 		redactedLabels := []string{"redacted"}
 
-		switch service.(type) {
+		switch svc := service.(type) {
 		case notifications.SlackSettings:
-			svc := service.(notifications.SlackSettings)
 			svc.Notifier = nil
 			for _, name := range GetFieldsByLabel(redactedLabels, svc) {
 				reflect.ValueOf(&svc).Elem().FieldByName(name).SetString("<REDACTED>")
@@ -23,7 +22,13 @@ func RedactServices(services []interface{}) ([]interface{}, error) {
 			services[i] = svc
 
 		case notifications.MailSettings:
-			svc := service.(notifications.MailSettings)
+			svc.Notifier = nil
+			for _, name := range GetFieldsByLabel(redactedLabels, svc) {
+				reflect.ValueOf(&svc).Elem().FieldByName(name).SetString("<REDACTED>")
+			}
+			services[i] = svc
+
+		case notifications.MsteamsSettings:
 			svc.Notifier = nil
 			for _, name := range GetFieldsByLabel(redactedLabels, svc) {
 				reflect.ValueOf(&svc).Elem().FieldByName(name).SetString("<REDACTED>")

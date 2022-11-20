@@ -64,7 +64,6 @@ func (t *Timer) wait(complete func()) {
 				return
 			}
 			t.mutex.Unlock()
-		default:
 		}
 	}
 }

@@ -156,7 +156,10 @@ func HandlerConfig(w http.ResponseWriter, req *http.Request) {
 
 	// copy the config to avoid exposing the password
 	HeartbeatsServerCopy := HeartbeatsConfig{}
-	deepcopier.Copy(HeartbeatsServer).To(&HeartbeatsServerCopy)
+	if err := deepcopier.Copy(HeartbeatsServer).To(&HeartbeatsServerCopy); err != nil {
+		WriteOutput(w, http.StatusInternalServerError, outputFormat, err.Error(), "{{ .Status }}")
+		return
+	}
 
 	r, err := RedactServices(HeartbeatsServerCopy.Notifications.Services)
 	if err != nil {
