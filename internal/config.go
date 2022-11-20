@@ -21,14 +21,14 @@ const (
 	EnvPrefix = "env:"
 )
 
-// Config holds general configuration
+// Config config holds general configuration
 type Config struct {
 	Path         string `mapstructure:"path"`
 	PrintVersion bool   `mapstructure:"printVersion"`
 	Logging      string `mapstructure:"logging"`
 }
 
-// Details holds defaults for notifications
+// Details details holds defaults for notifications
 type Defaults struct {
 	Subject string `mapstructure:"subject" default:"Heartbeat"`
 	Message string `mapstructure:"message" default:"Heartbeat is missing"`
