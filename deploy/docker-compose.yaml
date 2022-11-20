@@ -2,7 +2,7 @@ version: "2"
 
 services:
   heartbeats:
-    image: ghcr.io/gi8lino/heartbeats:v0.0.24
+    image: ghcr.io/gi8lino/heartbeats:v0.0.25
     hostname: heartbeats
     environment:
       - "OAUTH_TOKEN=TOKEN"
