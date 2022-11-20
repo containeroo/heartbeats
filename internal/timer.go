@@ -9,7 +9,6 @@ type Timer struct {
 	mutex     sync.Mutex
 	timer     *time.Timer
 	duration  *time.Duration
-	cancel    chan struct{}
 	Cancelled bool
 	Completed bool
 }
@@ -19,18 +18,7 @@ func NewTimer(duration time.Duration, complete func()) *Timer {
 	t := &Timer{}
 	t.duration = &duration
 	t.timer = time.NewTimer(duration)
-	t.cancel = make(chan struct{})
-	go t.wait(complete, func() {})
-	return t
-}
-
-// NewTimerWithCancel creates a new timer with a duration and a callback function that is called when the timer is expired and a cancel function that is called when the timer is cancelled
-func NewTimerWithCancel(duration time.Duration, complete func(), cancel func()) *Timer {
-	t := &Timer{}
-	t.duration = &duration
-	t.timer = time.NewTimer(duration)
-	t.cancel = make(chan struct{})
-	go t.wait(complete, cancel)
+	go t.wait(complete)
 	return t
 }
 
@@ -61,14 +49,10 @@ func (t *Timer) Cancel() {
 		default:
 		}
 	}
-	select {
-	case t.cancel <- struct{}{}:
-	default:
-	}
 }
 
 // wait waits for the timer to expire or be cancelled
-func (t *Timer) wait(complete func(), cancel func()) {
+func (t *Timer) wait(complete func()) {
 	for {
 		select {
 		case <-t.timer.C:
@@ -80,9 +64,7 @@ func (t *Timer) wait(complete func(), cancel func()) {
 				return
 			}
 			t.mutex.Unlock()
-		case <-t.cancel:
-			cancel()
-			return
+		default:
 		}
 	}
 }
