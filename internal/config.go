@@ -38,11 +38,11 @@ type Notifications struct {
 }
 
 type HeartbeatsConfig struct {
+	Version       string        `mapstructure:"version"`
 	Config        Config        `mapstructure:"config"`
 	Server        Server        `mapstructure:"server"`
 	Heartbeats    []Heartbeat   `mapstructure:"heartbeats"`
 	Notifications Notifications `mapstructure:"notifications"`
-	Version       string        `mapstructure:"version"`
 }
 
 // ReadConfigFile reads the notifications config file with and returns a Config struct

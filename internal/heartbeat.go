@@ -18,8 +18,8 @@ type Heartbeat struct {
 	LastPing      time.Time     `mapstructure:"lastPing"`
 	Status        string        `mapstructure:"status"`
 	Notifications []string      `mapstructure:"notifications"`
-	IntervalTimer *Timer        `mapstructure:"-,omitempty"`
-	GraceTimer    *Timer        `mapstructure:"-,omitempty"`
+	IntervalTimer *Timer        `mapstructure:"-,omitempty" deepcopier:"skip"`
+	GraceTimer    *Timer        `mapstructure:"-,omitempty" deepcopier:"skip"`
 }
 
 func (h *Heartbeat) TimeAgo(t time.Time) string {
