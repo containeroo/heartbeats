@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gi8lino/heartbeats/internal/notifications"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/nikoksr/notify"
 
@@ -21,11 +22,13 @@ func NotificationFunc(heartbeatName string, success bool) func() {
 	return func() {
 		var status string
 		if success {
-			log.Infof("%s got Ping. Status is now «OK»", heartbeatName)
 			status = "OK"
+			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(1)
+			log.Infof("%s got Ping. Status is now «OK»", heartbeatName)
 		} else {
-			log.Warnf("%s Grace is expired. Sending notification(s)", heartbeatName)
 			status = "NOK"
+			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
+			log.Warnf("%s Grace is expired. Sending notification(s)", heartbeatName)
 		}
 		heartbeat, err := GetHeartbeatByName(heartbeatName)
 		if err != nil {

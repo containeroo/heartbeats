@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gi8lino/heartbeats/internal/notifications"
+	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -66,6 +67,8 @@ func (h *Heartbeat) GotPing() {
 
 	h.LastPing = time.Now()
 	h.Status = "OK"
+	PromMetrics.TotalHeartbeats.With(prometheus.Labels{"heartbeat": h.Name}).Inc()
+	PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(1)
 }
 
 // GetServiceByType returns notification settings by type

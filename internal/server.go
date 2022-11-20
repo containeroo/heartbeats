@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -26,12 +28,16 @@ func NewRouter() *mux.Router {
 	// Create router and define routes and return that router
 	router := mux.NewRouter()
 
+	reg := prometheus.NewRegistry() // Create a non-global registry
+	PromMetrics = *NewMetrics(reg)
+
 	router.HandleFunc("/", HandlerHome)
 	router.HandleFunc("/healthz", HandlerHealthz)
 	router.HandleFunc("/ping", HandlerPingHelp)
 	router.HandleFunc("/ping/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerPing).Methods("GET", "POST")
 	router.HandleFunc("/status", HandlerStatus)
 	router.HandleFunc("/status/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerStatus)
+	router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 
 	return router
 }

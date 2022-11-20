@@ -29,8 +29,9 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 | `/ping/{HEARTBEAT}`   | `GET`, `POST` | Resets timer at configured interval      |
 | `/status/{HEARTBEAT}` | `GET`         | Returns current status of Heartbeat      |
 | `/status`             | `GET`         | Returns current status of all Heartbeats |
+| `/metrics`            | `GET`         | Entrypoint for prometheus metrics        |
 
-To get the response in `json` or `yaml`, add the query `output=json` or `output=yaml|yml` (Default is `output=text|txt`).
+To get the response in `json` or `yaml`, add the query `output=json` or `output=yaml|yml` (Default is `output=text|txt`). (Not possible for `/metric` endpoint)
 
 *Example:*
 
@@ -186,3 +187,21 @@ message: "Last ping was: {{ .TimeAgo .LastPing }}"
 | `subject` | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                       |
 | `message` | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"`      |
 | webHooks  | List of Webhooks to send Notification                                  | `- http://example.webhook.office.com/webhook2/...` |
+
+## Metrics
+
+For Prometheus metrics exists a `/metrics` endpoint.
+Prometheus metrics starts with `heartbeats_`.
+
+Do not forget to update your Prometheus scrape config.
+
+Example:
+
+```yaml
+scrape_configs:
+- job_name: heartbeats
+  scrape_interval: 30s
+  static_configs:
+  - targets:
+    - targethost:8090
+```
