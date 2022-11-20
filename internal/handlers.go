@@ -40,7 +40,7 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 		outputFormat = "txt"
 	}
 	msg := struct{ Message string }{Message: fmt.Sprintf("Welcome to the Heartbeat Server.\nVersion: %s", HeartbeatsServer.Version)}
-	WriteOutput(w, http.StatusOK, outputFormat, msg, "Message: {{ .Message }}")
+	WriteOutput(w, http.StatusOK, outputFormat, msg, "{{ .Message }}")
 }
 
 // HandlerPing is the handler for the /ping/<heartbeat> endpoint
