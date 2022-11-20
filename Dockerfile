@@ -14,10 +14,13 @@ COPY main.go main.go
 COPY cmd/ cmd/
 COPY internal/ internal/
 
+# Build
 RUN CGO_ENABLED=0 GO111MODULE=on go build -a -installsuffix nocgo -o /heartbeats
 
+FROM gcr.io/distroless/static:nonroot
 
-FROM scratch
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+WORKDIR /
 COPY --from=builder /heartbeats ./
+USER 65532:65532
+
 ENTRYPOINT ["./heartbeats"]

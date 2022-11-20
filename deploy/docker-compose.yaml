@@ -15,6 +15,6 @@ services:
     ports:
       - "8090:8090"
     volumes:
-      - ./config.conf:/config.conf
+      - ./config.conf:/tmp/config.conf
     networks:
       - YOUR_NETWORK
