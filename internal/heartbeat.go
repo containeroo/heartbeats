@@ -33,12 +33,14 @@ func (h *Heartbeat) GotPing() {
 
 	// Timer is expired, grace is running but not completed
 	if h.IntervalTimer != nil && h.IntervalTimer.Completed && h.GraceTimer != nil && !h.GraceTimer.Completed {
-		log.Infof("%s got ping. Stop grace timer", h.Name)
+		log.Tracef("Timer is expired, grace is running but not completed")
 		h.GraceTimer.Cancel()
+		log.Infof("%s got ping. Stop grace timer", h.Name)
 	}
 
 	// Heartbeat is running and not expired
 	if h.IntervalTimer != nil && !h.IntervalTimer.Completed {
+		log.Tracef("Heartbeat is running and not expired")
 		h.IntervalTimer.Reset(h.Interval)
 		log.Infof("%s got ping. Reset timer with interval %s", h.Name, h.Interval)
 	}
