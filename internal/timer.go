@@ -53,17 +53,13 @@ func (t *Timer) Cancel() {
 
 // wait waits for the timer to expire or be cancelled
 func (t *Timer) wait(complete func()) {
-	for range t.timer.C {
-		select {
-		case <-t.timer.C:
-			t.mutex.Lock()
-			if !t.Cancelled {
-				t.Completed = true
-				t.mutex.Unlock()
-				complete()
-				return
-			}
-			t.mutex.Unlock()
-		}
+	<-t.timer.C
+	t.mutex.Lock()
+	if !t.Cancelled {
+		t.Completed = true
+		t.mutex.Unlock()
+		complete()
+		return
 	}
+	t.mutex.Unlock()
 }
