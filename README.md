@@ -2,7 +2,7 @@
 
 ![heartbeats.png](.github/icons/heartbeats.png)
 
-Small helper service to monitor heartbeats (repeating "pings" from another system).
+Small helper service to monitor heartbeats (repeating "pings" from other systems).
 If a "ping" does not arrive in the given interval & grace period, Heartbeats will send notifications.
 
 ## Flags
@@ -21,17 +21,17 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 
 ## Endpoints
 
-| Path                  | Method        | Description                              |
-| :-------------------- | :------------ | :--------------------------------------- |
-| `/`                   | `GET`         | Show current version                     |
-| `/healthz`            | `GET`         | Show if Heartbeats is healthy            |
-| `/ping/{HEARTBEAT}`   | `GET`, `POST` | Resets timer at configured interval      |
-| `/status/{HEARTBEAT}` | `GET`         | Returns current status of Heartbeat      |
-| `/status`             | `GET`         | Returns current status of all Heartbeats |
-| `/metrics`            | `GET`         | Entrypoint for prometheus metrics        |
-| `/config`             | `GET`         | Shows current configuration              |
+| Path                  | Method        | Output             | Description                              |
+| :-------------------- | :------------ | :----------------- | :--------------------------------------- |
+| `/`                   | `GET`         | `html`             | Show small overview                      |
+| `/healthz`            | `GET`         | `json\|yaml\|text` | Show if Heartbeats is healthy            |
+| `/ping/{HEARTBEAT}`   | `GET`, `POST` | `json\|yaml\|text` | Resets timer at configured interval      |
+| `/status/{HEARTBEAT}` | `GET`         | `json\|yaml\|text` | Returns current status of Heartbeat      |
+| `/status`             | `GET`         | `json\|yaml\|text` | Returns current status of all Heartbeats |
+| `/metrics`            | `GET`         | `text`             | Entrypoint for prometheus metrics        |
+| `/config`             | `GET`         | `json\|yaml\|text` | Shows current configuration              |
 
-To get the response in `json` or `yaml`, add the query `output=json` or `output=yaml|yml` (Default is `output=text|txt`). Not possible for `/metric` endpoint.
+To get the response in `json` or `yaml`, add the query `output=json` or `output=yaml|yml` (Default is `output=text|txt`). Not possible for `/` and `/metric` endpoint.
 
 *Example:*
 
@@ -122,12 +122,12 @@ notifications:
 
 Each Heartbeat must have following parameters:
 
-| Key             | Description                                             | Wxample                                    |
-| :-------------- | :------------------------------------------------------ | :----------------------------------------- |
-| `name`          | Name for heartbeat                                      | `watchdog-prometheus-prd`                  |
-| `description`   | Description for heartbeat                               | `test prometheus -> alertmanager workflow` |
-| `interval`      | Interval in which ping should arrive                    | `5m`                                       |
-| `grace`         | Grace period which starts after `interval` expired      | `30`                                       |
+| Key             | Description                                                                                    | Wxample                                    |
+| :-------------- | :--------------------------------------------------------------------------------------------- | :----------------------------------------- |
+| `name`          | Name for heartbeat                                                                             | `watchdog-prometheus-prd`                  |
+| `description`   | Description for heartbeat                                                                      | `test prometheus -> alertmanager workflow` |
+| `interval`      | Interval in which ping should arrive                                                           | `5m`                                       |
+| `grace`         | Grace period which starts after `interval` expired                                             | `30`                                       |
 | `notifications` | List of notification to use if grace period is expired. Must match with `Notification[*].name` | - `slack-events` <br> `- gmail`            |
 
 ### Notifications
