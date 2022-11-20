@@ -4,10 +4,37 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"text/template"
 
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
+
+// WriteOutput writes the output to the response writer
+//
+// - w is the response writer
+// - statusCode is the HTTP status code
+// - outputFormat is the format of the output (json, yaml, yml, txt, text)
+// - output is the data to render the template with
+// - textTmpl is the template to use for the text output
+func WriteOutput(w http.ResponseWriter, statusCode int, outputFormat string, output interface{}, textTemplate string) {
+	formatOutput, err := FormatOutput(outputFormat, textTemplate, output)
+	if err != nil {
+		w.WriteHeader(statusCode)
+		_, err = w.Write([]byte(err.Error()))
+		if err != nil {
+			log.Errorf("Cannot write response: %s", err)
+		}
+		return
+	}
+	w.WriteHeader(statusCode)
+	_, err = w.Write([]byte(formatOutput))
+	if err != nil {
+		log.Errorf("Cannot write response: %s", err)
+	}
+	log.Tracef("Server respond with: %d %s", statusCode, formatOutput)
+}
 
 // FormatOutput formats the output according to outputFormat
 func FormatOutput(outputFormat string, textTemplate string, output interface{}) (string, error) {
