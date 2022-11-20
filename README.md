@@ -1,8 +1,9 @@
-# Heartbeat
+# Heartbeats
 
 ![heartbeats.png](.github/icons/heartbeats.png)
 
-Small helper service to monitor heartbeats.
+Small helper service to monitor heartbeats (repeating "pings" from another system).
+If a "ping" does not arrive in the given interval & grace period, Heartbeats will send notifications.
 
 ## Flags
 
@@ -21,19 +22,15 @@ Small helper service to monitor heartbeats.
 
 ## Endpoints
 
-| Path                  | Method          | Description                              |
-| :-------------------- | :-------------- | :--------------------------------------- |
-| `/`                   | `GET`           | show current version                     |
-| `/healthz`            | `GET`           | show if heartbeats is healthy            |
-| `/ping/{HEARTBEAT}`   | `GET`, `POST`   | reset timer at configured interval       |
-| `/status/{HEARTBEAT}` | `GET`           | returns current status of Heartbeat      |
-| `/status/`            | `GET`           | returns current status of all Heartbeats |
+| Path                  | Method        | Description                              |
+| :-------------------- | :------------ | :--------------------------------------- |
+| `/`                   | `GET`         | Show current version                     |
+| `/healthz`            | `GET`         | Show if Heartbeats is healthy            |
+| `/ping/{HEARTBEAT}`   | `GET`, `POST` | Resets timer at configured interval      |
+| `/status/{HEARTBEAT}` | `GET`         | Returns current status of Heartbeat      |
+| `/status`             | `GET`         | Returns current status of all Heartbeats |
 
-## Parameters
-
-| Query                   | Description                               |
-| :---------------------- | :----------------------------------------- |
-| `output=txt|json|yaml`  | return server response in selected format |
+To get the response in `json` or `yaml`, add the query `output=json` or `output=yaml|yml` (Default is `output=text|txt`).
 
 *Example:*
 
@@ -60,13 +57,13 @@ Result:
 ]
 ```
 
-## Config files
+## Config file
 
 Heartbeats and notifications must be configured in a file.
-Config files can be `yaml`, `json` or `toml`. The config file should be loaded automatically if changed. Please check the log output to control if the config reload works in your environment.
+Config files can be `yaml`, `json` or `toml`. The config file should be loaded automatically if changed. Please check the log output to control if the automatic config reload works in your environment.
 If `interval` and `grace` where changed, they will be reset to the corresponding *new value*!
 
-To avoid using "secrets" directly in your config file, you can use the prefix `env:` followed by the environment variable.
+Avoid using "secrets" directly in your config file by using environment variables. You can use the prefix `env:` followed by the environment variable to load the corresponding environment variable.
 
 Examples:
 
@@ -89,7 +86,7 @@ heartbeats:
     notifications:
       - msTeams
 notifications:
-  defaults:
+  defaults: # uses this subject & message if not overwritten in a service
     subject: Heartbeat {{ .Name }} «{{ .Status }}»
     message: "*Description:*\n{{.Description}}.\n\nLast ping: {{ .TimeAgo .LastPing }}"
   services:
@@ -120,7 +117,19 @@ notifications:
         - env:WHY_NOT_A_SECRET_WEBHOOK
 ```
 
-## Notifications
+### Heartbeat
+
+Each Heartbeat must have following parameters:
+
+| Key             | Description                                             | Wxample                                    |
+| :-------------- | :------------------------------------------------------ | :----------------------------------------- |
+| `name`          | Name for heartbeat                                      | `watchdog-prometheus-prd`                  |
+| `description`   | Description for heartbeat                               | `test prometheus -> alertmanager workflow` |
+| `interval`      | Interval in which ping shoudl arrive                    | `5m`                                       |
+| `grace`         | Grace period which startes after `interval` expired     | `30s`                                      |
+| `notifications` | List of notification to use if grace period is expired. Must match with `Notification[*].name` | - `slack-events` <br> `- gmail`            |
+
+### Notifications
 
 Heartbeat uses the library [https://github.com/nikoksr/notify](https://github.com/nikoksr/notify) for notification.
 
@@ -138,3 +147,42 @@ Example:
 ```yaml
 message: "Last ping was: {{ .TimeAgo .LastPing }}"
 ```
+
+#### Slack
+
+| Key          | Description                                                            | Example                                       |
+| :----------- | :--------------------------------------------------------------------- | :-------------------------------------------- |
+| `name`       | Name for this service                                                  | `slack-events`                                |
+| `enabled`    | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                             |
+| `type`       | type of notification                                                   | `slack`                                       |
+| `subject`    | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                  |
+| `message`    | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"` |
+| `oauthToken` | Slack oAuth Token                                                      | xoxb-1234...                                  |
+| `Channels`   | List of Channels to send Slack notification                            | `- int ` <br> `- prod`                        |
+
+#### Mail
+
+| Key                 | Description                                                            | Example                                       |
+| :------------------ | :--------------------------------------------------------------------- | :-------------------------------------------- |
+| `name`              | Name for this service                                                  | `mail_provicer_x`                             |
+| `enabled`           | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                             |
+| `type`              | type of notification                                                   | `mail`                                        |
+| `subject`           | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                  |
+| `message`           | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"` |
+| `senderAddress`     | SMTP address                                                           | `sender@gmail.com`                            |
+| `smtpHostAddr`      | SMTP Host Address                                                      | `smtp.google.com`                             |
+| `smtpHostPort`      | SMTP Host Port                                                         | `587`                                         |
+| `smtpAuthUser`      | SMTP User (Optional)                                                   | `sender@gmail.com`                            |
+| `smtpAuthPassword`  | SMTP Password (Optional)                                               | `Super Secret!`                               |
+| `receiverAddresses` | List of receivers                                                      | `- int@example.com` <br> `- prod@example.com` |
+
+#### MS Teams
+
+| Key       | Description                                                            | Example                                            |
+| :-------- | :--------------------------------------------------------------------- | :------------------------------------------------- |
+| `name`    | Name for this service                                                  | `msTeams`                                          |
+| `enabled` | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                                  |
+| `type`    | type of notification                                                   | `slack`                                            |
+| `subject` | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                       |
+| `message` | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"`      |
+| webHooks  | List of Webhooks to send Notification                                  | `- http://example.webhook.office.com/webhook2/...` |
