@@ -53,7 +53,7 @@ func (t *Timer) Cancel() {
 
 // wait waits for the timer to expire or be cancelled
 func (t *Timer) wait(complete func()) {
-	for {
+	for range t.timer.C {
 		select {
 		case <-t.timer.C:
 			t.mutex.Lock()
