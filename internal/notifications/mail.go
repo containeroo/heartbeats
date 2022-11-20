@@ -13,12 +13,12 @@ type MailSettings struct {
 	Enabled           bool           `mapstructure:"enabled"`
 	Subject           string         `mapstructure:"subject,omitempty"`
 	Message           string         `mapstructure:"message,omitempty"`
-	Notifier          *notify.Notify `mapstructure:"-,omitempty"`
+	Notifier          *notify.Notify `mapstructure:"-,omitempty" deepcopier:"skip"`
 	SenderAddress     string         `mapstructure:"senderAddress,omitempty"`
 	SmtpHostAddr      string         `mapstructure:"smtpHostAddr,omitempty"`
 	SmtpHostPort      int            `mapstructure:"smtpHostPort,omitempty"`
 	SmtpAuthUser      string         `mapstructure:"smtpAuthUser,omitempty"`
-	SmtpAuthPassword  string         `mapstructure:"smtpAuthPassword,omitempty"`
+	SmtpAuthPassword  string         `mapstructure:"smtpAuthPassword,omitempty" redacted:"true"`
 	ReceiverAddresses []string       `mapstructure:"receiverAddresses,omitempty"`
 }
 

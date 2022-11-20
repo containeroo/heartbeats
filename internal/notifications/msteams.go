@@ -11,8 +11,8 @@ type MsteamsSettings struct {
 	Enabled  bool           `mapstructure:"enabled"`
 	Subject  string         `mapstructure:"subject,omitempty"`
 	Message  string         `mapstructure:"message,omitempty"`
-	Notifier *notify.Notify `mapstructure:"-,omitempty"`
-	WebHooks []string       `mapstructure:"webhooks,omitempty"`
+	Notifier *notify.Notify `mapstructure:"-,omitempty" deepcopier:"skip"`
+	WebHooks []string       `mapstructure:"webhooks,omitempty" redacted:"true"`
 }
 
 // GenerateMailService generates a mail service

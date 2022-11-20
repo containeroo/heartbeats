@@ -32,6 +32,7 @@ func NewRouter() *mux.Router {
 	PromMetrics = *NewMetrics(reg)
 
 	router.HandleFunc("/", HandlerHome)
+	router.HandleFunc("/config", HandlerConfig)
 	router.HandleFunc("/healthz", HandlerHealthz)
 	router.HandleFunc("/ping", HandlerPingHelp)
 	router.HandleFunc("/ping/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerPing).Methods("GET", "POST")

@@ -11,10 +11,10 @@ type SlackSettings struct {
 	Name       string         `mapstructure:"name,omitempty"`
 	Type       string         `mapstructure:"type,omitempty"`
 	Enabled    bool           `mapstructure:"enabled"`
-	Notifier   *notify.Notify `mapstructure:"-,omitempty"`
+	Notifier   *notify.Notify `mapstructure:"-,omitempty" deepcopier:"skip"`
 	Subject    string         `mapstructure:"subject,omitempty"`
 	Message    string         `mapstructure:"message,omitempty"`
-	OauthToken string         `mapstructure:"oauthToken,omitempty"`
+	OauthToken string         `mapstructure:"oauthToken,omitempty" redacted:"true"`
 	Channels   []string       `mapstructure:"channels,omitempty"`
 }
 

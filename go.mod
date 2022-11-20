@@ -11,6 +11,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0
+	github.com/ulule/deepcopier v0.0.0-20200430083143-45decc6639b6
 	gopkg.in/yaml.v3 v3.0.1
 )
 

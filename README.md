@@ -17,7 +17,6 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 -p, --port int           Port to listen on (default 8090)
 -s, --site-root string   Site root for the heartbeat service (default "http://host:port")
 -h, --help               help for heartbeat
-
 ```
 
 ## Endpoints
@@ -30,8 +29,9 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 | `/status/{HEARTBEAT}` | `GET`         | Returns current status of Heartbeat      |
 | `/status`             | `GET`         | Returns current status of all Heartbeats |
 | `/metrics`            | `GET`         | Entrypoint for prometheus metrics        |
+| `/config`             | `GET`         | Shows current configuration              |
 
-To get the response in `json` or `yaml`, add the query `output=json` or `output=yaml|yml` (Default is `output=text|txt`). (Not possible for `/metric` endpoint)
+To get the response in `json` or `yaml`, add the query `output=json` or `output=yaml|yml` (Default is `output=text|txt`). Not possible for `/metric` endpoint.
 
 *Example:*
 
@@ -64,7 +64,7 @@ Heartbeats and notifications must be configured in a file.
 Config files can be `yaml`, `json` or `toml`. The config file should be loaded automatically if changed. Please check the log output to control if the automatic config reload works in your environment.
 If `interval` and `grace` where changed, they will be reset to the corresponding *new value*!
 
-Avoid using "secrets" directly in your config file by using environment variables. You can use the prefix `env:` followed by the environment variable to load the corresponding environment variable.
+Avoid using "secrets" directly in your config file by using environment variables. Set the prefix `env:` followed by the environment variable to load the corresponding environment variable.
 
 Examples:
 
@@ -126,8 +126,8 @@ Each Heartbeat must have following parameters:
 | :-------------- | :------------------------------------------------------ | :----------------------------------------- |
 | `name`          | Name for heartbeat                                      | `watchdog-prometheus-prd`                  |
 | `description`   | Description for heartbeat                               | `test prometheus -> alertmanager workflow` |
-| `interval`      | Interval in which ping shoudl arrive                    | `5m`                                       |
-| `grace`         | Grace period which startes after `interval` expired     | `30s`                                      |
+| `interval`      | Interval in which ping should arrive                    | `5m`                                       |
+| `grace`         | Grace period which starts after `interval` expired      | `30`                                       |
 | `notifications` | List of notification to use if grace period is expired. Must match with `Notification[*].name` | - `slack-events` <br> `- gmail`            |
 
 ### Notifications
@@ -137,9 +137,9 @@ Heartbeat uses the library [https://github.com/nikoksr/notify](https://github.co
 For the moment only `mail`, `slack` and `msteams` are implemented. Feel free to create a Pull Request.
 
 `Defaults` (`notification.defaults`) set the general subject & message for each service.
-Each service can override these settings by adding the corresponding key (`subject` and/or `message`)
+Each service can override these settings by adding the corresponding key (`subject` and/or `message`).
 
-You can use all properties from `heartbeats` in `subject` and/or `message`. The variables must start with a capital letter and be surrounded by double curly brackets. Example: `{{ .Status }}`
+You can use all properties from `heartbeats` in `subject` and/or `message`. The variables must start with a dot, a capital letter and be surrounded by double curly brackets. Example: `{{ .Status }}`
 
 There is a function (`TimeAgo`) that calculates the time of the last ping to now. (borrowed from [here](https://github.com/xeonx/timeago/))
 
@@ -158,7 +158,7 @@ message: "Last ping was: {{ .TimeAgo .LastPing }}"
 | `type`       | type of notification                                                   | `slack`                                       |
 | `subject`    | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                  |
 | `message`    | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"` |
-| `oauthToken` | Slack oAuth Token                                                      | xoxb-1234...                                  |
+| `oauthToken` | Slack oAuth Token (Redacted in endpoint `/config`)                     | xoxb-1234...                                  |
 | `Channels`   | List of Channels to send Slack notification                            | `- int ` <br> `- prod`                        |
 
 #### Mail
@@ -174,7 +174,7 @@ message: "Last ping was: {{ .TimeAgo .LastPing }}"
 | `smtpHostAddr`      | SMTP Host Address                                                      | `smtp.google.com`                             |
 | `smtpHostPort`      | SMTP Host Port                                                         | `587`                                         |
 | `smtpAuthUser`      | SMTP User (Optional)                                                   | `sender@gmail.com`                            |
-| `smtpAuthPassword`  | SMTP Password (Optional)                                               | `Super Secret!`                               |
+| `smtpAuthPassword`  | SMTP Password (Optional) (Redacted in endpoint `/config`)              | `Super Secret!`                               |
 | `receiverAddresses` | List of receivers                                                      | `- int@example.com` <br> `- prod@example.com` |
 
 #### MS Teams
@@ -186,11 +186,11 @@ message: "Last ping was: {{ .TimeAgo .LastPing }}"
 | `type`    | type of notification                                                   | `slack`                                            |
 | `subject` | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                       |
 | `message` | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"`      |
-| webHooks  | List of Webhooks to send Notification                                  | `- http://example.webhook.office.com/webhook2/...` |
+| webHooks  | List of Webhooks to send Notification (Redacted in endpoint `/config`) | `- http://example.webhook.office.com/webhook2/...` |
 
 ## Metrics
 
-For Prometheus metrics exists a `/metrics` endpoint.
+Prometheus metrics can be scraped at the endpoint `/metrics`.
 Prometheus metrics starts with `heartbeats_`.
 
 Do not forget to update your Prometheus scrape config.
@@ -203,5 +203,5 @@ scrape_configs:
   scrape_interval: 30s
   static_configs:
   - targets:
-    - targethost:8090
+    - heardbeats:8090
 ```

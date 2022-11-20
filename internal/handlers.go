@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+	"github.com/ulule/deepcopier"
 )
 
 // StResponseStatus represents the response
@@ -142,6 +143,34 @@ func HandlerHealthz(w http.ResponseWriter, req *http.Request) {
 		outputFormat = "txt"
 	}
 	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
+}
+
+// HandlerConfig is the handler for the /config endpoint
+func HandlerConfig(w http.ResponseWriter, req *http.Request) {
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+
+	outputFormat := req.URL.Query().Get("output")
+	if outputFormat == "" {
+		outputFormat = "txt"
+	}
+
+	// copy the config to avoid exposing the password
+	HeartbeatsServerCopy := HeartbeatsConfig{}
+	deepcopier.Copy(HeartbeatsServer).To(&HeartbeatsServerCopy)
+
+	r, err := RedactServices(HeartbeatsServerCopy.Notifications.Services)
+	if err != nil {
+		WriteOutput(w, http.StatusInternalServerError, outputFormat, err.Error(), "{{ .Status }}")
+		return
+	}
+
+	HeartbeatsServerCopy.Notifications.Services = r
+
+	if outputFormat == "txt" || outputFormat == "text" {
+		outputFormat = "yaml" // switch to yaml for better output
+	}
+
+	WriteOutput(w, http.StatusOK, outputFormat, &HeartbeatsServerCopy, "{{ . }}")
 }
 
 // WriteOutput writes the output to the response writer
