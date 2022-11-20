@@ -41,7 +41,7 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 		outputFormat = "txt"
 	}
 
-	html := fmt.Sprintf(`<!DOCTYPE html>
+	html := `<!DOCTYPE html>
 <html>
 <head>
 <title>Heartbeats</title>
@@ -59,7 +59,7 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 </ul>
 </body>
 </html>
-`)
+`
 
 	s, err := FormatTemplate(html, HeartbeatsServer.Heartbeats)
 	if err != nil {
@@ -69,7 +69,9 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(s))
+	if _, err := w.Write([]byte(s)); err != nil {
+		log.Errorf("Error writing response: %s", err)
+	}
 }
 
 // HandlerPing is the handler for the /ping/<heartbeat> endpoint
