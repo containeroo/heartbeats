@@ -54,8 +54,17 @@ func (t *Timer) Cancel() {
 	}
 	t.Cancelled = true
 	t.mutex.Unlock()
-	t.timer.Stop()
-	t.cancel <- struct{}{}
+
+	if !t.timer.Stop() {
+		select {
+		case <-t.timer.C:
+		default:
+		}
+	}
+	select {
+	case t.cancel <- struct{}{}:
+	default:
+	}
 }
 
 // wait waits for the timer to expire or be cancelled
