@@ -97,7 +97,7 @@ func (h *HeartbeatsConfig) GetServiceByName(notificationType string) (interface{
 	return nil, fmt.Errorf("Notification settings for type «%s» not found", notificationType)
 }
 
-// GetHeartbeatByName search heartbeat in HeartbeatsConfig.Heartbeats by name
+// GetHeartbeatByName search heartbeat in HeartbeatsConfig.Heartbeats by name and returns it
 func GetHeartbeatByName(name string) (*Heartbeat, error) {
 	for i, heartbeat := range HeartbeatsServer.Heartbeats {
 		if strings.EqualFold(heartbeat.Name, name) {
