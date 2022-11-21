@@ -316,7 +316,6 @@ func SubstituteFieldsWithEnv(prefix string, a any) map[string]reflect.Value {
 	r := reflect.TypeOf(a)
 	for i := 0; i < r.NumField(); i++ {
 		field := r.Field(i)
-		// get field value
 		value := reflect.ValueOf(a).FieldByName(field.Name)
 		if !strings.HasPrefix(value.String(), prefix) {
 			continue
