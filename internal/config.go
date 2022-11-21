@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/gi8lino/heartbeats/internal/notifications"
+	"github.com/containeroo/heartbeats/internal/notifications"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/nikoksr/notify"

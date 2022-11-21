@@ -1,4 +1,4 @@
-module github.com/gi8lino/heartbeats
+module github.com/containeroo/heartbeats
 
 go 1.19
 

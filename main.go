@@ -1,5 +1,5 @@
 /*
-Copyright © 2022 gi8lino https://github.com/gi8lino
+Copyright © 2022 containeroo https://github.com/containeroo
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ limitations under the License.
 package main
 
 import (
-	"github.com/gi8lino/heartbeats/cmd"
+	"github.com/containeroo/heartbeats/cmd"
 )
 
 func main() {

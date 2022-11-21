@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/gi8lino/heartbeats/internal/notifications"
+	"github.com/containeroo/heartbeats/internal/notifications"
 	log "github.com/sirupsen/logrus"
 )
 

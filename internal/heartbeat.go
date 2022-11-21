@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gi8lino/heartbeats/internal/notifications"
+	"github.com/containeroo/heartbeats/internal/notifications"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )

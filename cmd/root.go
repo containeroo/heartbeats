@@ -1,5 +1,5 @@
 /*
-Copyright © 2022 gi8lino github.com/containeroo/heartbeats
+Copyright © 2022 containeroo github.com/containeroo/heartbeats
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal"
 	"github.com/fsnotify/fsnotify"
-	"github.com/gi8lino/heartbeats/internal"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
