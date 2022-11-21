@@ -51,7 +51,9 @@ type HeartbeatsConfig struct {
 }
 
 // ReadConfigFile reads the notifications config file
-func ReadConfigFile(configPath string) error {
+// configPath is the path to the config file
+// init is true if the config file is read on startup. this will skip the comparison of the previous config
+func ReadConfigFile(configPath string, init bool) error {
 	parentDir := filepath.Dir(configPath)
 	absolutePath, err := filepath.Abs(parentDir)
 	if err != nil {
@@ -65,8 +67,10 @@ func ReadConfigFile(configPath string) error {
 	viper.SetConfigType(fileExtensionWithoutDot)
 
 	var previousHeartbeats []Heartbeat
-	if HeartbeatsServer.Heartbeats != nil {
-		previousHeartbeats = HeartbeatsServer.Heartbeats
+	if !init {
+		if HeartbeatsServer.Heartbeats != nil {
+			previousHeartbeats = HeartbeatsServer.Heartbeats
+		}
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
@@ -97,7 +101,9 @@ func ReadConfigFile(configPath string) error {
 		return err
 	}
 
-	ResetTimerIfRunning(&previousHeartbeats)
+	if !init {
+		ResetTimerIfRunning(&previousHeartbeats)
+	}
 
 	return nil
 }

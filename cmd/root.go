@@ -79,14 +79,14 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 			internal.HeartbeatsServer.Server.SiteRoot = fmt.Sprintf("http://%s:%d", internal.HeartbeatsServer.Server.Hostname, internal.HeartbeatsServer.Server.Port)
 		}
 
-		if err := internal.ReadConfigFile(internal.HeartbeatsServer.Config.Path); err != nil {
+		if err := internal.ReadConfigFile(internal.HeartbeatsServer.Config.Path, true); err != nil {
 			log.Fatal(err)
 		}
 
 		// watch config
 		viper.OnConfigChange(func(e fsnotify.Event) {
 			log.Infof("«%s» has changed. reload it", e.Name)
-			if err := internal.ReadConfigFile(internal.HeartbeatsServer.Config.Path); err != nil {
+			if err := internal.ReadConfigFile(internal.HeartbeatsServer.Config.Path, false); err != nil {
 				log.Fatal(err)
 			}
 		})
