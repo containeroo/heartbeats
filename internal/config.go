@@ -179,9 +179,14 @@ func ProcessServiceSettings() error {
 				log.Tracef("slack service «%s» not explicitly enabled. Defaulting to true", result.Name)
 			}
 
+			if result.SendResolve == nil {
+				result.SendResolve = HeartbeatsServer.Notifications.Defaults.SendResolve
+				log.Tracef("MS Teams service «%s» not explicitly set «sendResolve». Using value from defaults: %t", result.Name, *result.SendResolve)
+			}
+
 			HeartbeatsServer.Notifications.Services[i] = result
 
-			log.Debugf("Slack service «%s» is enabled: %t", result.Name, result.Enabled)
+			log.Debugf("Slack service «%s» is enabled: %t", result.Name, *result.Enabled)
 
 		case "mail":
 			var result notifications.MailSettings
@@ -206,9 +211,14 @@ func ProcessServiceSettings() error {
 				log.Tracef("Mail service «%s» not explicitly enabled. Defaulting to true", result.Name)
 			}
 
+			if result.SendResolve == nil {
+				result.SendResolve = HeartbeatsServer.Notifications.Defaults.SendResolve
+				log.Tracef("MS Teams service «%s» not explicitly set «sendResolve». Using value from defaults: %t", result.Name, *result.SendResolve)
+			}
+
 			HeartbeatsServer.Notifications.Services[i] = result
 
-			log.Debugf("Mail service «%s» is enabled: %t", result.Name, result.Enabled)
+			log.Debugf("Mail service «%s» is enabled: %t", result.Name, *result.Enabled)
 
 		case "msteams":
 			var result notifications.MsteamsSettings
@@ -233,9 +243,14 @@ func ProcessServiceSettings() error {
 				log.Tracef("MS Teams service «%s» not explicitly enabled. Defaulting to true", result.Name)
 			}
 
+			if result.SendResolve == nil {
+				result.SendResolve = HeartbeatsServer.Notifications.Defaults.SendResolve
+				log.Tracef("MS Teams service «%s» not explicitly set «sendResolve». Using value from defaults: %t", result.Name, *result.SendResolve)
+			}
+
 			HeartbeatsServer.Notifications.Services[i] = result
 
-			log.Debugf("MS Teams service «%s» is enabled: %t", result.Name, result.Enabled)
+			log.Debugf("MS Teams service «%s» is enabled: %t", result.Name, *result.Enabled)
 
 		default:
 			return fmt.Errorf("Unknown notification service type")

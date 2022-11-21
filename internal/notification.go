@@ -83,20 +83,12 @@ func NotificationFunc(heartbeatName string, success bool) func() {
 				continue
 			}
 
-			if enabled == nil || !*enabled {
+			if !*enabled {
 				log.Debugf("%s Skip «%s» because it is disabled", heartbeatName, serviceName)
 				continue
 			}
 
-			// check if we should send a resolve notification
-			var r *bool
-			if sendResolve == nil {
-				r = HeartbeatsServer.Notifications.Defaults.SendResolve
-			} else {
-				r = sendResolve
-			}
-
-			if success && !*r {
+			if success && !*sendResolve && !*HeartbeatsServer.Notifications.Defaults.SendResolve {
 				log.Debugf("%s Skip «%s» because it is «sendResolve» is disabled", heartbeatName, serviceName)
 				continue
 			}
