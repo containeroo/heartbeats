@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	version = "v0.2.2"
+	version = "v0.2.3"
 )
 
 var debug, trace, JsonLog bool
