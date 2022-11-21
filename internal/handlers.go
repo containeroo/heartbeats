@@ -36,10 +36,7 @@ func (h *HeartbeatStatus) TimeAgo(t time.Time) string {
 func HandlerHome(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
 
-	outputFormat := req.URL.Query().Get("output")
-	if outputFormat == "" {
-		outputFormat = "txt"
-	}
+	outputFormat := GetOutputFormat(req)
 
 	html := `<!DOCTYPE html>
 <html>
@@ -78,10 +75,7 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 func HandlerPing(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
 
-	outputFormat := req.URL.Query().Get("output")
-	if outputFormat == "" {
-		outputFormat = "txt"
-	}
+	outputFormat := GetOutputFormat(req)
 
 	vars := mux.Vars(req)
 	heartbeatName := vars["heartbeat"]
@@ -101,10 +95,7 @@ func HandlerPing(w http.ResponseWriter, req *http.Request) {
 func HandlerPingHelp(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
 
-	outputFormat := req.URL.Query().Get("output")
-	if outputFormat == "" {
-		outputFormat = "txt"
-	}
+	outputFormat := GetOutputFormat(req)
 
 	n := rand.Int() % len(HeartbeatsServer.Heartbeats) // pick a random heartbeat
 	usage := struct {
@@ -122,10 +113,7 @@ func HandlerPingHelp(w http.ResponseWriter, req *http.Request) {
 func HandlerStatus(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
 
-	outputFormat := req.URL.Query().Get("output")
-	if outputFormat == "" {
-		outputFormat = "txt"
-	}
+	outputFormat := GetOutputFormat(req)
 
 	vars := mux.Vars(req)
 	heartbeatName := vars["heartbeat"]
@@ -159,10 +147,8 @@ LastPing: {{ .TimeAgo .LastPing }}`
 func HandlerHealthz(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
 
-	outputFormat := req.URL.Query().Get("output")
-	if outputFormat == "" {
-		outputFormat = "txt"
-	}
+	outputFormat := GetOutputFormat(req)
+
 	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
 }
 
@@ -170,10 +156,7 @@ func HandlerHealthz(w http.ResponseWriter, req *http.Request) {
 func HandlerConfig(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
 
-	outputFormat := req.URL.Query().Get("output")
-	if outputFormat == "" {
-		outputFormat = "txt"
-	}
+	outputFormat := GetOutputFormat(req)
 
 	// copy the config to avoid exposing the password
 	HeartbeatsServerCopy := HeartbeatsConfig{}

@@ -86,3 +86,12 @@ func FormatTemplate(tmpl string, intr any) (string, error) {
 
 	return buf.String(), nil
 }
+
+// CheckOutput checks if the output format is supported
+func GetOutputFormat(req *http.Request) string {
+	outputFormat := req.URL.Query().Get("output")
+	if outputFormat == "" {
+		outputFormat = "text"
+	}
+	return outputFormat
+}
