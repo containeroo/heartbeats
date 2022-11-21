@@ -81,6 +81,10 @@ func ReadConfigFile(configPath string) error {
 		return fmt.Errorf("no heartbeats configured")
 	}
 
+	if HeartbeatsServer.Notifications.Defaults.SendResolve == nil {
+		HeartbeatsServer.Notifications.Defaults.SendResolve = new(bool)
+	}
+
 	if len(HeartbeatsServer.Notifications.Services) == 0 {
 		return fmt.Errorf("no notifications configured")
 	}
@@ -174,8 +178,7 @@ func ProcessServiceSettings() error {
 			result.Notifier.UseServices(svc)
 
 			if result.Enabled == nil {
-				t := true
-				result.Enabled = &t
+				result.Enabled = new(bool)
 				log.Tracef("slack service «%s» not explicitly enabled. Defaulting to true", result.Name)
 			}
 
@@ -206,8 +209,7 @@ func ProcessServiceSettings() error {
 			result.Notifier.UseServices(svc)
 
 			if result.Enabled == nil {
-				t := true
-				result.Enabled = &t
+				result.Enabled = new(bool)
 				log.Tracef("Mail service «%s» not explicitly enabled. Defaulting to true", result.Name)
 			}
 
@@ -238,8 +240,7 @@ func ProcessServiceSettings() error {
 			result.Notifier.UseServices(svc)
 
 			if result.Enabled == nil {
-				t := true
-				result.Enabled = &t
+				result.Enabled = new(bool)
 				log.Tracef("MS Teams service «%s» not explicitly enabled. Defaulting to true", result.Name)
 			}
 
@@ -263,10 +264,10 @@ func ProcessServiceSettings() error {
 func CheckSendDetails() error {
 	var heartbeat Heartbeat
 
-	// check defaults
 	if HeartbeatsServer.Notifications.Defaults.Subject == "" {
 		return fmt.Errorf("default subject is not set")
 	}
+
 	if _, err := FormatTemplate(HeartbeatsServer.Notifications.Defaults.Subject, &heartbeat); err != nil {
 		return err
 	}
