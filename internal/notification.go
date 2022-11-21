@@ -46,29 +46,32 @@ func NotificationFunc(heartbeatName string, success bool) func() {
 			}
 			var serviceName, subject, message string
 			var notifier notify.Notifier
-			var enabled bool
+			var enabled, sendResolve *bool
 
 			switch service := notificationService.(type) {
 			case notifications.SlackSettings:
+				enabled = service.Enabled
 				serviceName = service.Name
 				subject = service.Subject
 				message = service.Message
 				notifier = service.Notifier
-				enabled = service.Enabled
+				sendResolve = service.SendResolve
 
 			case notifications.MailSettings:
+				enabled = service.Enabled
 				serviceName = service.Name
 				subject = service.Subject
 				message = service.Message
 				notifier = service.Notifier
-				enabled = service.Enabled
+				sendResolve = service.SendResolve
 
 			case notifications.MsteamsSettings:
+				enabled = service.Enabled
 				serviceName = service.Name
 				subject = service.Subject
 				message = service.Message
 				notifier = service.Notifier
-				enabled = service.Enabled
+				sendResolve = service.SendResolve
 
 			default:
 				log.Errorf("%s Unknown notification type: %v", heartbeatName, notification)
@@ -80,10 +83,24 @@ func NotificationFunc(heartbeatName string, success bool) func() {
 				continue
 			}
 
-			if !enabled {
+			if enabled == nil || !*enabled {
 				log.Debugf("%s Skip «%s» because it is disabled", heartbeatName, serviceName)
 				continue
 			}
+
+			// check if we should send a resolve notification
+			var r *bool
+			if sendResolve == nil {
+				r = HeartbeatsServer.Notifications.Defaults.SendResolve
+			} else {
+				r = sendResolve
+			}
+
+			if success && !*r {
+				log.Debugf("%s Skip «%s» because it is «sendResolve» is disabled", heartbeatName, serviceName)
+				continue
+			}
+
 			if err := Send(heartbeatName, serviceName, notifier, msg.Subject, msg.Message); err != nil {
 				log.Errorf("%s Could not send notification to «%s». %s", heartbeatName, serviceName, err)
 				continue

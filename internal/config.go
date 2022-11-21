@@ -30,8 +30,9 @@ type Config struct {
 
 // Details details holds defaults for notifications
 type Defaults struct {
-	Subject string `mapstructure:"subject" default:"Heartbeat"`
-	Message string `mapstructure:"message" default:"Heartbeat is missing"`
+	Subject     string `mapstructure:"subject" default:"Heartbeat"`
+	Message     string `mapstructure:"message" default:"Heartbeat is missing"`
+	SendResolve *bool  `mapstructure:"sendResolve" default:"true"`
 }
 
 // NotifyConfig holds the configuration for the notifications

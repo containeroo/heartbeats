@@ -10,7 +10,8 @@ import (
 type MailSettings struct {
 	Name              string         `mapstructure:"name,omitempty"`
 	Type              string         `mapstructure:"type,omitempty"`
-	Enabled           bool           `mapstructure:"enabled"`
+	Enabled           *bool          `mapstructure:"enabled,omitempty"`
+	SendResolve       *bool          `mapstructure:"sendResolve,omitempty"`
 	Subject           string         `mapstructure:"subject,omitempty"`
 	Message           string         `mapstructure:"message,omitempty"`
 	Notifier          *notify.Notify `mapstructure:"-,omitempty" deepcopier:"skip"`
