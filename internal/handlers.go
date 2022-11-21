@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -34,7 +35,7 @@ func (h *HeartbeatStatus) TimeAgo(t time.Time) string {
 
 // HandlerHome is the handler for the / endpoint
 func HandlerHome(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
 	outputFormat := GetOutputFormat(req)
 
@@ -73,7 +74,7 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 
 // HandlerPing is the handler for the /ping/<heartbeat> endpoint
 func HandlerPing(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
 	outputFormat := GetOutputFormat(req)
 
@@ -93,7 +94,7 @@ func HandlerPing(w http.ResponseWriter, req *http.Request) {
 
 // HandlerPingHelp is the handler for the /ping endpoint
 func HandlerPingHelp(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
 	outputFormat := GetOutputFormat(req)
 
@@ -111,7 +112,7 @@ func HandlerPingHelp(w http.ResponseWriter, req *http.Request) {
 
 // HandlerState is the handler for the /status endpoint
 func HandlerStatus(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
 	outputFormat := GetOutputFormat(req)
 
@@ -145,7 +146,7 @@ LastPing: {{ .TimeAgo .LastPing }}`
 
 // HeartbeatsServer is the handler for the /healthz endpoint
 func HandlerHealthz(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
 	outputFormat := GetOutputFormat(req)
 
@@ -154,7 +155,7 @@ func HandlerHealthz(w http.ResponseWriter, req *http.Request) {
 
 // HandlerConfig is the handler for the /config endpoint
 func HandlerConfig(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, req.URL.RawQuery)
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
 	outputFormat := GetOutputFormat(req)
 
