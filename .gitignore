@@ -3,5 +3,6 @@
 *.toml
 *.json
 !deploy/**
+!.github/**
 !.goreleaser.yaml
 __debug_bin
