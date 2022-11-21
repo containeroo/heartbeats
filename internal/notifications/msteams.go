@@ -6,14 +6,14 @@ import (
 )
 
 type MsteamsSettings struct {
-	Name        string         `mapstructure:"name,omitempty"`
-	Type        string         `mapstructure:"type,omitempty"`
-	Enabled     *bool          `mapstructure:"enabled,omitempty"`
-	SendResolve *bool          `mapstructure:"sendResolve,omitempty"`
-	Subject     string         `mapstructure:"subject,omitempty"`
-	Message     string         `mapstructure:"message,omitempty"`
-	Notifier    *notify.Notify `mapstructure:"-,omitempty" deepcopier:"skip"`
-	WebHooks    []string       `mapstructure:"webhooks,omitempty" redacted:"true"`
+	Name         string         `mapstructure:"name,omitempty"`
+	Type         string         `mapstructure:"type,omitempty"`
+	Enabled      *bool          `mapstructure:"enabled,omitempty"`
+	SendResolved *bool          `mapstructure:"sendResolved,omitempty"`
+	Subject      string         `mapstructure:"subject,omitempty"`
+	Message      string         `mapstructure:"message,omitempty"`
+	Notifier     *notify.Notify `mapstructure:"-,omitempty" deepcopier:"skip"`
+	WebHooks     []string       `mapstructure:"webhooks,omitempty" redacted:"true"`
 }
 
 // GenerateMailService generates a mail service

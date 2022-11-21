@@ -30,9 +30,9 @@ type Config struct {
 
 // Details details holds defaults for notifications
 type Defaults struct {
-	Subject     string `mapstructure:"subject"`
-	Message     string `mapstructure:"message"`
-	SendResolve *bool  `mapstructure:"sendResolve"`
+	Subject      string `mapstructure:"subject"`
+	Message      string `mapstructure:"message"`
+	SendResolved *bool  `mapstructure:"sendResolved"`
 }
 
 // NotifyConfig holds the configuration for the notifications
@@ -85,8 +85,8 @@ func ReadConfigFile(configPath string, init bool) error {
 		return fmt.Errorf("no heartbeats configured")
 	}
 
-	if HeartbeatsServer.Notifications.Defaults.SendResolve == nil {
-		HeartbeatsServer.Notifications.Defaults.SendResolve = new(bool)
+	if HeartbeatsServer.Notifications.Defaults.SendResolved == nil {
+		HeartbeatsServer.Notifications.Defaults.SendResolved = new(bool)
 	}
 
 	if len(HeartbeatsServer.Notifications.Services) == 0 {
@@ -188,9 +188,9 @@ func ProcessServiceSettings() error {
 				log.Tracef("slack service «%s» not explicitly enabled. Defaulting to true", result.Name)
 			}
 
-			if result.SendResolve == nil {
-				result.SendResolve = HeartbeatsServer.Notifications.Defaults.SendResolve
-				log.Tracef("MS Teams service «%s» not explicitly set «sendResolve». Using value from defaults: %t", result.Name, *result.SendResolve)
+			if result.SendResolved == nil {
+				result.SendResolved = HeartbeatsServer.Notifications.Defaults.SendResolved
+				log.Tracef("MS Teams service «%s» not explicitly set «sendResolved». Using value from defaults: %t", result.Name, *result.SendResolved)
 			}
 
 			HeartbeatsServer.Notifications.Services[i] = result
@@ -219,9 +219,9 @@ func ProcessServiceSettings() error {
 				log.Tracef("Mail service «%s» not explicitly enabled. Defaulting to true", result.Name)
 			}
 
-			if result.SendResolve == nil {
-				result.SendResolve = HeartbeatsServer.Notifications.Defaults.SendResolve
-				log.Tracef("MS Teams service «%s» not explicitly set «sendResolve». Using value from defaults: %t", result.Name, *result.SendResolve)
+			if result.SendResolved == nil {
+				result.SendResolved = HeartbeatsServer.Notifications.Defaults.SendResolved
+				log.Tracef("MS Teams service «%s» not explicitly set «sendResolved». Using value from defaults: %t", result.Name, *result.SendResolved)
 			}
 
 			HeartbeatsServer.Notifications.Services[i] = result
@@ -250,9 +250,9 @@ func ProcessServiceSettings() error {
 				log.Tracef("MS Teams service «%s» not explicitly enabled. Defaulting to true", result.Name)
 			}
 
-			if result.SendResolve == nil {
-				result.SendResolve = HeartbeatsServer.Notifications.Defaults.SendResolve
-				log.Tracef("MS Teams service «%s» not explicitly set «sendResolve». Using value from defaults: %t", result.Name, *result.SendResolve)
+			if result.SendResolved == nil {
+				result.SendResolved = HeartbeatsServer.Notifications.Defaults.SendResolved
+				log.Tracef("MS Teams service «%s» not explicitly set «sendResolved». Using value from defaults: %t", result.Name, *result.SendResolved)
 			}
 
 			HeartbeatsServer.Notifications.Services[i] = result

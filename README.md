@@ -90,19 +90,19 @@ notifications:
   defaults: # uses this subject & message if not overwritten in a service
     subject: Heartbeat {{ .Name }} «{{ .Status }}»
     message: "*Description:*\n{{.Description}}.\n\nLast ping: {{ .TimeAgo .LastPing }}"
-    sendResolve: true
+    sendResolved: true
   services:
     - name: slack
       enabled: false
       type: slack
-      sendResolve: true
+      sendResolved: true
       oauthToken: env:ENV_VARIABLE_YOU_DEFINE
       channels:
       - test
     - name: mail_provider_x
       enabled: true
       type: mail
-      sendResolve: false
+      sendResolved: false
       subject: "[Heartbeat]: {{ .Name }}"
       message: "Heartbeat is missing.\n\n{{.Description}}\n interval: {{.Interval}}, grace: {{.Grace}}\nPlease check your sending service!"
       senderAddress: heartbeat@example.com
@@ -139,8 +139,8 @@ Heartbeat uses the library [https://github.com/nikoksr/notify](https://github.co
 
 For the moment only `mail`, `slack` and `msteams` are implemented. Feel free to create a Pull Request.
 
-`Defaults` (`notification.defaults`) set the general `subject`, `message` and/or `sendResolve` for each service.
-Each service can override these settings by adding the corresponding key (`subject`, `message` and/or `sendResolve`).
+`Defaults` (`notification.defaults`) set the general `subject`, `message` and/or `sendResolved` for each service.
+Each service can override these settings by adding the corresponding key (`subject`, `message` and/or `sendResolved`).
 
 You can use all properties from `heartbeats` in `subject` and/or `message`. The variables must start with a dot, a capital letter and be surrounded by double curly brackets. Example: `{{ .Status }}`
 
@@ -159,7 +159,7 @@ message: "Last ping was: {{ .TimeAgo .LastPing }}"
 | `name`        | Name for this service                                                  | `slack-events`                                |
 | `enabled`     | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                             |
 | `type`        | type of notification                                                   | `slack`                                       |
-| `sendResolve` | Send notification if heartbeat changes back to «OK»                    | `true`                                        |
+| `sendResolved` | Send notification if heartbeat changes back to «OK»                    | `true`                                        |
 | `subject`     | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                  |
 | `message`     | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"` |
 | `oauthToken`  | Slack oAuth Token (Redacted in endpoint `/config`)                     | xoxb-1234...                                  |
@@ -172,7 +172,7 @@ message: "Last ping was: {{ .TimeAgo .LastPing }}"
 | `name`              | Name for this service                                                  | `mail_provicer_x`                             |
 | `enabled`           | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                             |
 | `type`              | type of notification                                                   | `mail`                                        |
-| `sendResolve`       | Send notification if heartbeat changes back to «OK»                    | `true`                                        |
+| `sendResolved`       | Send notification if heartbeat changes back to «OK»                    | `true`                                        |
 | `subject`           | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                  |
 | `message`           | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"` |
 | `senderAddress`     | SMTP address                                                           | `sender@gmail.com`                            |
@@ -189,7 +189,7 @@ message: "Last ping was: {{ .TimeAgo .LastPing }}"
 | `name`        | Name for this service                                                  | `msTeams`                                          |
 | `enabled`     | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                                  |
 | `type`        | type of notification                                                   | `slack`                                            |
-| `sendResolve` | Send notification if heartbeat changes back to «OK»                    | `true`                                             |
+| `sendResolved` | Send notification if heartbeat changes back to «OK»                    | `true`                                             |
 | `subject`     | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                       |
 | `message`     | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"`      |
 | webHooks      | List of Webhooks to send Notification (Redacted in endpoint `/config`) | `- http://example.webhook.office.com/webhook2/...` |

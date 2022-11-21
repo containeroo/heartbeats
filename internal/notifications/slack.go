@@ -8,15 +8,15 @@ import (
 )
 
 type SlackSettings struct {
-	Name        string         `mapstructure:"name,omitempty"`
-	Type        string         `mapstructure:"type,omitempty"`
-	Enabled     *bool          `mapstructure:"enabled,omitempty"`
-	SendResolve *bool          `mapstructure:"sendResolve,omitempty"`
-	Notifier    *notify.Notify `mapstructure:"-,omitempty" deepcopier:"skip"`
-	Subject     string         `mapstructure:"subject,omitempty"`
-	Message     string         `mapstructure:"message,omitempty"`
-	OauthToken  string         `mapstructure:"oauthToken,omitempty" redacted:"true"`
-	Channels    []string       `mapstructure:"channels,omitempty"`
+	Name         string         `mapstructure:"name,omitempty"`
+	Type         string         `mapstructure:"type,omitempty"`
+	Enabled      *bool          `mapstructure:"enabled,omitempty"`
+	SendResolved *bool          `mapstructure:"sendResolved,omitempty"`
+	Notifier     *notify.Notify `mapstructure:"-,omitempty" deepcopier:"skip"`
+	Subject      string         `mapstructure:"subject,omitempty"`
+	Message      string         `mapstructure:"message,omitempty"`
+	OauthToken   string         `mapstructure:"oauthToken,omitempty" redacted:"true"`
+	Channels     []string       `mapstructure:"channels,omitempty"`
 }
 
 func GenerateSlackService(token string, channels []string) (*slack.Slack, error) {
