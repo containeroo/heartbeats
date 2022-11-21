@@ -173,6 +173,12 @@ func ProcessServiceSettings() error {
 			result.Notifier = notify.New()
 			result.Notifier.UseServices(svc)
 
+			if result.Enabled == nil {
+				t := true
+				result.Enabled = &t
+				log.Tracef("slack service «%s» not explicitly enabled. Defaulting to true", result.Name)
+			}
+
 			HeartbeatsServer.Notifications.Services[i] = result
 
 			log.Debugf("Slack service «%s» is enabled: %t", result.Name, result.Enabled)
@@ -194,6 +200,12 @@ func ProcessServiceSettings() error {
 			result.Notifier = notify.New()
 			result.Notifier.UseServices(svc)
 
+			if result.Enabled == nil {
+				t := true
+				result.Enabled = &t
+				log.Tracef("Mail service «%s» not explicitly enabled. Defaulting to true", result.Name)
+			}
+
 			HeartbeatsServer.Notifications.Services[i] = result
 
 			log.Debugf("Mail service «%s» is enabled: %t", result.Name, result.Enabled)
@@ -214,6 +226,12 @@ func ProcessServiceSettings() error {
 			}
 			result.Notifier = notify.New()
 			result.Notifier.UseServices(svc)
+
+			if result.Enabled == nil {
+				t := true
+				result.Enabled = &t
+				log.Tracef("MS Teams service «%s» not explicitly enabled. Defaulting to true", result.Name)
+			}
 
 			HeartbeatsServer.Notifications.Services[i] = result
 
