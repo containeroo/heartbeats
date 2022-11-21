@@ -25,6 +25,8 @@ spec:
             - /tmp/config.yaml
             - --host
             - 0.0.0.0
+            - --site-root
+            - https://heartbeats.example.com
           env:
             - name: TZ
               value: Europe/Zurich
