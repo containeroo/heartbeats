@@ -50,7 +50,7 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 <p><a href="/metrics">Metrics</a></p>
 <h2>Status</h2>
 <ul>
-<li><a href="/status">All</a></li>
+<li><a href="/status">all</a></li>
 {{ range . }}
 <li><a href="/status/{{.Name}}">{{.Name}}</a></li>
 {{end}}
