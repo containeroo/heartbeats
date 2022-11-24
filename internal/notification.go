@@ -18,25 +18,39 @@ type SendDetails struct {
 	Message string
 }
 
+// Enum for Status with ok, nok and failed
+type Status int16
+
+const (
+	OK Status = iota
+	GRACE
+	FAILED
+)
+
+func (s Status) String() string {
+	return [...]string{"OK", "NOK", "FAILED"}[s]
+}
+
 // NotificationFunc returns a function that can be used to send notifications
-func NotificationFunc(heartbeatName string, success bool) func() {
+func NotificationFunc(heartbeatName string, status Status) func() {
 	return func() {
-		var status string
-		if success {
-			status = "OK"
+		switch status {
+		case OK:
 			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(1)
 			log.Infof("%s got Ping. Status is now «OK»", heartbeatName)
-		} else {
-			status = "NOK"
+		case GRACE:
 			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
 			log.Warnf("%s Grace is expired. Sending notification(s)", heartbeatName)
+		case FAILED:
+			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
+			log.Warnf("%s got \"failed\" ping. Sending notification(s)", heartbeatName)
 		}
 		heartbeat, err := GetHeartbeatByName(heartbeatName)
 		if err != nil {
 			log.Errorf(err.Error())
 			return
 		}
-		heartbeat.Status = status
+		heartbeat.Status = status.String()
 
 		for _, notification := range heartbeat.Notifications {
 			notificationService, err := HeartbeatsServer.GetServiceByName(notification)
@@ -88,7 +102,7 @@ func NotificationFunc(heartbeatName string, success bool) func() {
 				continue
 			}
 
-			if success && !*sendResolved && !*HeartbeatsServer.Notifications.Defaults.SendResolved {
+			if status == OK && !*sendResolved && !*HeartbeatsServer.Notifications.Defaults.SendResolved {
 				log.Debugf("%s Skip «%s» because it is «sendResolved» is disabled", heartbeatName, serviceName)
 				continue
 			}

@@ -59,19 +59,40 @@ func (h *Heartbeat) GotPing() {
 			log.Infof("%s Timer is expired. Start grace timer with duration %s", h.Name, h.Grace)
 			h.Status = "GRACE"
 			h.GraceTimer = NewTimer(h.Grace,
-				NotificationFunc(h.Name, false))
+				NotificationFunc(h.Name, GRACE))
 		})
 		log.Infof("%s Start timer with interval %s", h.Name, h.Interval)
-		// inform the user that the heartbeat is running again
-		if h.Status == "NOK" {
-			go NotificationFunc(h.Name, true)()
-		}
+	}
+
+	// inform the user that the heartbeat is running again
+	if h.Status != "" && h.Status != "OK" {
+		go NotificationFunc(h.Name, OK)()
 	}
 
 	h.LastPing = time.Now()
 	h.Status = "OK"
 	PromMetrics.TotalHeartbeats.With(prometheus.Labels{"heartbeat": h.Name}).Inc()
 	PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(1)
+}
+
+func (h *Heartbeat) GotPingFail() {
+
+	// cancel grace timer if running
+	if h.GraceTimer != nil && !h.GraceTimer.Completed {
+		h.GraceTimer.Cancel()
+	}
+
+	// cancel interval timer if running
+	if h.IntervalTimer != nil && !h.IntervalTimer.Completed {
+		h.IntervalTimer.Cancel()
+	}
+
+	go NotificationFunc(h.Name, FAILED)()
+
+	h.LastPing = time.Now()
+	h.Status = "FAIL"
+	PromMetrics.TotalHeartbeats.With(prometheus.Labels{"heartbeat": h.Name}).Inc()
+	PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(0)
 }
 
 // GetServiceByType returns notification settings by type

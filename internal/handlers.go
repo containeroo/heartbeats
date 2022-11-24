@@ -72,6 +72,24 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// HandlerPingHelp is the handler for the /ping endpoint
+func HandlerPingHelp(w http.ResponseWriter, req *http.Request) {
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+
+	outputFormat := GetOutputFormat(req)
+
+	n := rand.Int() % len(HeartbeatsServer.Heartbeats) // pick a random heartbeat
+	usage := struct {
+		Status string `json:"status"`
+		Usage  string `json:"usage"`
+	}{
+		Status: "ok",
+		Usage:  fmt.Sprintf("You must specify the name of the wanted heartbeat in the URL.\nExample: %s/ping/%s", HeartbeatsServer.Server.SiteRoot, HeartbeatsServer.Heartbeats[n].Name),
+	}
+
+	WriteOutput(w, http.StatusOK, outputFormat, &usage, "{{ .Usage }}")
+}
+
 // HandlerPing is the handler for the /ping/<heartbeat> endpoint
 func HandlerPing(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
@@ -92,22 +110,24 @@ func HandlerPing(w http.ResponseWriter, req *http.Request) {
 	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
 }
 
-// HandlerPingHelp is the handler for the /ping endpoint
-func HandlerPingHelp(w http.ResponseWriter, req *http.Request) {
+// HandlerPingFail is the handler for the /ping/<heartbeat>/fail endpoint
+func HandlerPingFail(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
 	outputFormat := GetOutputFormat(req)
 
-	n := rand.Int() % len(HeartbeatsServer.Heartbeats) // pick a random heartbeat
-	usage := struct {
-		Status string `json:"status"`
-		Usage  string `json:"usage"`
-	}{
-		Status: "ok",
-		Usage:  fmt.Sprintf("You must specify the name of the wanted heartbeat in the URL.\nExample: %s/ping/%s", HeartbeatsServer.Server.SiteRoot, HeartbeatsServer.Heartbeats[n].Name),
+	vars := mux.Vars(req)
+	heartbeatName := vars["heartbeat"]
+
+	heartbeat, err := GetHeartbeatByName(heartbeatName)
+	if err != nil {
+		WriteOutput(w, http.StatusNotFound, outputFormat, err.Error(), "{{ .Status }}")
+		return
 	}
 
-	WriteOutput(w, http.StatusOK, outputFormat, &usage, "{{ .Usage }}")
+	heartbeat.GotPingFail()
+
+	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
 }
 
 // HandlerState is the handler for the /status endpoint

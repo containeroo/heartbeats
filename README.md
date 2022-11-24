@@ -21,42 +21,141 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 
 ## Endpoints
 
-| Path                  | Method        | Output             | Description                              |
-| :-------------------- | :------------ | :----------------- | :--------------------------------------- |
-| `/`                   | `GET`         | `html`             | Show small overview                      |
-| `/healthz`            | `GET`         | `json\|yaml\|text` | Show if Heartbeats is healthy            |
-| `/ping/{HEARTBEAT}`   | `GET`, `POST` | `json\|yaml\|text` | Resets timer at configured interval      |
-| `/status/{HEARTBEAT}` | `GET`         | `json\|yaml\|text` | Returns current status of Heartbeat      |
-| `/status`             | `GET`         | `json\|yaml\|text` | Returns current status of all Heartbeats |
-| `/metrics`            | `GET`         | `text`             | Entrypoint for prometheus metrics        |
-| `/config`             | `GET`         | `json\|yaml\|text` | Shows current configuration              |
+| Path                     | Method        | Description                              |
+| :----------------------- | :------------ | :--------------------------------------- |
+| `/`                      | `GET`         | Show small overview                      |
+| `/config`                | `GET`         | Shows current configuration              |
+| `/ping/{HEARTBEAT}`      | `GET`, `POST` | Resets timer at configured interval      |
+| `/ping/{HEARTBEAT}/fail` | `GET`, `POST` | Mark heartbeat as failed                 |
+| `/status`                | `GET`         | Returns current status of all Heartbeats |
+| `/status/{HEARTBEAT}`    | `GET`         | Returns current status of Heartbeat      |
+| `/metrics`               | `GET`         | Entrypoint for prometheus metrics        |
+| `/healthz`               | `GET`         | Show if Heartbeats is healthy            |
 
-To get the response in `json` or `yaml`, add the query `output=json` or `output=yaml|yml` (Default is `output=text|txt`). Not possible for `/` and `/metric` endpoint.
-
-*Example:*
-
-Execute ping:
+## Send a heartbeat
 
 ```sh
-curl "http://localhost:8090/status?output=json"
+GET|POST https://heartbeats.example.com/ping/heartbeat1
 ```
 
-Result:
+Sends a "alive" message.
 
-```json
-[
-  {
-    "name": "watchdog-prometheus-prd",
-    "status": "",
-    "lastPing": "never"
-  },
-  {
-    "name": "watchdog-prometheus-int",
-    "status": "OK",
-    "lastPing": "30 seconds ago"
-  }
-]
+### Query parameters
+
+```text
+output=json|yaml|yml|text|txt
 ```
+
+Format response in one of the passed format. If no specific format is passed the response will be `text`.
+
+### Response Codes
+
+| Status        | Description                    |
+| :------------ | :----------------------------- |
+| 404 Not Found | Given heartbeat not found      |
+| 200 OK        | Heartbeat was successully send |
+
+## Send a failed heartbeat
+
+```sh
+GET|POST https://heartbeats.example.com/ping/heartbeat1/fail
+```
+
+Send a direct failure to not wait until the heartbeat grace period is expired.
+
+### Query parameters
+
+```text
+output=json|yaml|yml|text|txt
+```
+
+Format response in one of the passed format. If no specific format is passed the response will be `text`.
+
+### Response Codes
+
+| Status        | Description                |
+| :------------ | :------------------------- |
+| 404 Not Found | Given heartbeat not found  |
+| 200 OK        | Fail was successfully send |
+
+## Show heartbeat status
+
+```sh
+GET https://heartbeats.example.com/status
+```
+
+Shows current status of all heartbeats.
+
+```sh
+GET https://heartbeats.example.com/status/heartbeat
+```
+
+Show current status of given heartbeat.
+### Query parameters
+
+```text
+output=json|yaml|yml|text|txt
+```
+
+Format response in one of the passed format. If no specific format is passed the response will be `text`.
+
+### Response Codes
+
+| Status        | Description                |
+| :------------ | :------------------------- |
+| 404 Not Found | Given heartbeat not found  |
+| 200 OK        | Fail was successfully send |
+
+## Show configuration
+
+```sh
+GET https://heartbeats.example.com/config
+```
+
+Shows current configuration.
+
+### Query parameters
+
+```text
+output=json|yaml|yml|text|txt
+```
+
+Format response in one of the passed format. If no specific format is passed the response will be `text`.
+
+### Response Codes
+
+| Status                        | Description                            |
+| :---------------------------- | :------------------------------------- |
+| 500 StatusInternalServerError | Problem with processing current config |
+| 200 OK                        | Fail was successfully send             |
+
+## Show metrics
+
+```sh
+GET https://heartbeats.example.com/metrics
+```
+
+Shows metrics for Prometheus.
+
+### Response Codes
+
+| Status | Description                |
+| :----- | :------------------------- |
+| 200 OK | Fail was successfully send |
+
+## Show Heartbeats server status
+
+```sh
+GET https://heartbeats.example.com/metrics
+```
+
+Shows Heartbeats server status.
+
+### Response Codes
+
+| Status | Description                |
+| :----- | :------------------------- |
+| 200 OK | Fail was successfully send |
 
 ## Config file
 
@@ -154,16 +253,16 @@ message: "Last ping was: {{ .TimeAgo .LastPing }}"
 
 #### Slack
 
-| Key           | Description                                                            | Example                                       |
-| :------------ | :--------------------------------------------------------------------- | :-------------------------------------------- |
-| `name`        | Name for this service                                                  | `slack-events`                                |
-| `enabled`     | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                             |
-| `type`        | type of notification                                                   | `slack`                                       |
+| Key            | Description                                                            | Example                                       |
+| :------------- | :--------------------------------------------------------------------- | :-------------------------------------------- |
+| `name`         | Name for this service                                                  | `slack-events`                                |
+| `enabled`      | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                             |
+| `type`         | type of notification                                                   | `slack`                                       |
 | `sendResolved` | Send notification if heartbeat changes back to «OK»                    | `true`                                        |
-| `subject`     | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                  |
-| `message`     | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"` |
-| `oauthToken`  | Slack oAuth Token (Redacted in endpoint `/config`)                     | xoxb-1234...                                  |
-| `Channels`    | List of Channels to send Slack notification                            | `- int ` <br> `- prod`                        |
+| `subject`      | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                  |
+| `message`      | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"` |
+| `oauthToken`   | Slack oAuth Token (Redacted in endpoint `/config`)                     | xoxb-1234...                                  |
+| `Channels`     | List of Channels to send Slack notification                            | `- int ` <br> `- prod`                        |
 
 #### Mail
 
@@ -172,7 +271,7 @@ message: "Last ping was: {{ .TimeAgo .LastPing }}"
 | `name`              | Name for this service                                                  | `mail_provicer_x`                             |
 | `enabled`           | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                             |
 | `type`              | type of notification                                                   | `mail`                                        |
-| `sendResolved`       | Send notification if heartbeat changes back to «OK»                    | `true`                                        |
+| `sendResolved`      | Send notification if heartbeat changes back to «OK»                    | `true`                                        |
 | `subject`           | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                  |
 | `message`           | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"` |
 | `senderAddress`     | SMTP address                                                           | `sender@gmail.com`                            |
@@ -184,15 +283,15 @@ message: "Last ping was: {{ .TimeAgo .LastPing }}"
 
 #### MS Teams
 
-| Key           | Description                                                            | Example                                            |
-| :------------ | :--------------------------------------------------------------------- | :------------------------------------------------- |
-| `name`        | Name for this service                                                  | `msTeams`                                          |
-| `enabled`     | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                                  |
-| `type`        | type of notification                                                   | `slack`                                            |
+| Key            | Description                                                            | Example                                            |
+| :------------- | :--------------------------------------------------------------------- | :------------------------------------------------- |
+| `name`         | Name for this service                                                  | `msTeams`                                          |
+| `enabled`      | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                                  |
+| `type`         | type of notification                                                   | `slack`                                            |
 | `sendResolved` | Send notification if heartbeat changes back to «OK»                    | `true`                                             |
-| `subject`     | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                       |
-| `message`     | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"`      |
-| webHooks      | List of Webhooks to send Notification (Redacted in endpoint `/config`) | `- http://example.webhook.office.com/webhook2/...` |
+| `subject`      | Subject for Notification. If not set, `defaults.subject` will be used. | `"[Heartbeat]: {{ .Name }}"`                       |
+| `message`      | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"`      |
+| webHooks       | List of Webhooks to send Notification (Redacted in endpoint `/config`) | `- http://example.webhook.office.com/webhook2/...` |
 
 ## Metrics
 
