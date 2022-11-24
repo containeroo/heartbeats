@@ -270,20 +270,12 @@ func ProcessServiceSettings() error {
 func CheckSendDetails() error {
 	var heartbeat Heartbeat
 
-	if HeartbeatsServer.Notifications.Defaults.Subject == "" {
-		return fmt.Errorf("default subject is not set")
-	}
-
 	if _, err := FormatTemplate(HeartbeatsServer.Notifications.Defaults.Subject, &heartbeat); err != nil {
-		return err
+		log.Warnf("Error while parsing subject template: %s", err)
 	}
 
 	if _, err := FormatTemplate(HeartbeatsServer.Notifications.Defaults.Message, &heartbeat); err != nil {
-		return err
-	}
-
-	if HeartbeatsServer.Notifications.Defaults.Message == "" {
-		log.Warnf("default message is not set")
+		log.Warnf("Error while parsing message template: %s", err)
 	}
 
 	var name, subject, message string
