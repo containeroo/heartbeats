@@ -213,7 +213,7 @@ Each Heartbeat must have following parameters:
 
 ### Notifications
 
-Heartbeat uses the library [https://github.com/containrrr/shoutrrr/](https://github.com/containrrr/shoutrrr/) for notification.
+Heartbeat uses the library [https://github.com/containrrr/shoutrrr/](https://github.com/containrrr/shoutrrr/) for notifications.
 
 `Defaults` (`notification.defaults`) set the general `message` and/or `sendResolved` for each service.
 Each service can override these settings by adding the corresponding key (`message` and/or `sendResolved`).
