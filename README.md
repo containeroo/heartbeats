@@ -196,7 +196,7 @@ notifications:
   - name: gmail
     enabled: true
     shoutrrr: |
-      smtp://giottolino.hq:${MAIL_PASSWORD}@smtp.gmail.com:587?from=example@gmail.com&to=example@gmail.com&subject=Heartbeat {{ .Name }} «{{ .Status }}»
+      smtp://USERNAME:${MAIL_PASSWORD}@smtp.gmail.com:587?from=example@gmail.com&to=example@gmail.com&subject=Heartbeat {{ .Name }} «{{ .Status }}»
 ```
 
 ### Heartbeat
