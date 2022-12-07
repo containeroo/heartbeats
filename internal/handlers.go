@@ -9,7 +9,6 @@ import (
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
-	"github.com/ulule/deepcopier"
 )
 
 // ResponseStatus represents a response
@@ -99,7 +98,7 @@ func HandlerPing(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	heartbeatName := vars["heartbeat"]
 
-	heartbeat, err := GetHeartbeatByName(heartbeatName)
+	heartbeat, err := HeartbeatsServer.GetHeartbeatByName(heartbeatName)
 	if err != nil {
 		WriteOutput(w, http.StatusNotFound, outputFormat, err.Error(), "{{ .Status }}")
 		return
@@ -119,7 +118,7 @@ func HandlerPingFail(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	heartbeatName := vars["heartbeat"]
 
-	heartbeat, err := GetHeartbeatByName(heartbeatName)
+	heartbeat, err := HeartbeatsServer.GetHeartbeatByName(heartbeatName)
 	if err != nil {
 		WriteOutput(w, http.StatusNotFound, outputFormat, err.Error(), "{{ .Status }}")
 		return
@@ -149,7 +148,7 @@ LastPing: {{ .TimeAgo .LastPing }}`
 		return
 	}
 
-	heartbeat, err := GetHeartbeatByName(heartbeatName)
+	heartbeat, err := HeartbeatsServer.GetHeartbeatByName(heartbeatName)
 	if err != nil {
 		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }} Error: {{  .Error }}")
 		return
@@ -179,24 +178,9 @@ func HandlerConfig(w http.ResponseWriter, req *http.Request) {
 
 	outputFormat := GetOutputFormat(req)
 
-	// copy the config to avoid exposing the password
-	HeartbeatsServerCopy := HeartbeatsConfig{}
-	if err := deepcopier.Copy(HeartbeatsServer).To(&HeartbeatsServerCopy); err != nil {
-		WriteOutput(w, http.StatusInternalServerError, outputFormat, err.Error(), "{{ .Status }}")
-		return
-	}
-
-	r, err := RedactServices(HeartbeatsServerCopy.Notifications.Services)
-	if err != nil {
-		WriteOutput(w, http.StatusInternalServerError, outputFormat, err.Error(), "{{ .Status }}")
-		return
-	}
-
-	HeartbeatsServerCopy.Notifications.Services = r
-
 	if outputFormat == "txt" || outputFormat == "text" {
 		outputFormat = "yaml" // switch to yaml for better output
 	}
 
-	WriteOutput(w, http.StatusOK, outputFormat, &HeartbeatsServerCopy, "{{ . }}")
+	WriteOutput(w, http.StatusOK, outputFormat, &HeartbeatsServer, "{{ . }}")
 }

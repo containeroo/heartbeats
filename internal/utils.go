@@ -95,3 +95,11 @@ func GetOutputFormat(req *http.Request) string {
 	}
 	return outputFormat
 }
+
+// CheckDefault checks if value is empty and returns default value
+func CheckDefault(value string, defaultValue string) string {
+	if value == "" {
+		return defaultValue
+	}
+	return value
+}
