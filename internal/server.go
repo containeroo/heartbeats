@@ -46,7 +46,7 @@ func NewRouter() *mux.Router {
 }
 
 // Run will run the HTTP Server
-func (h *HeartbeatsConfig) Run() {
+func (h *Heartbeats) Run() {
 	// Set up a channel to listen to for interrupt signals
 	var runChan = make(chan os.Signal, 1)
 

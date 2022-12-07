@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/notifications"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
@@ -96,33 +95,20 @@ func (h *Heartbeat) GotPingFail() {
 }
 
 // GetServiceByType returns notification settings by type
-func (h *HeartbeatsConfig) GetServiceByName(notificationType string) (interface{}, error) {
-	for _, notification := range h.Notifications.Services {
-		switch service := notification.(type) {
-		case notifications.SlackSettings:
-			if strings.EqualFold(service.Name, notificationType) {
-				return service, nil
-			}
-		case notifications.MailSettings:
-			if strings.EqualFold(service.Name, notificationType) {
-				return service, nil
-			}
-		case notifications.MsteamsSettings:
-			if strings.EqualFold(service.Name, notificationType) {
-				return service, nil
-			}
-		default:
-			return nil, fmt.Errorf("Unknown notification type")
+func (h *Heartbeats) GetServiceByName(notificationType string) (*Notification, error) {
+	for i, notification := range h.Notifications.Services {
+		if strings.EqualFold(notification.Name, notificationType) {
+			return &h.Notifications.Services[i], nil
 		}
 	}
 	return nil, fmt.Errorf("Notification settings for type «%s» not found", notificationType)
 }
 
 // GetHeartbeatByName search heartbeat in HeartbeatsConfig.Heartbeats by name and returns it
-func GetHeartbeatByName(name string) (*Heartbeat, error) {
-	for i, heartbeat := range HeartbeatsServer.Heartbeats {
+func (h *Heartbeats) GetHeartbeatByName(name string) (*Heartbeat, error) {
+	for i, heartbeat := range h.Heartbeats {
 		if strings.EqualFold(heartbeat.Name, name) {
-			return &HeartbeatsServer.Heartbeats[i], nil
+			return &h.Heartbeats[i], nil
 		}
 	}
 	return nil, fmt.Errorf("Heartbeat with name %s not found", name)

@@ -2,12 +2,11 @@ version: "2"
 
 services:
   heartbeats:
-    image: ghcr.io/containeroo/heartbeats:v0.2.5
+    image: ghcr.io/containeroo/heartbeats:v0.3.0
     hostname: heartbeats
     environment:
-      - "OAUTH_TOKEN=TOKEN"
+      - "SLACK_TOKEN=TOKEN"
       - "EMAIL_PASSWORD=SUPERSECRET"
-      - "WHY_NOT_A_SECRET_WEBHOOK=http://example.webhook.office.com/webhook2/..."
     command:
       - --debug
       - --host
