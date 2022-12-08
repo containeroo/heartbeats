@@ -14,9 +14,8 @@ var HeartbeatsServer Heartbeats
 
 // Config config holds general configuration
 type Config struct {
-	Path         string `mapstructure:"path"`
-	PrintVersion bool   `mapstructure:"printVersion"`
-	Logging      string `mapstructure:"logging"`
+	Path    string `mapstructure:"path"`
+	Logging string `mapstructure:"logging"`
 }
 
 // Details details holds defaults for notifications

@@ -32,7 +32,8 @@ const (
 	version = "v0.3.0"
 )
 
-var debug, trace, JsonLog bool
+var debug, trace, jsonLog bool
+var printVersion bool
 
 type PlainFormatter struct{}
 
@@ -41,7 +42,7 @@ func (f *PlainFormatter) Format(entry *log.Entry) ([]byte, error) {
 }
 func toggleDebug(cmd *cobra.Command, args []string) {
 
-	if JsonLog {
+	if jsonLog {
 		log.SetFormatter(&log.JSONFormatter{})
 	} else {
 		log.SetFormatter(&PlainFormatter{})
@@ -69,7 +70,7 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 	PersistentPreRun: toggleDebug,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if internal.HeartbeatsServer.Config.PrintVersion {
+		if printVersion {
 			fmt.Println(version)
 			os.Exit(0)
 		}
@@ -102,13 +103,13 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Config.Path, "config", "c", "./config.yaml", "Path to notifications config file")
+	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Config.Path, "config", "c", "./config.yaml", "Path to Heartbeats config file")
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Verbose logging.")
 	rootCmd.Flags().BoolVarP(&trace, "trace", "t", false, "More verbose logging.")
 	rootCmd.MarkFlagsMutuallyExclusive("debug", "trace")
-	rootCmd.Flags().BoolVarP(&JsonLog, "json-log", "j", false, "Output logging as json.")
+	rootCmd.Flags().BoolVarP(&jsonLog, "json-log", "j", false, "Output logging as json.")
 
-	rootCmd.Flags().BoolVarP(&internal.HeartbeatsServer.Config.PrintVersion, "version", "v", false, "Print the current version and exit.")
+	rootCmd.Flags().BoolVarP(&printVersion, "version", "v", false, "Print the current version and exit.")
 	rootCmd.Flags().StringVar(&internal.HeartbeatsServer.Server.Hostname, "host", "127.0.0.1", "Host of Heartbeat service.")
 	rootCmd.Flags().IntVarP(&internal.HeartbeatsServer.Server.Port, "port", "p", 8090, "Port to listen on")
 	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Server.SiteRoot, "site-root", "s", "", "Site root for the heartbeat service (default \"http://host:port\")")
