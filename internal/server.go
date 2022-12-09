@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"path/filepath"
 
@@ -18,6 +19,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var StaticFs embed.FS
+
 // Server is the holds HTTP server settings
 type Server struct {
 	Hostname string `mapstructure:"hostname"`
@@ -33,12 +36,12 @@ func NewRouter() *mux.Router {
 	reg := prometheus.NewRegistry() // Create a non-global registry
 	PromMetrics = *NewMetrics(reg)
 
-	//register handlers
 	fs := http.FileServer(http.Dir(filepath.Join("web", "static")))
 	s := http.StripPrefix("/static/", fs)
 	router.PathPrefix("/static/").Handler(s)
 	http.Handle("/", router)
 
+	//register handlers
 	router.HandleFunc("/", HandlerHome)
 	router.HandleFunc("/config", HandlerConfig)
 	router.HandleFunc("/healthz", HandlerHealthz)

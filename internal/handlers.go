@@ -38,8 +38,7 @@ func HandlerHome(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
 	templs := []string{"web/templates/base.html", "web/templates/navbar.html", "web/templates/heartbeats.html", "web/templates/footer.html"}
-
-	tmpl, err := template.ParseFiles(templs...)
+	tmpl, err := template.ParseFS(StaticFs, templs...)
 	if err != nil {
 		log.Errorf("Error parsing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)

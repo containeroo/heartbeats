@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"embed"
 	"fmt"
 	"os"
 	"time"
@@ -34,6 +35,7 @@ const (
 
 var debug, trace, jsonLog bool
 var printVersion bool
+var StaticFs embed.FS
 
 type PlainFormatter struct{}
 
