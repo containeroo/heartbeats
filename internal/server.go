@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"net/http"
 	"os"
@@ -32,14 +33,23 @@ func NewRouter() *mux.Router {
 	reg := prometheus.NewRegistry() // Create a non-global registry
 	PromMetrics = *NewMetrics(reg)
 
+	//register handlers
+	fs := http.FileServer(http.Dir(filepath.Join("web", "static")))
+	s := http.StripPrefix("/static/", fs)
+	router.PathPrefix("/static/").Handler(s)
+	http.Handle("/", router)
+
 	router.HandleFunc("/", HandlerHome)
 	router.HandleFunc("/config", HandlerConfig)
 	router.HandleFunc("/healthz", HandlerHealthz)
 	router.HandleFunc("/ping", HandlerPingHelp)
 	router.HandleFunc("/ping/{heartbeat:[a-zA-Z0-9 _-]+}/fail", HandlerPingFail).Methods("GET", "POST")
 	router.HandleFunc("/ping/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerPing).Methods("GET", "POST")
+	router.HandleFunc("/history", HandlerHistory)
+	router.HandleFunc("/history/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerHistory)
 	router.HandleFunc("/status", HandlerStatus)
 	router.HandleFunc("/status/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerStatus)
+	router.HandleFunc("/dashboard", HandlerDashboard)
 	router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 
 	return router

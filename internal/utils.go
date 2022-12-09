@@ -91,7 +91,7 @@ func FormatTemplate(tmpl string, intr any) (string, error) {
 func GetOutputFormat(req *http.Request) string {
 	outputFormat := req.URL.Query().Get("output")
 	if outputFormat == "" {
-		outputFormat = "text"
+		outputFormat = "txt"
 	}
 	return outputFormat
 }

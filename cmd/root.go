@@ -84,6 +84,9 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 			log.Fatal(err)
 		}
 
+		// Initialize the cache
+		internal.HistoryCache = internal.NewLocalCache(internal.HeartbeatsServer.Cache.MaxSize, internal.HeartbeatsServer.Cache.Reduce)
+
 		// watch config
 		viper.OnConfigChange(func(e fsnotify.Event) {
 			log.Infof("«%s» has changed. reload it", e.Name)
@@ -113,5 +116,9 @@ func init() {
 	rootCmd.Flags().StringVar(&internal.HeartbeatsServer.Server.Hostname, "host", "127.0.0.1", "Host of Heartbeat service.")
 	rootCmd.Flags().IntVarP(&internal.HeartbeatsServer.Server.Port, "port", "p", 8090, "Port to listen on")
 	rootCmd.Flags().StringVarP(&internal.HeartbeatsServer.Server.SiteRoot, "site-root", "s", "", "Site root for the heartbeat service (default \"http://host:port\")")
+
+	rootCmd.Flags().IntVarP(&internal.HeartbeatsServer.Cache.MaxSize, "max-size", "m", 500, "Max Size of History Cache per Heartbeat")
+	rootCmd.Flags().IntVarP(&internal.HeartbeatsServer.Cache.Reduce, "reduce", "r", 100, "Reduce Max Size of History Cache by this value if it exceeds the Max Size")
+
 	rootCmd.Flags().SortFlags = false
 }

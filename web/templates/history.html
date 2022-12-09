@@ -1,0 +1,21 @@
+{{define "body"}}
+<table class="table table-hover" id="history">
+  <p></p><h1 class="mt-5">History: {{ .Name }}</h1></p>
+  <thead>
+    <tr>
+      <th scope="col">Time</th>
+      <th scope="col">Event</th>
+      <th scope="col">Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range  .History }}
+    <tr>
+      <td>{{ .Time.Format "2006-01-02 15:04:05" }}</td>
+      <td>{{ .Event}}</td>
+      <td>{{ .Message}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+	</table>
+{{end}}

@@ -11,6 +11,13 @@ import (
 )
 
 var HeartbeatsServer Heartbeats
+var HistoryCache *LocalCache
+
+// Cache holds the configuration for the cache
+type Cache struct {
+	MaxSize int `mapstructure:"max_size"`
+	Reduce  int `mapstructure:"reduce"`
+}
 
 // Config config holds general configuration
 type Config struct {
@@ -36,6 +43,7 @@ type Heartbeats struct {
 	Version       string        `mapstructure:"version"`
 	Config        Config        `mapstructure:"config"`
 	Server        Server        `mapstructure:"server"`
+	Cache         Cache         `mapstructure:"cache"`
 	Heartbeats    []Heartbeat   `mapstructure:"heartbeats"`
 	Notifications Notifications `mapstructure:"notifications"`
 }
@@ -80,6 +88,10 @@ func ReadConfigFile(configPath string, init bool) error {
 	}
 
 	if err := ProcessServiceSettings(); err != nil {
+		return err
+	}
+
+	if err := ProecessHeartbeatsSettings(); err != nil {
 		return err
 	}
 
@@ -138,10 +150,10 @@ func ProcessServiceSettings() error {
 	}
 
 	for _, service := range HeartbeatsServer.Notifications.Services {
-		url := os.ExpandEnv(service.URL)            // expand any environment variables
+		url := os.ExpandEnv(service.Shoutrrr)       // expand any environment variables
 		url, err := FormatTemplate(url, &heartbeat) // expand any template variables
 		if err != nil {
-			return fmt.Errorf("Could not format shoutrrr url «%s» for «%s». %s", service.URL, service.Name, err)
+			return fmt.Errorf("Could not format shoutrrr url «%s» for «%s». %s", service.Shoutrrr, service.Name, err)
 		}
 
 		message := CheckDefault(service.Message, HeartbeatsServer.Notifications.Defaults.Message)
@@ -162,6 +174,60 @@ func ProcessServiceSettings() error {
 
 		log.Debugf("service «%s» is enabled: %t", service.Name, *service.Enabled)
 	}
+	return nil
+}
 
+func ProecessHeartbeatsSettings() error {
+	for i, h := range HeartbeatsServer.Heartbeats {
+		m := make(map[string]string)
+
+		for _, n := range h.Notifications {
+			s, err := HeartbeatsServer.GetServiceByName(n)
+			if err != nil {
+				return err
+			}
+			// extract everything befor :// from the shoutrrr url
+			shoutrrrType := s.Shoutrrr[:strings.Index(s.Shoutrrr, "://")]
+
+			switch shoutrrrType {
+			case "discord":
+				m[n] = "discord"
+			case "smtp":
+				m[n] = "email"
+			case "gotify":
+				m[n] = "gotify"
+			case "googlechat":
+				m[n] = "googlechat"
+			case "ifttt":
+				m[n] = "ifttt"
+			case "join":
+				m[n] = "join"
+			case "mattermost":
+				m[n] = "mattermost"
+			case "matrix":
+				m[n] = "matrix"
+			case "opsgenie":
+				m[n] = "opsgenie"
+			case "pushbullet":
+				m[n] = "pushbullet"
+			case "pushover":
+				m[n] = "pushover"
+			case "rocketchat":
+				m[n] = "rocketchat"
+			case "slack":
+				m[n] = "slack"
+			case "teams":
+				m[n] = "msteams"
+			case "telegram":
+				m[n] = "telegram"
+			case "zulip":
+				m[n] = "zulip"
+			// TODO: webhook
+			default:
+				return fmt.Errorf("invalid service type in notifications config file")
+			}
+			HeartbeatsServer.Heartbeats[i].NotificationsMap = m
+		}
+	}
 	return nil
 }

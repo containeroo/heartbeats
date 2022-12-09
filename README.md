@@ -8,15 +8,17 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 ## Flags
 
 ```yaml
--c, --config string      Path to notifications config file (default "./config.yaml")
--d, --debug              Verbose logging.
--t, --trace              More verbose logging.
--j, --json               Output logging as json.
--v, --version            Print the current version and exit.
-    --host string        Host of Heartbeat service. (default "127.0.0.1")
--p, --port int           Port to listen on (default 8090)
--s, --site-root string   Site root for the heartbeat service (default "http://host:port")
--h, --help               help for heartbeat
+  -c, --config string      Path to Heartbeats config file (default "./config.yaml")
+  -d, --debug              Verbose logging.
+  -t, --trace              More verbose logging.
+  -j, --json-log           Output logging as json.
+  -v, --version            Print the current version and exit.
+      --host string        Host of Heartbeat service. (default "127.0.0.1")
+  -p, --port int           Port to listen on (default 8090)
+  -s, --site-root string   Site root for the heartbeat service (default "http://host:port")
+  -m, --max-size int       Max Size of History Cache per Heartbeat (default 500)
+  -r, --reduce int         Reduce Max Size of History Cache by this value if it exceeds the Max Size (default 100)
+  -h, --help               help for heartbeat
 ```
 
 ## Endpoints
@@ -209,11 +211,11 @@ Each Heartbeat must have following parameters:
 | `description`   | Description for heartbeat                                           | `test workflow prometheus -> alertmanager workflow`  |
 | `interval`      | Interval in which ping should arrive                                                           |`5m`                       |
 | `grace`         | Grace period which starts after `interval` expired                                             | `30`                      |
-| `notifications` | List of notification to use if grace period is expired. Must match with `Notification[*].name` | - `slack` <br> `- gmail`  |
+| `notifications` | List of notification to use if grace period is expired. Must match with `Notifications[*].name` | - `slack` <br> `- gmail`  |
 
 ### Notifications
 
-Heartbeat uses the library [https://github.com/containrrr/shoutrrr/](https://github.com/containrrr/shoutrrr/) for notifications.
+Heartbeat uses the library [https://github.com/containrrr/shoutrrr/](https://github.com/containrrr/shoutrrr/) to send notifications.
 
 `Defaults` (`notification.defaults`) set the general `message` and/or `sendResolved` for each service.
 Each service can override these settings by adding the corresponding key (`message` and/or `sendResolved`).
@@ -236,7 +238,10 @@ message: "Last ping was: {{ .TimeAgo .LastPing }}"
 | `enabled`      | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                                                                                                                                      |
 | `sendResolved` | Send notification if heartbeat changes back to «OK»                    | `true`                                                                                                                                                 |
 | `message`      | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"`                                                                                                          |
-| `shoutrrr`     | Shoutrrr URL, see [here](https://containrrr.dev/shoutrrr/) for manual  | `slack://$SLACK_TOKEN@prod?color={{ if eq .Status "OK" }}good{{ else }}danger{{ end }}&title=Heartbeat {{ .Name }} «{{ .Status }}»&botname=heartbeats` |
+| `shoutrrr`     | Shoutrrr URL, see [here](https://containrrr.dev/shoutrrr/)             | `slack://$SLACK_TOKEN@prod?color={{ if eq .Status "OK" }}good{{ else }}danger{{ end }}&title=Heartbeat {{ .Name }} «{{ .Status }}»&botname=heartbeats` |
+
+You can use environment variables in `message` and `shoutrrr`, like `$MY_VAR` or `${MY_VAR}`.
+Heartbeats will also try to parse `message` and `shoutrrr` as a go-template with the content of the corresponding `heartbeat`.
 
 ## Metrics
 

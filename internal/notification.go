@@ -14,10 +14,10 @@ type Notification struct {
 	Enabled      *bool  `mapstructure:"enabled,omitempty"`
 	SendResolved *bool  `mapstructure:"sendResolved,omitempty"`
 	Message      string `mapstructure:"message,omitempty"`
-	URL          string `mapstructure:"shoutrrr"`
+	Shoutrrr     string `mapstructure:"shoutrrr"`
 }
 
-// Enum for Status with ok, nok and failed
+// Enum for Status
 type Status int16
 
 const (
@@ -33,28 +33,47 @@ func (s Status) String() string {
 // NotificationFunc returns a function that can be used to send notifications
 func NotificationFunc(heartbeatName string, status Status) func() {
 	return func() {
-		switch status {
-		case OK:
-			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(1)
-			log.Infof("%s got ping. Status is now «OK»", heartbeatName)
-		case GRACE:
-			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
-			log.Warnf("%s Grace is expired. Sending notification(s)", heartbeatName)
-		case FAILED:
-			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
-			log.Warnf("%s got \"failed\" ping. Sending notification(s)", heartbeatName)
-		}
+		var msg string
+		var history History
 		heartbeat, err := HeartbeatsServer.GetHeartbeatByName(heartbeatName)
 		if err != nil {
 			log.Errorf(err.Error())
 			return
 		}
-		heartbeat.Status = status.String()
+		switch status {
+		case OK:
+			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(1)
+			msg = "got ping. Status is now «OK»"
+			history = History{
+				Event:   Ping,
+				Message: msg,
+			}
+			log.Infof(msg)
+		case GRACE:
+			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
+			msg = "Grace is expired. Sending notification(s)"
+			history = History{
+				Event:   Grace,
+				Message: msg,
+			}
+			log.Warnf(msg)
+		case FAILED:
+			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
+			msg = "got 'failed' ping. Sending notification(s)"
+			history = History{
+				Event:   Failed,
+				Message: msg,
+			}
+			log.Warnf("%s %s", heartbeatName, msg)
+		}
 
-		for _, service := range heartbeat.Notifications {
+		heartbeat.Status = status.String()
+		HistoryCache.Add(heartbeatName, history)
+
+		for name, service := range heartbeat.NotificationsMap {
 			notificationService, err := HeartbeatsServer.GetServiceByName(service)
 			if err != nil {
-				log.Errorf("%s Could not get notification service «%s».", heartbeatName, service)
+				log.Errorf("%s Could not get notification service «%s».", heartbeatName, name)
 				continue
 			}
 
@@ -70,10 +89,10 @@ func NotificationFunc(heartbeatName string, status Status) func() {
 				continue
 			}
 
-			url := os.ExpandEnv(notificationService.URL) // expand any environment variables
-			url, err = FormatTemplate(url, heartbeat)    // expand any template variables
+			url := os.ExpandEnv(notificationService.Shoutrrr) // expand any environment variables
+			url, err = FormatTemplate(url, heartbeat)         // expand any template variables
 			if err != nil {
-				log.Errorf("%s Could not format shoutrrr url «%s» for «%s». %s", heartbeatName, notificationService.URL, notificationService.Name, err)
+				log.Errorf("%s Could not format shoutrrr url «%s» for «%s». %s", heartbeatName, notificationService.Shoutrrr, notificationService.Name, err)
 				continue
 			}
 
@@ -82,13 +101,16 @@ func NotificationFunc(heartbeatName string, status Status) func() {
 			message, err = FormatTemplate(message, heartbeat) // expand any template variables
 			if err != nil {
 				log.Errorf("%s Could not format message «%s» for «%s». %s", heartbeatName, notificationService.Message, notificationService.Name, err)
-				continue
 			}
 
 			if err := shoutrrr.Send(url, message); err != nil {
 				log.Errorf("%s Could not send notification to «%s». %s", heartbeatName, notificationService.Name, err)
 				continue
 			}
+			HistoryCache.Add(heartbeatName, History{
+				Event:   Send,
+				Message: "Sent notification to " + notificationService.Name,
+			})
 		}
 	}
 }
