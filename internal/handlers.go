@@ -37,7 +37,12 @@ func (h *HeartbeatStatus) TimeAgo(t time.Time) string {
 func HandlerHome(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
-	templs := []string{"web/templates/base.html", "web/templates/navbar.html", "web/templates/heartbeats.html", "web/templates/footer.html"}
+	templs := []string{
+		"web/templates/base.html",
+		"web/templates/navbar.html",
+		"web/templates/heartbeats.html",
+		"web/templates/footer.html",
+	}
 	tmpl, err := template.ParseFS(StaticFs, templs...)
 	if err != nil {
 		log.Errorf("Error parsing template: %s", err.Error())
@@ -181,12 +186,22 @@ func HandlerHistory(w http.ResponseWriter, req *http.Request) {
 	var templs []string
 
 	if heartbeatName == "" {
-		templs = []string{"web/templates/base.html", "web/templates/navbar.html", "web/templates/history_all.html", "web/templates/footer.html"}
+		templs = []string{
+			"web/templates/base.html",
+			"web/templates/navbar.html",
+			"web/templates/history_all.html",
+			"web/templates/footer.html",
+		}
 	} else {
-		templs = []string{"web/templates/base.html", "web/templates/navbar.html", "web/templates/history.html", "web/templates/footer.html"}
+		templs = []string{
+			"web/templates/base.html",
+			"web/templates/navbar.html",
+			"web/templates/history.html",
+			"web/templates/footer.html",
+		}
 	}
 
-	tmpl, err := template.ParseFiles(templs...)
+	tmpl, err := template.ParseFS(StaticFs, templs...)
 	if err != nil {
 		log.Errorf("Error parsing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -235,9 +250,14 @@ func HandlerConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	templs := []string{"web/templates/base.html", "web/templates/navbar.html", "web/templates/config.html", "web/templates/footer.html"}
+	templs := []string{
+		"web/templates/base.html",
+		"web/templates/navbar.html",
+		"web/templates/config.html",
+		"web/templates/footer.html",
+	}
 
-	tmpl, err := template.ParseFiles(templs...)
+	tmpl, err := template.ParseFS(StaticFs, templs...)
 	if err != nil {
 		log.Errorf("Error parsing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -266,92 +286,50 @@ func HandlerConfig(w http.ResponseWriter, req *http.Request) {
 func HandlerDashboard(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
-	outputFormat := GetOutputFormat(req)
+	templs := []string{
+		"web/templates/dashboard.html",
+	}
 
-	textTmpl := `<html>
-	<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="5" />
-<style>
-* {
-  box-sizing: border-box;
+	tmpl, err := template.ParseFS(StaticFs, templs...)
+	if err != nil {
+		log.Errorf("Error parsing template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "dashboard", &HeartbeatsServer); err != nil {
+		log.Errorf("Error executing template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
+		return
+	}
 }
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
+func HandlerDocs(w http.ResponseWriter, req *http.Request) {
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
-/* Float four columns side by side */
-.column {
-  float: left;
-  width: 25%;
-  padding: 0 10px;
-}
+	templs := []string{
+		"web/templates/base.html",
+		"web/templates/navbar.html",
+		"web/templates/docs/sidebar.html",
+		"web/templates/docs/sidebar.html",
+		"web/templates/docs/endpoints.html",
+		"web/templates/footer.html",
+	}
 
-/* Remove extra left and right margins, due to padding */
-.row {margin: 0 -5px;}
+	tmpl, err := template.ParseFS(StaticFs, templs...)
+	if err != nil {
+		log.Errorf("Error parsing template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		return
+	}
 
-/* Clear floats after the columns */
-.row:after {
-  content: "";
-  display: table;
-  clear: both;
-}
-
-/* Responsive columns */
-@media screen and (max-width: 600px) {
-  .column {
-    width: 100%;
-    display: block;
-    margin-bottom: 20px;
-  }
-}
-
-/* Style the counter cards */
-.card {
-  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-  padding: 16px;
-  text-align: center;
-}
-
-.status-ok {
-	background-color: #4CAF50;
-}
-.status-nok {
-	background-color: #f44336;
-}
-.status-grace {
-	background-color: #ff9800;
-}
-.status-never {
-	background-color: #f1f1f1;
-}
-
-</style>
-</head>
-<body>
-
-<h2>Heartbeats Dashboard</h2>
-<p>Resize the browser window to see the effect.</p>
-
-<div class="row">
-
-	{{ range . }}
-  <div class="column">
-    <div class="card {{ if eq .Status "OK" }}status-ok{{else if eq .Status "GRACE"}}status-grace{{else if eq .Status "NOK" }}status-nok{{ else }}status-never{{end}}"">
-      <h3>{{ .Name }}</h3>
-      <p>Last Ping: {{ if .LastPing.IsZero }}never{{ else }}{{ .LastPing.Format "2006-01-02 15:04:05" }}{{ end }}</p>
-    </div>
-  </div>
-	{{ end }}
-
-</div>
-
-</body>
-</html>
-`
-
-	WriteOutput(w, http.StatusOK, outputFormat, &HeartbeatsServer.Heartbeats, textTmpl)
+	if err := tmpl.ExecuteTemplate(w, "base", HeartbeatsServer); err != nil {
+		log.Errorf("Error executing template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
+		return
+	}
 }

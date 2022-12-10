@@ -4,7 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"path/filepath"
+	"io/fs"
 
 	"net/http"
 	"os"
@@ -36,7 +36,10 @@ func NewRouter() *mux.Router {
 	reg := prometheus.NewRegistry() // Create a non-global registry
 	PromMetrics = *NewMetrics(reg)
 
-	fs := http.FileServer(http.Dir(filepath.Join("web", "static")))
+	// handler for embed static files
+	fsys := fs.FS(StaticFs)
+	contentStatic, _ := fs.Sub(fsys, "web/static")
+	fs := http.FileServer(http.FS(contentStatic))
 	s := http.StripPrefix("/static/", fs)
 	router.PathPrefix("/static/").Handler(s)
 	http.Handle("/", router)
@@ -53,6 +56,7 @@ func NewRouter() *mux.Router {
 	router.HandleFunc("/status", HandlerStatus)
 	router.HandleFunc("/status/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerStatus)
 	router.HandleFunc("/dashboard", HandlerDashboard)
+	router.HandleFunc("/docs", HandlerDocs)
 	router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 
 	return router
