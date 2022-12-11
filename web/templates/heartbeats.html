@@ -33,7 +33,7 @@
       <td>
         {{ range $k,$v := .NotificationsMap }}
         <span>
-          <img class="notifications" src="/static/assets/img/{{ $v }}.png" alt="{{ $k }}"/>
+          <img class="notifications" src="/static/assets/img/{{ $v }}.png" title="{{ $k }}" alt="{{ $k }}"/>
         </span>
         {{ end }}
       </td>
