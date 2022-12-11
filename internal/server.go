@@ -47,17 +47,19 @@ func NewRouter() *mux.Router {
 	//register handlers
 	router.HandleFunc("/", HandlerHome)
 	router.HandleFunc("/config", HandlerConfig)
-	router.HandleFunc("/healthz", HandlerHealthz)
-	router.HandleFunc("/ping", HandlerPingHelp)
+	router.HandleFunc("/version", HandlerVersion)
+	router.HandleFunc("/healthz", HandlerHealthz).Methods("GET", "POST")
+	router.HandleFunc("/ping", HandlerPingHelp).Methods("GET", "POST").Methods("GET", "POST")
 	router.HandleFunc("/ping/{heartbeat:[a-zA-Z0-9 _-]+}/fail", HandlerPingFail).Methods("GET", "POST")
 	router.HandleFunc("/ping/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerPing).Methods("GET", "POST")
 	router.HandleFunc("/history", HandlerHistory)
 	router.HandleFunc("/history/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerHistory)
-	router.HandleFunc("/status", HandlerStatus)
-	router.HandleFunc("/status/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerStatus)
+	router.HandleFunc("/status", HandlerStatus).Methods("GET", "POST")
+	router.HandleFunc("/status/{heartbeat:[a-zA-Z0-9 _-]+}", HandlerStatus).Methods("GET", "POST")
 	router.HandleFunc("/dashboard", HandlerDashboard)
 	router.HandleFunc("/docs", HandlerDocs)
-	router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+	router.HandleFunc("/docs/{chapter:[a-zA-Z0-9 _-]+}", HandlerChapter)
+	router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg})).Methods("GET", "POST")
 
 	return router
 }
