@@ -1,0 +1,37 @@
+{{define "docs"}}
+
+{{ $URL := .SiteRoot }}
+
+{{ range .Examples }}
+  <h1>{{.Title}}</h1>
+  <p><code>{{.Code}}</code></p>
+  <p>{{.Description}}</p>
+  <h3>Query parameters</h3>
+  <p><code>{{.QueryParameters}}</code></p>
+  <h3>Query Description</h3>
+  <p>{{.QueryDescription}}</p>
+  <h3>Response Codes</h3>
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th scope="col">Status</th>
+        <th scope="col">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .ResponseCodes}}
+      <tr>
+        <td>
+          <span>{{ .Code }}</span>
+        </td>
+        <td>
+          <span>{{ .Description }}</span>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+
+  {{ end }}
+
+{{ end }}

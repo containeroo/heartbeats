@@ -116,7 +116,7 @@ func HandlerPingFail(w http.ResponseWriter, req *http.Request) {
 	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
 }
 
-// HandlerState is the handler for the /status endpoint
+// HandlerStatus is the handler for the /status endpoint
 func HandlerStatus(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
@@ -242,6 +242,15 @@ func HandlerHealthz(w http.ResponseWriter, req *http.Request) {
 	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
 }
 
+// HandlerVersion is the handler for the /healthz endpoint
+func HandlerVersion(w http.ResponseWriter, req *http.Request) {
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+
+	outputFormat := GetOutputFormat(req)
+
+	WriteOutput(w, http.StatusOK, outputFormat, &HeartbeatsServer, "{{ .Version }}")
+}
+
 func HandlerConfig(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
@@ -312,9 +321,7 @@ func HandlerDocs(w http.ResponseWriter, req *http.Request) {
 	templs := []string{
 		"web/templates/base.html",
 		"web/templates/navbar.html",
-		"web/templates/docs/sidebar.html",
-		"web/templates/docs/sidebar.html",
-		"web/templates/docs/endpoints.html",
+		"web/templates/docs.html",
 		"web/templates/footer.html",
 	}
 
@@ -327,6 +334,39 @@ func HandlerDocs(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "base", HeartbeatsServer); err != nil {
+		log.Errorf("Error executing template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
+		return
+	}
+}
+
+func HandlerChapter(w http.ResponseWriter, req *http.Request) {
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+
+	vars := mux.Vars(req)
+	chapter := vars["chapter"]
+
+	templs := []string{
+		"web/templates/base.html",
+		"web/templates/navbar.html",
+		"web/templates/docs.html",
+		fmt.Sprintf("web/templates/docs/%s.html", chapter),
+		"web/templates/footer.html",
+	}
+
+	tmpl, err := template.ParseFS(StaticFs, templs...)
+	if err != nil {
+		log.Errorf("Error parsing template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		return
+	}
+
+	d := Docs{}
+	d.Init()
+
+	if err := tmpl.ExecuteTemplate(w, "base", d); err != nil {
 		log.Errorf("Error executing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
