@@ -150,8 +150,8 @@ LastPing: {{ .TimeAgo .LastPing }}`
 	WriteOutput(w, http.StatusOK, outputFormat, &heartbeatStates, txtFormat)
 }
 
-// OutputHistory outputs history in wanted format
-func OutputHistory(w http.ResponseWriter, req *http.Request, outputFormat string, heartbeatName string) {
+// outputHistory outputs history in wanted format
+func outputHistory(w http.ResponseWriter, req *http.Request, outputFormat string, heartbeatName string) {
 	if heartbeatName == "" {
 		WriteOutput(w, http.StatusOK, outputFormat, &HistoryCache.History, "{{ . }}")
 		return
@@ -179,7 +179,7 @@ func HandlerHistory(w http.ResponseWriter, req *http.Request) {
 	heartbeatName := vars["heartbeat"]
 
 	if outputFormat := req.URL.Query().Get("output"); outputFormat != "" {
-		OutputHistory(w, req, outputFormat, heartbeatName)
+		outputHistory(w, req, outputFormat, heartbeatName)
 		return
 	}
 
@@ -274,8 +274,7 @@ func HandlerConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	o, err := FormatOutput("txt", "{{ . }}", &HeartbeatsServer)
-
+	config, err := FormatOutput("yaml", "{{ . }}", &HeartbeatsServer)
 	if err != nil {
 		log.Errorf("Error formatting output: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -283,7 +282,7 @@ func HandlerConfig(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := tmpl.ExecuteTemplate(w, "base", o); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "base", &config); err != nil {
 		log.Errorf("Error executing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
@@ -347,6 +346,8 @@ func HandlerChapter(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	chapter := vars["chapter"]
 
+	// TODO: check if chapter exists
+
 	templs := []string{
 		"web/templates/base.html",
 		"web/templates/navbar.html",
@@ -363,10 +364,7 @@ func HandlerChapter(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	d := Docs{}
-	d.Init()
-
-	if err := tmpl.ExecuteTemplate(w, "base", d); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "base", &Documentation); err != nil {
 		log.Errorf("Error executing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))

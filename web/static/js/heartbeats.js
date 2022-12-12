@@ -1,5 +1,5 @@
-var clipboard = new ClipboardJS('button.copy-link');
-$("button.copy-link").mouseout(function(e) {
+var clipboard = new ClipboardJS('button.copy');
+$("button.copy").mouseout(function(e) {
     setTimeout(function() {
         e.target.textContent = "copy";
     }, 300);

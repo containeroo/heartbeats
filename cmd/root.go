@@ -89,6 +89,9 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 		// Initialize the cache
 		internal.HistoryCache = internal.NewLocalCache(internal.HeartbeatsServer.Cache.MaxSize, internal.HeartbeatsServer.Cache.Reduce)
 
+		// Initialize the documention
+		internal.Documentation = *internal.NewDocumentation(internal.HeartbeatsServer.Server.SiteRoot)
+
 		// watch config
 		viper.OnConfigChange(func(e fsnotify.Event) {
 			log.Infof("«%s» has changed. reload it", e.Name)

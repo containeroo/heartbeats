@@ -28,7 +28,7 @@
       </td>
       <td>
         <span id="base-url" href="{{ $URL }}/ping/{{ .Name }}">{{ $URL }}/ping/{{ .Name }} </span>
-        <button class="copy-link" data-clipboard-text="{{ $URL }}/ping/{{ .Name }}">copy</button>
+        <button class="copy" data-clipboard-text="{{ $URL }}/ping/{{ .Name }}">copy</button>
       </td>
       <td>
         {{ range $k,$v := .NotificationsMap }}

@@ -1,0 +1,65 @@
+{{define "docs"}}
+
+{{ $URL := .SiteRoot }}
+
+<table class="table table-hover" id="heardbeats">
+  <h1>Endpoints</h1>
+  <thead>
+    <tr>
+      <th scope="col">Path</th>
+      <th scope="col">Method</th>
+      <th scope="col">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range .Endpoints }}
+    <tr>
+      <td>
+        <span>{{.Path}}</span>
+      </td>
+      <td>
+        {{range .Methods}}
+        <code>{{.}}</code>
+        {{end}}
+      </td>
+      <td>
+        <span>{{.Description}}</span>
+      </td>
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+
+{{ range .Examples }}
+  <h1>{{.Title}}</h1>
+  <div class="p-3 mb-2 bg-light"><code>{{.Code}}</code></div>
+  <p>{{.Description}}</p>
+  <h3>Query parameters</h3>
+  <div class="p-3 mb-2 bg-light"><code>{{.QueryParameters}}</code></div>
+  <h3>Query description</h3>
+  <p>{{.QueryDescription}}</p>
+  <h3>Response codes</h3>
+  <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">Status</th>
+        <th scope="col">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .ResponseCodes}}
+      <tr>
+        <td>
+          <code class="mb-2 bg-light">{{ .Code }}</code>
+        </td>
+        <td>
+          <span>{{ .Description }}</span>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+
+  {{ end }}
+
+{{ end }}
