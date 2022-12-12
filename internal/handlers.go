@@ -323,6 +323,15 @@ func HandlerDashboard(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 }
+func HandlerNotFound(w http.ResponseWriter, req *http.Request) {
+	templs := []string{
+		"web/templates/base.html",
+		"web/templates/navbar.html",
+		"web/templates/404.html",
+		"web/templates/footer.html",
+	}
+	ParseTemplates(templs, w)
+}
 
 func HandlerDocs(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
@@ -334,20 +343,7 @@ func HandlerDocs(w http.ResponseWriter, req *http.Request) {
 		"web/templates/footer.html",
 	}
 
-	tmpl, err := template.ParseFS(StaticFs, templs...)
-	if err != nil {
-		log.Errorf("Error parsing template: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", HeartbeatsServer); err != nil {
-		log.Errorf("Error executing template: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
-		return
-	}
+	ParseTemplates(templs, w)
 }
 
 func HandlerChapter(w http.ResponseWriter, req *http.Request) {
@@ -356,28 +352,24 @@ func HandlerChapter(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	chapter := vars["chapter"]
 
-	// TODO: check if chapter exists
+	templs := []string{}
 
-	templs := []string{
-		"web/templates/base.html",
-		"web/templates/navbar.html",
-		"web/templates/docs.html",
-		fmt.Sprintf("web/templates/docs/%s.html", chapter),
-		"web/templates/footer.html",
+	if !IsInListOfStrings(chapters, chapter) {
+		templs = []string{
+			"web/templates/base.html",
+			"web/templates/navbar.html",
+			"web/templates/docs.html",
+			"web/templates/docs/404.html",
+			"web/templates/footer.html",
+		}
+	} else {
+		templs = []string{
+			"web/templates/base.html",
+			"web/templates/navbar.html",
+			"web/templates/docs.html",
+			fmt.Sprintf("web/templates/docs/%s.html", chapter),
+			"web/templates/footer.html",
+		}
 	}
-
-	tmpl, err := template.ParseFS(StaticFs, templs...)
-	if err != nil {
-		log.Errorf("Error parsing template: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", &Documentation); err != nil {
-		log.Errorf("Error executing template: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
-		return
-	}
+	ParseTemplates(templs, w)
 }

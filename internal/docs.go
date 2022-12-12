@@ -3,6 +3,7 @@ package internal
 import "fmt"
 
 var Documentation Docs
+var chapters []string = []string{"config", "api", "endpoints", "heartbeats"}
 
 type Docs struct {
 	SiteRoot   string          `json:"siteRoot"`

@@ -103,3 +103,29 @@ func CheckDefault(value string, defaultValue string) string {
 	}
 	return value
 }
+
+func IsInListOfStrings(list []string, value string) bool {
+	for _, v := range list {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
+func ParseTemplates(templates []string, w http.ResponseWriter) {
+	tmpl, err := template.ParseFS(StaticFs, templates...)
+	if err != nil {
+		log.Errorf("Error parsing template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "base", &Documentation); err != nil {
+		log.Errorf("Error executing template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
+		return
+	}
+}
