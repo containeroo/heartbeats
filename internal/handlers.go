@@ -87,7 +87,12 @@ func HandlerPing(w http.ResponseWriter, req *http.Request) {
 
 	heartbeat, err := HeartbeatsServer.GetHeartbeatByName(heartbeatName)
 	if err != nil {
-		WriteOutput(w, http.StatusNotFound, outputFormat, err.Error(), "{{ .Status }}")
+		WriteOutput(w, http.StatusNotFound, outputFormat, &ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
+		return
+	}
+
+	if heartbeat.Enabled != nil && *heartbeat.Enabled == false {
+		WriteOutput(w, http.StatusServiceUnavailable, outputFormat, &ResponseStatus{Status: "nok", Error: "heartbeat is disabled"}, "Status: {{ .Status }}\nError: {{  .Error }}")
 		return
 	}
 
@@ -107,7 +112,12 @@ func HandlerPingFail(w http.ResponseWriter, req *http.Request) {
 
 	heartbeat, err := HeartbeatsServer.GetHeartbeatByName(heartbeatName)
 	if err != nil {
-		WriteOutput(w, http.StatusNotFound, outputFormat, err.Error(), "{{ .Status }}")
+		WriteOutput(w, http.StatusServiceUnavailable, outputFormat, &ResponseStatus{Status: "nok", Error: "heartbeat not found"}, "Status: {{ .Status }}\nError: {{  .Error }}")
+		return
+	}
+
+	if heartbeat.Enabled != nil && *heartbeat.Enabled == false {
+		WriteOutput(w, http.StatusServiceUnavailable, outputFormat, &ResponseStatus{Status: "nok", Error: "heartbeat is disabled"}, "Status: {{ .Status }}\nError: {{  .Error }}")
 		return
 	}
 
@@ -137,7 +147,7 @@ LastPing: {{ .TimeAgo .LastPing }}`
 
 	heartbeat, err := HeartbeatsServer.GetHeartbeatByName(heartbeatName)
 	if err != nil {
-		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }} Error: {{  .Error }}")
+		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
 		return
 	}
 
@@ -159,12 +169,12 @@ func outputHistory(w http.ResponseWriter, req *http.Request, outputFormat string
 
 	heartbeat, err := HeartbeatsServer.GetHeartbeatByName(heartbeatName)
 	if err != nil {
-		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }} Error: {{  .Error }}")
+		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
 		return
 	}
 	histories, ok := HistoryCache.History[heartbeat.Name]
 	if !ok {
-		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: "No history found"}, "Status: {{ .Status }} Error: {{  .Error }}")
+		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: "No history found"}, "Status: {{ .Status }}\nError: {{  .Error }}")
 		return
 	}
 
