@@ -60,6 +60,7 @@ func NewRouter() *mux.Router {
 	router.HandleFunc("/docs", HandlerDocs)
 	router.HandleFunc("/docs/{chapter:[a-zA-Z0-9 _-]+}", HandlerChapter)
 	router.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg})).Methods("GET", "POST")
+	router.NotFoundHandler = http.HandlerFunc(HandlerNotFound)
 
 	return router
 }
