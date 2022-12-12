@@ -1,0 +1,31 @@
+{{define "docs"}}
+
+{{ $siteRoot := .SiteRoot }}
+
+<table class="table table-hover" id="heardbeats">
+  <h1>Endpoints</h1>
+  <thead>
+    <tr>
+      <th scope="col">Path</th>
+      <th scope="col">Method</th>
+      <th scope="col">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range .Heartbeats }}
+    <tr>
+      <td>
+        <span>{{.Key}}</span>
+      </td>
+      <td>
+        <span>{{.Description}}</span>
+      </td>
+      <td>
+        <code>{{.Example}}</code>
+      </td>
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+
+{{ end }}

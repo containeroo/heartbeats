@@ -5,9 +5,10 @@ import "fmt"
 var Documentation Docs
 
 type Docs struct {
-	SiteRoot  string     `json:"siteRoot"`
-	Endpoints []Endpoint `json:"endpoints"`
-	Examples  []Example  `json:"examples"`
+	SiteRoot   string          `json:"siteRoot"`
+	Endpoints  []Endpoint      `json:"endpoints"`
+	Examples   []Example       `json:"examples"`
+	Heartbeats []HeartbeatDocs `json:"heartbeats"`
 }
 
 type Endpoint struct {
@@ -30,14 +31,66 @@ type Example struct {
 	ResponseCodes    []ResponseCode `json:"responseCodes"`
 }
 
+type HeartbeatDocs struct {
+	Key         string `json:"key"`
+	Description string `json:"description"`
+	Example     string `json:"example"`
+}
+
 func NewDocumentation(siteRoot string) *Docs {
 	d := Docs{
 		SiteRoot: siteRoot,
 	}
 	d.endpoints()
 	d.examples()
+	d.heartbeat()
 
 	return &d
+}
+
+func (d *Docs) heartbeat() {
+	heartbeats := []HeartbeatDocs{}
+
+	heartbeat := HeartbeatDocs{
+		Key: "enabled",
+		Description: `Whether the heartbeat is enabled or not. This is used to calculate the next expected heartbeat.
+The enabled must be a boolean. Default is "true".`,
+		Example: "true",
+	}
+	heartbeats = append(heartbeats, heartbeat)
+
+	heartbeat = HeartbeatDocs{
+		Key: "name",
+		Description: `The name of the heartbeat. This is used to identify the heartbeat in the URL and in the status page.
+The name must be unique and can only contain letters, numbers, dashes and underscores.`,
+		Example: "my-heartbeat",
+	}
+	heartbeats = append(heartbeats, heartbeat)
+
+	heartbeat = HeartbeatDocs{
+		Key: "description",
+		Description: `The description of the heartbeat. This is used to identify the heartbeat in the status page.
+The description can be any string.`,
+		Example: "My heartbeat",
+	}
+	heartbeats = append(heartbeats, heartbeat)
+
+	heartbeat = HeartbeatDocs{
+		Key: "interval",
+		Description: `The interval in seconds between each heartbeat. This is used to calculate the next expected heartbeat.
+The interval must be a positive integer.`,
+		Example: "60",
+	}
+	heartbeats = append(heartbeats, heartbeat)
+
+	heartbeat = HeartbeatDocs{
+		Key:         "grace",
+		Description: "The grace period in seconds before a heartbeat is considered failed. Sometimes a ping can be considered valid if it has a certain amount of \"delay\". The grace must be a positive integer.",
+		Example:     "120",
+	}
+	heartbeats = append(heartbeats, heartbeat)
+
+	d.Heartbeats = heartbeats
 }
 
 func (d *Docs) endpoints() {
@@ -162,10 +215,14 @@ func (d *Docs) examples() {
 				Code:        "404",
 				Description: "heartbeat not found",
 			},
+			{
+				Code:        "503",
+				Description: "heartbeat is disabled",
+			},
 		},
 	}
-
 	examples = append(examples, example)
+
 	example = Example{
 		Title: "Send a failed heartbeat",
 		Code:  fmt.Sprintf("GET|POST %s/ping/{heartbeat}/fail", HeartbeatsServer.Server.SiteRoot),
@@ -181,6 +238,10 @@ func (d *Docs) examples() {
 			{
 				Code:        "404",
 				Description: "heartbeat not found",
+			},
+			{
+				Code:        "503",
+				Description: "heartbeat is disabled",
 			},
 		},
 	}

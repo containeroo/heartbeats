@@ -12,6 +12,7 @@ import (
 // Heartbeat is a struct for a heartbeat
 type Heartbeat struct {
 	Name             string            `mapstructure:"name"`
+	Enabled          *bool             `mapstructure:"enabled"`
 	Description      string            `mapstructure:"description"`
 	Interval         time.Duration     `mapstructure:"interval"`
 	Grace            time.Duration     `mapstructure:"grace"`
