@@ -29,7 +29,10 @@ func Config(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Errorf("Error parsing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		_, err := w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		if err != nil {
+			log.Errorf("Error writing response: %s", err.Error())
+		}
 		return
 	}
 
@@ -37,14 +40,21 @@ func Config(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Errorf("Error formatting output: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot format output. %s", err.Error())))
+		_, err := w.Write([]byte(fmt.Sprintf("cannot format output. %s", err.Error())))
+		if err != nil {
+			log.Errorf("Error writing response: %s", err.Error())
+		}
 		return
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "base", &config); err != nil {
 		log.Errorf("Error executing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
+		_, err := w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
+		if err != nil {
+			log.Errorf("Error writing response: %s", err.Error())
+		}
+
 		return
 	}
 

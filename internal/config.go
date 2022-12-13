@@ -172,8 +172,8 @@ func ProcessServiceSettings() error {
 		}
 
 		message := utils.CheckDefault(service.Message, HeartbeatsServer.Notifications.Defaults.Message)
-		message = os.ExpandEnv(message)                          // expand any environment variables
-		message, err = utils.FormatTemplate(message, &heartbeat) // expand any template variables
+		message = os.ExpandEnv(message)                    // expand any environment variables
+		_, err = utils.FormatTemplate(message, &heartbeat) // expand any template variables
 		if err != nil {
 			return fmt.Errorf("Could not format message «%s» for «%s». %s", service.Message, service.Name, err)
 		}

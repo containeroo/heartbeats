@@ -33,7 +33,7 @@ func Chapter(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	chapter := vars["chapter"]
 
-	templs := []string{}
+	var templs []string
 
 	if !utils.IsInListOfStrings(docs.Chapters, chapter) {
 		templs = []string{

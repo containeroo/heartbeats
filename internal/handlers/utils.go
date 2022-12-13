@@ -53,14 +53,20 @@ func ParseTemplates(name string, templates []string, data any, w http.ResponseWr
 	if err != nil {
 		log.Errorf("Error parsing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		_, err := w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		if err != nil {
+			log.Errorf("Error writing response: %s", err.Error())
+		}
 		return
 	}
 
 	if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
 		log.Errorf("Error executing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
+		_, err := w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
+		if err != nil {
+			log.Errorf("Error writing response: %s", err.Error())
+		}
 		return
 	}
 }

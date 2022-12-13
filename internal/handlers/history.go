@@ -66,7 +66,10 @@ func History(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Errorf("Error parsing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		_, err := w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		if err != nil {
+			log.Errorf("Error writing response: %s", err.Error())
+		}
 		return
 	}
 
@@ -89,7 +92,10 @@ func History(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Errorf("Error executing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
+		_, err := w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
+		if err != nil {
+			log.Errorf("Error writing response: %s", err.Error())
+		}
 		return
 	}
 }
