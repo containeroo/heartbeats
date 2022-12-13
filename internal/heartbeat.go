@@ -13,19 +13,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type NotificationsMap struct {
+	Name    string `mapstructure:"name"`
+	Type    string `mapstructure:"type"`
+	Enabled bool   `mapstructure:"enabled"`
+}
+
 // Heartbeat is a struct for a heartbeat
 type Heartbeat struct {
-	Name             string            `mapstructure:"name"`
-	Enabled          *bool             `mapstructure:"enabled"`
-	Description      string            `mapstructure:"description"`
-	Interval         time.Duration     `mapstructure:"interval"`
-	Grace            time.Duration     `mapstructure:"grace"`
-	LastPing         time.Time         `mapstructure:"lastPing"`
-	Status           string            `mapstructure:"status"`
-	Notifications    []string          `mapstructure:"notifications"`
-	NotificationsMap map[string]string `mapstructure:",-,omitempty"`
-	IntervalTimer    *timer.Timer      `mapstructure:"intervalTimer,omitempty"`
-	GraceTimer       *timer.Timer      `mapstructure:"graceTimer,omitempty"`
+	Name             string             `mapstructure:"name"`
+	Enabled          *bool              `mapstructure:"enabled"`
+	Description      string             `mapstructure:"description"`
+	Interval         time.Duration      `mapstructure:"interval"`
+	Grace            time.Duration      `mapstructure:"grace"`
+	LastPing         time.Time          `mapstructure:"lastPing"`
+	Status           string             `mapstructure:"status"`
+	Notifications    []string           `mapstructure:"notifications"`
+	NotificationsMap []NotificationsMap `mapstructure:",-,omitempty"`
+	IntervalTimer    *timer.Timer       `mapstructure:"intervalTimer,omitempty"`
+	GraceTimer       *timer.Timer       `mapstructure:"graceTimer,omitempty"`
 }
 
 // TimeAgo returns a string with the time since the last ping

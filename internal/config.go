@@ -165,7 +165,8 @@ func ProcessServiceSettings() error {
 	}
 
 	for _, service := range HeartbeatsServer.Notifications.Services {
-		_, err := utils.FormatTemplate(os.ExpandEnv(service.Shoutrrr), &heartbeat) //test if there is an error when expanding any template variables
+		url := os.ExpandEnv(service.Shoutrrr)
+		_, err := utils.FormatTemplate(url, &heartbeat) //test if there is an error when expanding any template variables
 		if err != nil {
 			return fmt.Errorf("Could not format shoutrrr url «%s» for «%s». %s", service.Shoutrrr, service.Name, err)
 		}
@@ -193,8 +194,8 @@ func ProcessServiceSettings() error {
 
 // ProcessHeartbeatsSettings checks if all heartbeats are valid and can be parsed
 func ProcessHeartbeatsSettings() error {
+	supportedServices := []string{"discord", "smtp", "gotify", "googlechat", "ifttt", "join", "mattermost", "matrix", "pushover", "rocketchat", "slack", "teams", "telegram", "zulip", "webhook"}
 	for i, h := range HeartbeatsServer.Heartbeats {
-		m := make(map[string]string)
 
 		for _, n := range h.Notifications {
 			s, err := HeartbeatsServer.GetServiceByName(n)
@@ -204,45 +205,21 @@ func ProcessHeartbeatsSettings() error {
 			// extract everything befor :// from the shoutrrr url
 			shoutrrrType := s.Shoutrrr[:strings.Index(s.Shoutrrr, "://")]
 
-			switch shoutrrrType {
-			case "discord":
-				m[n] = "discord"
-			case "smtp":
-				m[n] = "email"
-			case "gotify":
-				m[n] = "gotify"
-			case "googlechat":
-				m[n] = "googlechat"
-			case "ifttt":
-				m[n] = "ifttt"
-			case "join":
-				m[n] = "join"
-			case "mattermost":
-				m[n] = "mattermost"
-			case "matrix":
-				m[n] = "matrix"
-			case "opsgenie":
-				m[n] = "opsgenie"
-			case "pushbullet":
-				m[n] = "pushbullet"
-			case "pushover":
-				m[n] = "pushover"
-			case "rocketchat":
-				m[n] = "rocketchat"
-			case "slack":
-				m[n] = "slack"
-			case "teams":
-				m[n] = "msteams"
-			case "telegram":
-				m[n] = "telegram"
-			case "zulip":
-				m[n] = "zulip"
-			case "webhook":
-				m[n] = "webhook"
-			default:
-				return fmt.Errorf("invalid service type in notifications config file")
+			if !utils.IsInListOfStrings(supportedServices, shoutrrrType) {
+				return fmt.Errorf("service «%s» is not supported", shoutrrrType)
 			}
-			HeartbeatsServer.Heartbeats[i].NotificationsMap = m
+
+			if s.Enabled == nil {
+				trueVar := true
+				s.Enabled = &trueVar
+			}
+
+			n := NotificationsMap{
+				Name:    n,
+				Type:    shoutrrrType,
+				Enabled: *s.Enabled,
+			}
+			HeartbeatsServer.Heartbeats[i].NotificationsMap = append(HeartbeatsServer.Heartbeats[i].NotificationsMap, n)
 		}
 	}
 	return nil

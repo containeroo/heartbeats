@@ -31,9 +31,9 @@
         <button class="copy" data-clipboard-text="{{ $URL }}/ping/{{ .Name }}">copy</button>
       </td>
       <td>
-        {{ range $k,$v := .NotificationsMap }}
+        {{ range .NotificationsMap }}
         <span>
-          <img class="notifications" src="/static/assets/img/{{ $v }}.png" title="{{ $k }}" alt="{{ $k }}"/>
+          <img class="notifications {{ if not .Enabled }}notificationsDisabled{{end}}" src="/static/assets/img/{{ .Type }}.png" title="{{ .Name }} {{if not .Enabled }}(disabled){{end}}" alt="{{ .Name }}"/>
         </span>
         {{ end }}
       </td>

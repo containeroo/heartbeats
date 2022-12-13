@@ -34,3 +34,8 @@
   border-radius: 50%;
   margin-right: 5px;
 }
+
+.notificationsDisabled {
+  filter: grayscale(100);
+  -webkit-filter: grayscale(100);
+}
