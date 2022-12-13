@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/containeroo/heartbeats/internal/cache"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containrrr/shoutrrr"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -43,7 +44,7 @@ func Notify(heartbeatName string, status Status) func() {
 		}
 		switch status {
 		case OK:
-			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(1)
+			metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(1)
 			msg = "got ping. Status is now «OK»"
 			history = cache.History{
 				Event:   cache.EventPing,
@@ -51,7 +52,7 @@ func Notify(heartbeatName string, status Status) func() {
 			}
 			log.Infof(msg)
 		case GRACE:
-			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
+			metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
 			msg = "Grace is expired. Sending notification(s)"
 			history = cache.History{
 				Event:   cache.EventGrace,
@@ -59,7 +60,7 @@ func Notify(heartbeatName string, status Status) func() {
 			}
 			log.Warnf(msg)
 		case FAILED:
-			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
+			metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
 			msg = "got 'failed' ping. Sending notification(s)"
 			history = cache.History{
 				Event:   cache.EventFailed,

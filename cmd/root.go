@@ -23,6 +23,7 @@ import (
 
 	"github.com/containeroo/heartbeats/internal"
 	"github.com/containeroo/heartbeats/internal/cache"
+	"github.com/containeroo/heartbeats/internal/docs"
 	"github.com/fsnotify/fsnotify"
 
 	log "github.com/sirupsen/logrus"
@@ -91,14 +92,26 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 		cache.Local = cache.New(internal.HeartbeatsServer.Cache.MaxSize, internal.HeartbeatsServer.Cache.Reduce)
 
 		// Initialize the documention
-		internal.Documentation = *internal.NewDocumentation(internal.HeartbeatsServer.Server.SiteRoot)
+		c := docs.Cache{
+			MaxSize: internal.HeartbeatsServer.Cache.MaxSize,
+			Reduce:  internal.HeartbeatsServer.Cache.Reduce,
+		}
+		docs.Documentation = *docs.NewDocumentation(internal.HeartbeatsServer.Server.SiteRoot, &c)
 
 		// watch config
 		viper.OnConfigChange(func(e fsnotify.Event) {
 			log.Infof("«%s» has changed. reload it", e.Name)
+
 			if err := internal.ReadConfigFile(internal.HeartbeatsServer.Config.Path, false); err != nil {
 				log.Fatal(err)
 			}
+
+			// regenerate documentation
+			c := docs.Cache{
+				MaxSize: internal.HeartbeatsServer.Cache.MaxSize,
+				Reduce:  internal.HeartbeatsServer.Cache.Reduce,
+			}
+			docs.Documentation = *docs.NewDocumentation(internal.HeartbeatsServer.Server.SiteRoot, &c)
 		})
 		viper.WatchConfig()
 

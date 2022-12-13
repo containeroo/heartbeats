@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -34,7 +35,7 @@ func NewRouter() *mux.Router {
 	router := mux.NewRouter()
 
 	reg := prometheus.NewRegistry() // Create a non-global registry
-	PromMetrics = *NewMetrics(reg)
+	metrics.PromMetrics = *metrics.NewMetrics(reg)
 
 	// handler for embed static files
 	fsys := fs.FS(StaticFs)

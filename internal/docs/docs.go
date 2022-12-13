@@ -1,16 +1,9 @@
-package internal
+package docs
 
 import "fmt"
 
 var Documentation Docs
-var chapters []string = []string{"config", "api", "endpoints", "heartbeats"}
-
-type Docs struct {
-	SiteRoot   string          `json:"siteRoot"`
-	Endpoints  []Endpoint      `json:"endpoints"`
-	Examples   []Example       `json:"examples"`
-	Heartbeats []HeartbeatDocs `json:"heartbeats"`
-}
+var Chapters []string = []string{"config", "api", "endpoints", "heartbeats"}
 
 type Endpoint struct {
 	Path        string   `json:"path"`
@@ -32,15 +25,29 @@ type Example struct {
 	ResponseCodes    []ResponseCode `json:"responseCodes"`
 }
 
-type HeartbeatDocs struct {
+type Heartbeat struct {
 	Key         string `json:"key"`
 	Description string `json:"description"`
 	Example     string `json:"example"`
 }
 
-func NewDocumentation(siteRoot string) *Docs {
+type Cache struct {
+	MaxSize int `json:"maxSize"`
+	Reduce  int `json:"reduce"`
+}
+
+type Docs struct {
+	SiteRoot   string      `json:"siteRoot"`
+	Cache      *Cache      `json:"cache"`
+	Endpoints  []Endpoint  `json:"endpoints"`
+	Examples   []Example   `json:"examples"`
+	Heartbeats []Heartbeat `json:"heartbeats"`
+}
+
+func NewDocumentation(siteRoot string, cache *Cache) *Docs {
 	d := Docs{
 		SiteRoot: siteRoot,
+		Cache:    cache,
 	}
 	d.endpoints()
 	d.examples()
@@ -50,9 +57,9 @@ func NewDocumentation(siteRoot string) *Docs {
 }
 
 func (d *Docs) heartbeats() {
-	heartbeats := []HeartbeatDocs{}
+	heartbeats := []Heartbeat{}
 
-	heartbeat := HeartbeatDocs{
+	heartbeat := Heartbeat{
 		Key: "enabled",
 		Description: `Whether the heartbeat is enabled or not. This is used to calculate the next expected heartbeat.
 The enabled must be a boolean. Default is "true".`,
@@ -60,7 +67,7 @@ The enabled must be a boolean. Default is "true".`,
 	}
 	heartbeats = append(heartbeats, heartbeat)
 
-	heartbeat = HeartbeatDocs{
+	heartbeat = Heartbeat{
 		Key: "name",
 		Description: `The name of the heartbeat. This is used to identify the heartbeat in the URL and in the status page.
 The name must be unique and can only contain letters, numbers, dashes and underscores.`,
@@ -68,7 +75,7 @@ The name must be unique and can only contain letters, numbers, dashes and unders
 	}
 	heartbeats = append(heartbeats, heartbeat)
 
-	heartbeat = HeartbeatDocs{
+	heartbeat = Heartbeat{
 		Key: "description",
 		Description: `The description of the heartbeat. This is used to identify the heartbeat in the status page.
 The description can be any string.`,
@@ -76,7 +83,7 @@ The description can be any string.`,
 	}
 	heartbeats = append(heartbeats, heartbeat)
 
-	heartbeat = HeartbeatDocs{
+	heartbeat = Heartbeat{
 		Key: "interval",
 		Description: `The interval in seconds between each heartbeat. This is used to calculate the next expected heartbeat.
 The interval must be a positive integer.`,
@@ -84,7 +91,7 @@ The interval must be a positive integer.`,
 	}
 	heartbeats = append(heartbeats, heartbeat)
 
-	heartbeat = HeartbeatDocs{
+	heartbeat = Heartbeat{
 		Key:         "grace",
 		Description: "The grace period in seconds before a heartbeat is considered failed. Sometimes a ping can be considered valid if it has a certain amount of \"delay\". The grace must be a positive integer.",
 		Example:     "120",
@@ -203,7 +210,7 @@ func (d *Docs) examples() {
 	examples := []Example{}
 	example := Example{
 		Title:            "Send a heartbeat",
-		Code:             fmt.Sprintf("GET|POST %s/ping/{heartbeat}", HeartbeatsServer.Server.SiteRoot),
+		Code:             fmt.Sprintf("GET|POST %s/ping/{heartbeat}", d.SiteRoot),
 		Description:      "Sends a \"alive\" message.",
 		QueryParameters:  "output=json|yaml|yml|text|txt",
 		QueryDescription: "Format response in one of the passed format. If no specific format is passed the response will be <code>text</code>.",
@@ -226,7 +233,7 @@ func (d *Docs) examples() {
 
 	example = Example{
 		Title: "Send a failed heartbeat",
-		Code:  fmt.Sprintf("GET|POST %s/ping/{heartbeat}/fail", HeartbeatsServer.Server.SiteRoot),
+		Code:  fmt.Sprintf("GET|POST %s/ping/{heartbeat}/fail", d.SiteRoot),
 		Description: "Sends a \"failed\" message. This will set the heartbeat to failed and will not reset the timer. " +
 			"Use this if you want to set a heartbeat to failed without resetting the timer.",
 		QueryParameters:  "output=json|yaml|yml|text|txt",
@@ -250,7 +257,7 @@ func (d *Docs) examples() {
 
 	example = Example{
 		Title: "Get the current status of a heartbeat",
-		Code:  fmt.Sprintf("GET|POST %s/status/{heartbeat}", HeartbeatsServer.Server.SiteRoot),
+		Code:  fmt.Sprintf("GET|POST %s/status/{heartbeat}", d.SiteRoot),
 		Description: "Get the current status of a heartbeat. " +
 			"Use this if you want to get the current status of a heartbeat.",
 		QueryParameters:  "output=json|yaml|yml|text|txt",
@@ -270,7 +277,7 @@ func (d *Docs) examples() {
 
 	example = Example{
 		Title: "Get the current status of all heartbeats",
-		Code:  fmt.Sprintf("GET|POST %s/status", HeartbeatsServer.Server.SiteRoot),
+		Code:  fmt.Sprintf("GET|POST %s/status", d.SiteRoot),
 		Description: "Get the current status of all heartbeats. " +
 			"Use this if you want to get the current status of all heartbeats.",
 		QueryParameters:  "output=json|yaml|yml|text|txt",
@@ -290,11 +297,11 @@ func (d *Docs) examples() {
 
 	example = Example{
 		Title: "Get the history of a heartbeat",
-		Code:  fmt.Sprintf("GET|POST %s/history/{heartbeat}", HeartbeatsServer.Server.SiteRoot),
+		Code:  fmt.Sprintf("GET|POST %s/history/{heartbeat}", d.SiteRoot),
 		Description: "Get the history of a heartbeat. " +
 			"Use this if you want to get the history of a heartbeat." +
-			fmt.Sprintf("The maximum number of entries is %d and is defined with the parameter <code>--max-size|-m</code>.", HeartbeatsServer.Cache.MaxSize) +
-			fmt.Sprintf("If the maximum number of entries is reached the last %d entry will be removed. This is defined with the parameter <code>--reduce|-r</code>.", HeartbeatsServer.Cache.Reduce),
+			fmt.Sprintf("The maximum number of entries is %d and is defined with the parameter <code>--max-size|-m</code>.", d.Cache.MaxSize) +
+			fmt.Sprintf("If the maximum number of entries is reached the last %d entry will be removed. This is defined with the parameter <code>--reduce|-r</code>.", d.Cache.Reduce),
 		QueryParameters:  "output=json|yaml|yml|text|txt",
 		QueryDescription: "Format response in one of the passed format. If no specific format is passed the response will be <code>text</code>.",
 		ResponseCodes: []ResponseCode{
@@ -312,7 +319,7 @@ func (d *Docs) examples() {
 
 	example = Example{
 		Title: "Get the history of all heartbeats",
-		Code:  fmt.Sprintf("GET|POST %s/history", HeartbeatsServer.Server.SiteRoot),
+		Code:  fmt.Sprintf("GET|POST %s/history", d.SiteRoot),
 		Description: "Get the history of all heartbeats. " +
 			"Use this if you want to get the history of all heartbeats.",
 		QueryParameters:  "output=json|yaml|yml|text|txt",
@@ -332,7 +339,7 @@ func (d *Docs) examples() {
 
 	example = Example{
 		Title: "Show the current configuration",
-		Code:  fmt.Sprintf("GET|POST %s/config", HeartbeatsServer.Server.SiteRoot),
+		Code:  fmt.Sprintf("GET|POST %s/config", d.SiteRoot),
 		Description: "Show the current configuration. " +
 			"Use this if you want to see the current configuration.",
 		QueryParameters:  "output=json|yaml|yml|text|txt",
@@ -352,7 +359,7 @@ func (d *Docs) examples() {
 
 	example = Example{
 		Title: "Show Prometheus metrics",
-		Code:  fmt.Sprintf("GET|POST %s/metrics", HeartbeatsServer.Server.SiteRoot),
+		Code:  fmt.Sprintf("GET|POST %s/metrics", d.SiteRoot),
 		Description: "Show Prometheus metrics. " +
 			"Use this if you want to see the Prometheus metrics.",
 		QueryParameters:  "output=json|yaml|yml|text|txt",
@@ -372,7 +379,7 @@ func (d *Docs) examples() {
 
 	example = Example{
 		Title: "Show Heartbeats health",
-		Code:  fmt.Sprintf("GET|POST %s/health", HeartbeatsServer.Server.SiteRoot),
+		Code:  fmt.Sprintf("GET|POST %s/health", d.SiteRoot),
 		Description: "Show Heartbeats health. " +
 			"Use this if you want to see the Heartbeats health.",
 		QueryParameters:  "output=json|yaml|yml|text|txt",
@@ -392,7 +399,7 @@ func (d *Docs) examples() {
 
 	example = Example{
 		Title: "Show Heartbeats version",
-		Code:  fmt.Sprintf("GET|POST %s/version", HeartbeatsServer.Server.SiteRoot),
+		Code:  fmt.Sprintf("GET|POST %s/version", d.SiteRoot),
 		Description: "Show Heartbeats version. " +
 			"Use this if you want to see the Heartbeats version.",
 		QueryParameters:  "output=json|yaml|yml|text|txt",

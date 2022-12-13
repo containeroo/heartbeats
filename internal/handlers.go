@@ -10,6 +10,7 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/ago"
 	"github.com/containeroo/heartbeats/internal/cache"
+	"github.com/containeroo/heartbeats/internal/docs"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
@@ -356,7 +357,7 @@ func HandlerChapter(w http.ResponseWriter, req *http.Request) {
 
 	templs := []string{}
 
-	if !IsInListOfStrings(chapters, chapter) {
+	if !IsInListOfStrings(docs.Chapters, chapter) {
 		templs = []string{
 			"web/templates/base.html",
 			"web/templates/navbar.html",

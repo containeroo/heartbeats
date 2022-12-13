@@ -7,6 +7,8 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/ago"
 	"github.com/containeroo/heartbeats/internal/cache"
+	"github.com/containeroo/heartbeats/internal/metrics"
+	"github.com/containeroo/heartbeats/internal/timer"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
@@ -22,8 +24,8 @@ type Heartbeat struct {
 	Status           string            `mapstructure:"status"`
 	Notifications    []string          `mapstructure:"notifications"`
 	NotificationsMap map[string]string `mapstructure:",-,omitempty" deepcopier:"skip"`
-	IntervalTimer    *Timer            `mapstructure:"-,omitempty" deepcopier:"skip"`
-	GraceTimer       *Timer            `mapstructure:"-,omitempty" deepcopier:"skip"`
+	IntervalTimer    *timer.Timer      `mapstructure:"-,omitempty" deepcopier:"skip"`
+	GraceTimer       *timer.Timer      `mapstructure:"-,omitempty" deepcopier:"skip"`
 }
 
 // TimeAgo returns a string with the time since the last ping
@@ -60,7 +62,7 @@ func (h *Heartbeat) GotPing() {
 	// GraceTimer.Completed is true when expired
 	if (h.IntervalTimer == nil || h.IntervalTimer.Completed) && (h.GraceTimer == nil || h.GraceTimer.Completed) {
 		log.Tracef("First ping or ping after a grace period has expired")
-		h.IntervalTimer = NewTimer(h.Interval, func() {
+		h.IntervalTimer = timer.NewTimer(h.Interval, func() {
 			msg := fmt.Sprintf("Timer is expired. Start grace timer with duration %s", h.Grace)
 			log.Infof("%s %s", h.Name, msg)
 			cache.Local.Add(h.Name, cache.History{
@@ -68,7 +70,7 @@ func (h *Heartbeat) GotPing() {
 				Message: fmt.Sprintf("Timer is expired. Start grace timer with duration %s", h.Grace),
 			})
 			h.Status = "GRACE"
-			h.GraceTimer = NewTimer(h.Grace,
+			h.GraceTimer = timer.NewTimer(h.Grace,
 				Notify(h.Name, GRACE))
 		})
 		msg = fmt.Sprintf("Start timer with interval %s", h.Interval)
@@ -81,8 +83,8 @@ func (h *Heartbeat) GotPing() {
 
 	h.LastPing = time.Now()
 	h.Status = "OK"
-	PromMetrics.TotalHeartbeats.With(prometheus.Labels{"heartbeat": h.Name}).Inc()
-	PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(1)
+	metrics.PromMetrics.TotalHeartbeats.With(prometheus.Labels{"heartbeat": h.Name}).Inc()
+	metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(1)
 
 	log.Infof("%s %s", h.Name, msg)
 	cache.Local.Add(h.Name, cache.History{
@@ -107,8 +109,8 @@ func (h *Heartbeat) GotPingFail() {
 
 	h.LastPing = time.Now()
 	h.Status = "FAIL"
-	PromMetrics.TotalHeartbeats.With(prometheus.Labels{"heartbeat": h.Name}).Inc()
-	PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(0)
+	metrics.PromMetrics.TotalHeartbeats.With(prometheus.Labels{"heartbeat": h.Name}).Inc()
+	metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(0)
 
 	log.Infof("%s got '/fail' ping", h.Name)
 	cache.Local.Add(h.Name, cache.History{

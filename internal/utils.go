@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"text/template"
 
+	"github.com/containeroo/heartbeats/internal/docs"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -122,7 +123,7 @@ func ParseTemplates(templates []string, w http.ResponseWriter) {
 		return
 	}
 
-	if err := tmpl.ExecuteTemplate(w, "base", &Documentation); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "base", &docs.Documentation); err != nil {
 		log.Errorf("Error executing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
