@@ -39,12 +39,10 @@ func (h *HeartbeatStatus) TimeAgo(t time.Time) string {
 
 // LogRequest logs the request
 func LogRequest(req *http.Request) {
-	query := strings.TrimSpace(req.URL.RawQuery)
-	if query != "" {
-		log.Tracef("%s %s%s", req.Method, req.RequestURI, query)
-	} else {
-		log.Tracef("%s %s", req.Method, req.RequestURI)
-	}
+	query := strings.Replace(req.URL.RawQuery, "\n", "", -1)
+	query = strings.Replace(query, "\r", "", -1)
+	query = strings.TrimSpace(query)
+	log.Tracef("%s %s%s", req.Method, req.RequestURI, query)
 }
 
 // ParseBaseTemplates parses the templates for docs and writes the output to the response writer
