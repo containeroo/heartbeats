@@ -196,6 +196,8 @@ func ProcessServiceSettings() error {
 func ProcessHeartbeatsSettings() error {
 	supportedServices := []string{"discord", "smtp", "gotify", "googlechat", "ifttt", "join", "mattermost", "matrix", "pushover", "rocketchat", "slack", "teams", "telegram", "zulip", "webhook"}
 	for i, h := range HeartbeatsServer.Heartbeats {
+		// reset HeartbeatsServer.Heartbeats[i].NotificationsMap to avoid duplicates
+		HeartbeatsServer.Heartbeats[i].NotificationsMap = []NotificationsMap{}
 
 		for _, n := range h.Notifications {
 			s, err := HeartbeatsServer.GetServiceByName(n)
