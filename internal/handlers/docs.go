@@ -3,17 +3,15 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/containeroo/heartbeats/internal/docs"
 	"github.com/containeroo/heartbeats/internal/utils"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
 // Docs is the handler for the docs page
 func Docs(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+	LogRequest(req)
 
 	templs := []string{
 		"web/templates/base.html",
