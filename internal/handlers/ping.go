@@ -4,16 +4,14 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"strings"
 
 	"github.com/containeroo/heartbeats/internal"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
 // PingHelp is the handler for the /ping endpoint
 func PingHelp(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+	LogRequest(req)
 
 	outputFormat := GetOutputFormat(req)
 
@@ -31,7 +29,7 @@ func PingHelp(w http.ResponseWriter, req *http.Request) {
 
 // Ping is the handler for the /ping/<heartbeat> endpoint
 func Ping(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+	LogRequest(req)
 
 	outputFormat := GetOutputFormat(req)
 
@@ -56,7 +54,7 @@ func Ping(w http.ResponseWriter, req *http.Request) {
 
 // PingFail is the handler for the /ping/<heartbeat>/fail endpoint
 func PingFail(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+	LogRequest(req)
 
 	outputFormat := GetOutputFormat(req)
 

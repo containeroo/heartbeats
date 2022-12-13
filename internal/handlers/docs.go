@@ -28,7 +28,7 @@ func Docs(w http.ResponseWriter, req *http.Request) {
 
 // Chapter is the handler for the documentation chapters
 func Chapter(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+	LogRequest(req)
 
 	vars := mux.Vars(req)
 	chapter := vars["chapter"]

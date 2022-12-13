@@ -2,15 +2,13 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/containeroo/heartbeats/internal"
-	log "github.com/sirupsen/logrus"
 )
 
 // Home is the handler for the / endpoint
 func Home(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+	LogRequest(req)
 
 	templs := []string{
 		"web/templates/base.html",

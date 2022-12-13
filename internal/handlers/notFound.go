@@ -4,6 +4,8 @@ import "net/http"
 
 // NotFound is the handler for the 404 page
 func NotFound(w http.ResponseWriter, req *http.Request) {
+	LogRequest(req)
+
 	templs := []string{
 		"web/templates/base.html",
 		"web/templates/navbar.html",

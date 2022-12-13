@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"text/template"
 
 	"github.com/containeroo/heartbeats/internal"
@@ -12,7 +11,7 @@ import (
 
 // Config returns the configuration of the heartbeats server
 func Config(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+	LogRequest(req)
 
 	if outputFormat := req.URL.Query().Get("output"); outputFormat != "" {
 		WriteOutput(w, http.StatusOK, outputFormat, &internal.HeartbeatsServer, "{{ . }}")

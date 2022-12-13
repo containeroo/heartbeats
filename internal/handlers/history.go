@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"text/template"
 
 	"github.com/containeroo/heartbeats/internal"
@@ -35,7 +34,7 @@ func outputHistory(w http.ResponseWriter, req *http.Request, outputFormat string
 
 // HandlerHistory is the handler for the /history endpoint
 func History(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+	LogRequest(req)
 
 	vars := mux.Vars(req)
 	heartbeatName := vars["heartbeat"]

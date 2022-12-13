@@ -2,14 +2,11 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // Healthz is the handler for the /healthz endpoint
 func Healthz(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+	LogRequest(req)
 
 	outputFormat := GetOutputFormat(req)
 

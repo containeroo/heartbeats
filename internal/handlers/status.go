@@ -3,16 +3,14 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/containeroo/heartbeats/internal"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 )
 
 // Status is the handler for the /status endpoint
 func Status(w http.ResponseWriter, req *http.Request) {
-	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
+	LogRequest(req)
 
 	outputFormat := GetOutputFormat(req)
 

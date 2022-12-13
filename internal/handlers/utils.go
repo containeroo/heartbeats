@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"text/template"
 	"time"
 
@@ -34,6 +35,16 @@ func (h *HeartbeatStatus) TimeAgo(t time.Time) string {
 		return "never"
 	}
 	return ago.Calculate.Format(t)
+}
+
+// LogRequest logs the request
+func LogRequest(req *http.Request) {
+	query := strings.TrimSpace(req.URL.RawQuery)
+	if query != "" {
+		log.Tracef("%s %s%s", req.Method, req.RequestURI, query)
+	} else {
+		log.Tracef("%s %s", req.Method, req.RequestURI)
+	}
 }
 
 // ParseBaseTemplates parses the templates for docs and writes the output to the response writer
