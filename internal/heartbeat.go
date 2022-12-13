@@ -120,7 +120,7 @@ func (h *Heartbeat) GotPingFail() {
 }
 
 // GetServiceByType returns notification settings by type
-func (h *Heartbeats) GetServiceByName(notificationType string) (*Notification, error) {
+func (h *Heartbeats) GetServiceByName(notificationType string) (*Service, error) {
 	for i, notification := range h.Notifications.Services {
 		if strings.EqualFold(notification.Name, notificationType) {
 			return &h.Notifications.Services[i], nil

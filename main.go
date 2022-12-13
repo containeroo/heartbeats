@@ -26,6 +26,6 @@ import (
 var staticFs embed.FS
 
 func main() {
-	internal.StaticFs = staticFs
+	internal.StaticFS = staticFs
 	cmd.Execute()
 }

@@ -1,4 +1,4 @@
-package internal
+package handlers
 
 import (
 	"bytes"
@@ -6,11 +6,53 @@ import (
 	"fmt"
 	"net/http"
 	"text/template"
+	"time"
 
+	"github.com/containeroo/heartbeats/internal"
+	"github.com/containeroo/heartbeats/internal/ago"
 	"github.com/containeroo/heartbeats/internal/docs"
+	"github.com/containeroo/heartbeats/internal/utils"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
+
+// ResponseStatus represents a response
+type ResponseStatus struct {
+	Status string `json:"status"`
+	Error  string `json:"error"`
+}
+
+// HeartbeatStatus represents a heartbeat status
+type HeartbeatStatus struct {
+	Name     string    `json:"name"`
+	Status   string    `json:"status"`
+	LastPing time.Time `json:"lastPing"`
+}
+
+// TimeAgo returns a string representing the time since the given time
+func (h *HeartbeatStatus) TimeAgo(t time.Time) string {
+	if t.IsZero() {
+		return "never"
+	}
+	return ago.Calculate.Format(t)
+}
+
+func ParseTemplates(templates []string, w http.ResponseWriter) {
+	tmpl, err := template.ParseFS(internal.StaticFS, templates...)
+	if err != nil {
+		log.Errorf("Error parsing template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "base", &docs.Documentation); err != nil {
+		log.Errorf("Error executing template: %s", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
+		return
+	}
+}
 
 // WriteOutput writes the output to the response writer
 //
@@ -59,7 +101,7 @@ func FormatOutput(outputFormat string, textTemplate string, output interface{}) 
 		return b.String(), nil
 
 	case "txt", "text":
-		txt, err := FormatTemplate(textTemplate, &output)
+		txt, err := utils.FormatTemplate(textTemplate, &output)
 		if err != nil {
 			return "", fmt.Errorf("Error formatting output. %s", err.Error())
 		}
@@ -70,24 +112,6 @@ func FormatOutput(outputFormat string, textTemplate string, output interface{}) 
 	}
 }
 
-// FormatTemplate format template with intr as input
-func FormatTemplate(tmpl string, intr any) (string, error) {
-	if tmpl == "" {
-		return "", fmt.Errorf("Template is empty")
-	}
-	t, err := template.New("status").Parse(tmpl)
-	if err != nil {
-		return "", fmt.Errorf("Error executing template: %s", err.Error())
-	}
-	buf := &bytes.Buffer{}
-	err = t.Execute(buf, &intr)
-	if err != nil {
-		return "", fmt.Errorf("Error executing template: %s", err.Error())
-	}
-
-	return buf.String(), nil
-}
-
 // CheckOutput checks if the output format is supported
 func GetOutputFormat(req *http.Request) string {
 	outputFormat := req.URL.Query().Get("output")
@@ -95,38 +119,4 @@ func GetOutputFormat(req *http.Request) string {
 		outputFormat = "txt"
 	}
 	return outputFormat
-}
-
-// CheckDefault checks if value is empty and returns default value
-func CheckDefault(value string, defaultValue string) string {
-	if value == "" {
-		return defaultValue
-	}
-	return value
-}
-
-func IsInListOfStrings(list []string, value string) bool {
-	for _, v := range list {
-		if v == value {
-			return true
-		}
-	}
-	return false
-}
-
-func ParseTemplates(templates []string, w http.ResponseWriter) {
-	tmpl, err := template.ParseFS(StaticFs, templates...)
-	if err != nil {
-		log.Errorf("Error parsing template: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "base", &docs.Documentation); err != nil {
-		log.Errorf("Error executing template: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
-		return
-	}
 }

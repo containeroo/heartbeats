@@ -24,6 +24,7 @@ import (
 	"github.com/containeroo/heartbeats/internal"
 	"github.com/containeroo/heartbeats/internal/cache"
 	"github.com/containeroo/heartbeats/internal/docs"
+	"github.com/containeroo/heartbeats/internal/server"
 	"github.com/fsnotify/fsnotify"
 
 	log "github.com/sirupsen/logrus"
@@ -115,8 +116,7 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 		})
 		viper.WatchConfig()
 
-		// Run the server
-		internal.HeartbeatsServer.Run()
+		server.RunServer(internal.HeartbeatsServer.Server.Hostname, internal.HeartbeatsServer.Server.Port)
 	},
 }
 

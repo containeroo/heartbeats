@@ -5,13 +5,14 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/cache"
 	"github.com/containeroo/heartbeats/internal/metrics"
+	"github.com/containeroo/heartbeats/internal/utils"
 	"github.com/containrrr/shoutrrr"
 	"github.com/prometheus/client_golang/prometheus"
 
 	log "github.com/sirupsen/logrus"
 )
 
-type Notification struct {
+type Service struct {
 	Name         string `mapstructure:"name"`
 	Enabled      *bool  `mapstructure:"enabled,omitempty"`
 	SendResolved *bool  `mapstructure:"sendResolved,omitempty"`
@@ -92,15 +93,15 @@ func Notify(heartbeatName string, status Status) func() {
 			}
 
 			url := os.ExpandEnv(notificationService.Shoutrrr) // expand any environment variables
-			url, err = FormatTemplate(url, heartbeat)         // expand any template variables
+			url, err = utils.FormatTemplate(url, heartbeat)   // expand any template variables
 			if err != nil {
 				log.Errorf("%s Could not format shoutrrr url «%s» for «%s». %s", heartbeatName, notificationService.Shoutrrr, notificationService.Name, err)
 				continue
 			}
 
-			message := CheckDefault(notificationService.Message, HeartbeatsServer.Notifications.Defaults.Message)
-			message = os.ExpandEnv(message)                   // expand any environment variables
-			message, err = FormatTemplate(message, heartbeat) // expand any template variables
+			message := utils.CheckDefault(notificationService.Message, HeartbeatsServer.Notifications.Defaults.Message)
+			message = os.ExpandEnv(message)                         // expand any environment variables
+			message, err = utils.FormatTemplate(message, heartbeat) // expand any template variables
 			if err != nil {
 				log.Errorf("%s Could not format message «%s» for «%s». %s", heartbeatName, notificationService.Message, notificationService.Name, err)
 			}

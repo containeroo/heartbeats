@@ -1,27 +1,24 @@
 package internal
 
 import (
+	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/containeroo/heartbeats/internal/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 var HeartbeatsServer Heartbeats
+var StaticFS embed.FS
 
-// Cache holds the configuration for the cache
-type Cache struct {
-	MaxSize int `mapstructure:"max_size"`
-	Reduce  int `mapstructure:"reduce"`
-}
-
-// Config config holds general configuration
-type Config struct {
-	Path    string `mapstructure:"path"`
-	Logging string `mapstructure:"logging"`
+// NotifyConfig holds the configuration for the notifications
+type Notifications struct {
+	Defaults Defaults  `mapstructure:"defaults"`
+	Services []Service `mapstructure:"services"`
 }
 
 // Details details holds defaults for notifications
@@ -31,10 +28,23 @@ type Defaults struct {
 	SendResolved *bool  `mapstructure:"sendResolved"`
 }
 
-// NotifyConfig holds the configuration for the notifications
-type Notifications struct {
-	Defaults Defaults       `mapstructure:"defaults"`
-	Services []Notification `mapstructure:"services"`
+// Cache holds the configuration for the cache
+type Cache struct {
+	MaxSize int `mapstructure:"max_size"`
+	Reduce  int `mapstructure:"reduce"`
+}
+
+// Server is the holds HTTP server settings
+type Server struct {
+	Hostname string `mapstructure:"hostname"`
+	Port     int    `mapstructure:"port"`
+	SiteRoot string `mapstructure:"siteRoot"`
+}
+
+// Config config holds general configuration
+type Config struct {
+	Path    string `mapstructure:"path"`
+	Logging string `mapstructure:"logging"`
 }
 
 // Heartbeats is the main configuration struct
@@ -149,15 +159,15 @@ func ProcessServiceSettings() error {
 	}
 
 	for _, service := range HeartbeatsServer.Notifications.Services {
-		url := os.ExpandEnv(service.Shoutrrr)       // expand any environment variables
-		url, err := FormatTemplate(url, &heartbeat) // expand any template variables
+		url := os.ExpandEnv(service.Shoutrrr)             // expand any environment variables
+		url, err := utils.FormatTemplate(url, &heartbeat) // expand any template variables
 		if err != nil {
 			return fmt.Errorf("Could not format shoutrrr url «%s» for «%s». %s", service.Shoutrrr, service.Name, err)
 		}
 
-		message := CheckDefault(service.Message, HeartbeatsServer.Notifications.Defaults.Message)
-		message = os.ExpandEnv(message)                    // expand any environment variables
-		message, err = FormatTemplate(message, &heartbeat) // expand any template variables
+		message := utils.CheckDefault(service.Message, HeartbeatsServer.Notifications.Defaults.Message)
+		message = os.ExpandEnv(message)                          // expand any environment variables
+		message, err = utils.FormatTemplate(message, &heartbeat) // expand any template variables
 		if err != nil {
 			return fmt.Errorf("Could not format message «%s» for «%s». %s", service.Message, service.Name, err)
 		}
@@ -221,7 +231,8 @@ func ProecessHeartbeatsSettings() error {
 				m[n] = "telegram"
 			case "zulip":
 				m[n] = "zulip"
-			// TODO: webhook
+			case "webhook":
+				m[n] = "webhook"
 			default:
 				return fmt.Errorf("invalid service type in notifications config file")
 			}
