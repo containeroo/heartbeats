@@ -5,17 +5,20 @@ import "fmt"
 var Documentation Docs
 var Chapters []string = []string{"config", "api", "endpoints", "heartbeats"}
 
+// Endpoint is the struct for the endpoints
 type Endpoint struct {
 	Path        string   `json:"path"`
 	Methods     []string `json:"method"`
 	Description string   `json:"description"`
 }
 
+// ResponseCode is the struct for the response codes
 type ResponseCode struct {
 	Code        string `json:"code"`
 	Description string `json:"description"`
 }
 
+// Example is the struct for the examples
 type Example struct {
 	Title            string         `json:"title"`
 	Code             string         `json:"code"`
@@ -25,17 +28,20 @@ type Example struct {
 	ResponseCodes    []ResponseCode `json:"responseCodes"`
 }
 
+// Heartbeat is the struct for the heartbeats
 type Heartbeat struct {
 	Key         string `json:"key"`
 	Description string `json:"description"`
 	Example     string `json:"example"`
 }
 
+// Cache is the struct for the cache
 type Cache struct {
 	MaxSize int `json:"maxSize"`
 	Reduce  int `json:"reduce"`
 }
 
+// Docs is the struct for the documentation
 type Docs struct {
 	SiteRoot   string      `json:"siteRoot"`
 	Cache      *Cache      `json:"cache"`
@@ -44,6 +50,7 @@ type Docs struct {
 	Heartbeats []Heartbeat `json:"heartbeats"`
 }
 
+// NewDocumentation creates a new documentation
 func NewDocumentation(siteRoot string, cache *Cache) *Docs {
 	d := Docs{
 		SiteRoot: siteRoot,
@@ -56,6 +63,7 @@ func NewDocumentation(siteRoot string, cache *Cache) *Docs {
 	return &d
 }
 
+// heartbeats returns the heartbeats documentation
 func (d *Docs) heartbeats() {
 	heartbeats := []Heartbeat{}
 
@@ -101,6 +109,7 @@ The interval must be a positive integer.`,
 	d.Heartbeats = heartbeats
 }
 
+// endpoints returns the endpoints documentation
 func (d *Docs) endpoints() {
 
 	endpoints := []Endpoint{}
@@ -206,6 +215,7 @@ func (d *Docs) endpoints() {
 	d.Endpoints = endpoints
 }
 
+// exmaples returns the examples documentation
 func (d *Docs) examples() {
 	examples := []Example{}
 	example := Example{

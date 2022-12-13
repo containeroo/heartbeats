@@ -11,6 +11,7 @@ var Local *localCache
 // Enum for Event
 type Event int16
 
+// Event Enum
 const (
 	EventPing Event = iota
 	EventGrace
@@ -18,20 +19,24 @@ const (
 	EventSend
 )
 
+// String returns the string representation of the Event
 func (s Event) String() string {
 	return [...]string{"PING", "GRACE", "FAILED", "SEND"}[s]
 }
 
+// History is the struct for the history of a heartbeat
 type History struct {
 	Time    time.Time `mapstructure:"time"`
 	Event   Event     `mapstructure:"event"`
 	Message string    `mapstructure:"message"`
 }
 
+// cachedHistory is the struct for the history of a heartbeat
 type cachedHistory struct {
 	Histories []History `mapstructure:"history"`
 }
 
+// localCache is the struct for the local cache
 type localCache struct {
 	wg      sync.WaitGroup       `mapstructure:"waitgroup"`
 	mu      sync.RWMutex         `mapstructure:"mutex"`
@@ -40,6 +45,7 @@ type localCache struct {
 	History map[string][]History `mapstructure:"history"`
 }
 
+// New creates a new localCache
 func New(maxSize int, reduce int) *localCache {
 	lc := &localCache{
 		History: make(map[string][]History),
@@ -52,6 +58,7 @@ func New(maxSize int, reduce int) *localCache {
 	return lc
 }
 
+// reduceCache reduces the cache to the given size
 func reduceCache(maxSize int, reduce int, history map[string][]History) {
 	for k, v := range history {
 		if len(v) > maxSize {
@@ -60,6 +67,7 @@ func reduceCache(maxSize int, reduce int, history map[string][]History) {
 	}
 }
 
+// Add adds a new history item to the local cache
 func (lc *localCache) Add(heartbeatName string, h History) {
 	lc.mu.Lock()
 	defer lc.mu.Unlock()
@@ -75,6 +83,7 @@ func (lc *localCache) Add(heartbeatName string, h History) {
 
 }
 
+// Get returns the history of a heartbeat
 func (lc *localCache) Get(heartbeatName string) ([]History, error) {
 	if _, ok := lc.History[heartbeatName]; !ok {
 		return nil, fmt.Errorf("History for Heartbeat %s does not exist", heartbeatName)
