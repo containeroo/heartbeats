@@ -104,6 +104,11 @@ func ReadConfigFile(configPath string, init bool) error {
 		return err
 	}
 
+	// check if reduce is bigger than MaxSize
+	if HeartbeatsServer.Cache.Reduce > HeartbeatsServer.Cache.MaxSize {
+		return fmt.Errorf("reduce is bigger than maxSize")
+	}
+
 	if !init {
 		ResetTimerIfRunning(&previousHeartbeats)
 	}
