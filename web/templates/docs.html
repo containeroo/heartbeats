@@ -1,38 +1,37 @@
 {{define "body"}}
 
 <div class="container-fluid">
-  <div class="row flex-nowrap">
-      <div class="navbar col-auto col-md-3 col-xl-2 px-sm-2 px-0 navbar-dark bg-dark">
-          <div class="d-flex flex-column align-items-center align-items-sm-start px-3 pt-2 text-white min-vh-100">
-              <a href="/docs" class="d-flex align-items-center pb-3 mb-md-0 me-md-auto text-white text-decoration-none">
-                  <span class="fs-5 d-none d-sm-inline">Docs</span>
-              </a>
-              <ul class="navbar-nav me-auto mb-2 mb-md-0">
-                  <li lass="nav-item">
-                      <a href="/docs/api" class="nav-link">API</a>
-                  </li>
-
-                  <li lass="nav-item">
-                    <a href="/docs/config" class="nav-link">Configuration</a>
-                </li>
-
-                <li lass="nav-item">
-                  <a href="/docs/heartbeats" class="nav-link">Config Heartbeats</a>
-                </li>
-
-                <li lass="nav-item">
-                  <a href="/docs/notifications" class="nav-link">Config Notification</a>
-                </li>
-              </ul>
-          </div>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarCollapse"
+    aria-controls="sidebarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+    <div class="container">
+      <div class="collapse navbar-collapse" id="sidebarCollapse">
+        <ul class="navbar-nav mb-2 mb-md-0">
+          <li class="nav-item active">
+            <a class="nav-link" aria-current="page" href="/docs/api">API</a>
+          </li>
+          <li class="nav-item ">
+            <a class="nav-link" aria-current="page" href="/docs/config">Features</a>
+          </li>
+          <li class="nav-item ">
+            <a class="nav-link" aria-current="page" href="/docs/heartbeats">Heartbeats</a>
+          </li>
+          <li class="nav-item ">
+            <a class="nav-link" aria-current="page" href="/docs/notifications">Notifications</a>
+          </li>
+        </ul>
       </div>
-      <main class="flex-shrink-0">
-        <div class="container">
-          <p class="lead">{{template "docs" . }}</p>
-        </div>
-      </main>
-  </div>
-</div>
+    </div>
+  </nav>
 
+  <main class="flex-shrink-0">
+    <div class="container-fluid">
+      <p class="lead">{{template "docs" . }}</p>
+    </div>
+  </main>
+
+</div>
 
 {{ end }}

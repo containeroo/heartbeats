@@ -10,6 +10,10 @@
   float: left;
 }
 
+.navbar a {
+  color: #ed2d7a;
+}
+
 .navbar li a {
   display: block;
   color: white;
@@ -33,6 +37,3 @@
 
 }
 
-.navbar a {
-  color: #ed2d7a;
-}

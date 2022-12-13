@@ -1,0 +1,105 @@
+{{define "docs"}}
+
+{{ $siteRoot := .SiteRoot }}
+
+<div>
+  <h1 class="mt-5">Notifications</h1>
+
+  <p>
+    Heartbeat uses the library <a href="https://github.com/containrrr/shoutrrr/">https://github.com/containrrr/shoutrrr/</a> for notifications.
+  </p>
+  <p>
+    Defaults (<code>notification.defaults</code>) set the general <code>message</code> and/or <code>sendResolved</code>
+    for each service. Each service can override these settings by adding the corresponding key (<code>message</code> and/or
+    <code>sendResolved</code>).
+  </p>
+  <p>
+    You can use all properties from heartbeats in <code>shoutrrr</code> and/or <code>message</code>. The variables must
+    start with a dot, a capital letter and be surrounded by double curly brackets. Example: <code>{{`{{ .Status }}`}}</code>.
+  </p>
+  <p>
+    There is a "go-tempoate function" (<code>TimeAgo</code>) that calculates the time of the last ping to now. (borrowed from <a
+      href="https://github.com/xeonx/timeago/">here</a>).
+    <br>Example:
+    <code>message: "Last ping was: {{`{{ .TimeAgo .LastPing }}`}}"</code>
+  </p>
+</div>
+
+<h2 class="mt-5">Example</h2>
+
+<div class="p-3 mb-2 bg-light">
+  <pre><code>
+notifications:
+  defaults:
+    sendResolved: true
+    message: "Description:\n{{` .Description `}}.\n\nLast ping: {{` .TimeAgo .LastPing `}}"
+  services:
+    - name: slack
+      enabled: true
+      message: "*Description:*\n{{` .Description `}}.\n\nLast ping: {{` .TimeAgo .LastPing `}}"
+      shoutrrr: slack://$SLACK_TOKEN@test?color={{` if eq .Status "OK" `}}good{{` else `}}danger{{` end `}}&title=Heartbeat {{` .Name `}} «{{` .Status `}}»&botname=heartbeats
+    - name: gmail
+      enabled: true
+      sendResolved: false
+      shoutrrr: smtp://<FROM_ADDRESS>:$MAIL_PASSWORD@smtp.gmail.com:587?from=example@gmail.com&to=example@gmail.com&subject=Heartbeat {{` .Name `}} «{{` .Status `}}»
+    - name: msteams
+      enable: true
+      shoutrrr: https://<organization>.webhook.office.com/webhookb2/<group>@<tenant>/IncomingWebhook/<altId>/<groupOwner>
+</code></pre>
+</div>
+
+<h3 class="mt-5">Defaults</h2>
+
+<table class="table table-hover" id="heardbeats">
+  <thead>
+    <tr>
+      <th scope="col">Key</th>
+      <th scope="col">Description</th>
+      <th scope="col">Example</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range .Defaults }}
+    <tr>
+      <td>
+        <span>{{.Key}}</span>
+      </td>
+      <td>
+        <span>{{.Description}}</span>
+      </td>
+      <td>
+        <code>{{.Example}}</code>
+      </td>
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+
+<h3 class="mt-5">Services</h2>
+
+<table class="table table-hover" id="heardbeats">
+  <thead>
+    <tr>
+      <th scope="col">Key</th>
+      <th scope="col">Description</th>
+      <th scope="col">Example</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{ range .Services }}
+    <tr>
+      <td>
+        <span>{{.Key}}</span>
+      </td>
+      <td>
+        <span>{{.Description}}</span>
+      </td>
+      <td>
+        <code>{{.Example}}</code>
+      </td>
+    </tr>
+    {{ end }}
+  </tbody>
+</table>
+
+{{ end }}
