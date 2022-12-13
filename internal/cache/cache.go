@@ -31,11 +31,6 @@ type History struct {
 	Message string    `mapstructure:"message"`
 }
 
-// cachedHistory is the struct for the history of a heartbeat
-type cachedHistory struct {
-	Histories []History `mapstructure:"history"`
-}
-
 // localCache is the struct for the local cache
 type localCache struct {
 	wg      sync.WaitGroup       `mapstructure:"waitgroup"`

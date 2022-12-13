@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/containeroo/heartbeats/internal/cache"
@@ -77,21 +78,21 @@ func Notify(heartbeatName string, status Status) func() {
 		cache.Local.Add(heartbeatName, history)
 
 		for name, service := range heartbeat.NotificationsMap {
-			notificationService, err := HeartbeatsServer.GetServiceByName(service)
+			notificationService, err := HeartbeatsServer.GetServiceByName(name)
 			if err != nil {
-				log.Errorf("%s Could not get notification service «%s».", heartbeatName, name)
+				log.Errorf("%s Could not get %s-notification service «%s». %s", heartbeatName, service, notificationService.Name, err.Error())
 				continue
 			}
 
 			// check if service.enabled is set and if enabled is set to false
 			if notificationService.Enabled != nil && !*notificationService.Enabled {
-				log.Debugf("%s Skip «%s» because it is disabled", heartbeatName, notificationService.Name)
+				log.Debugf("%s Skip %s-notification «%s» because it is disabled", heartbeatName, service, notificationService.Name)
 				continue
 			}
 
 			// check if service.sendResolved is set and if sendResolved is set to false
 			if status == OK && notificationService.SendResolved != nil && !*notificationService.SendResolved && !*HeartbeatsServer.Notifications.Defaults.SendResolved {
-				log.Debugf("%s Skip «%s» because «sendResolved» is disabled", heartbeatName, notificationService.Name)
+				log.Debugf("%s Skip %s-notification «%s» because «sendResolved» is disabled", heartbeatName, service, notificationService.Name)
 				continue
 			}
 
@@ -110,12 +111,14 @@ func Notify(heartbeatName string, status Status) func() {
 			}
 
 			if err := shoutrrr.Send(url, message); err != nil {
-				log.Errorf("%s Could not send notification to «%s». %s", heartbeatName, notificationService.Name, err)
+				log.Errorf("%s Could not send %s-notification to «%s». %s", heartbeatName, service, notificationService.Name, err)
 				continue
 			}
+			msg := fmt.Sprintf("Sent %s-notification to «%s»", service, notificationService.Name)
+			log.Debug(msg)
 			cache.Local.Add(heartbeatName, cache.History{
 				Event:   cache.EventSend,
-				Message: "Sent notification to " + notificationService.Name,
+				Message: msg,
 			})
 		}
 	}

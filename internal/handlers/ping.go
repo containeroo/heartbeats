@@ -69,7 +69,7 @@ func PingFail(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if heartbeat.Enabled != nil && *heartbeat.Enabled == false {
+	if !*heartbeat.Enabled {
 		WriteOutput(w, http.StatusServiceUnavailable, outputFormat, &ResponseStatus{Status: "nok", Error: "heartbeat is disabled"}, "Status: {{ .Status }}\nError: {{  .Error }}")
 		return
 	}

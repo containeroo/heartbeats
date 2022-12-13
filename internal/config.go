@@ -165,8 +165,7 @@ func ProcessServiceSettings() error {
 	}
 
 	for _, service := range HeartbeatsServer.Notifications.Services {
-		url := os.ExpandEnv(service.Shoutrrr)             // expand any environment variables
-		url, err := utils.FormatTemplate(url, &heartbeat) // expand any template variables
+		_, err := utils.FormatTemplate(os.ExpandEnv(service.Shoutrrr), &heartbeat) //test if there is an error when expanding any template variables
 		if err != nil {
 			return fmt.Errorf("Could not format shoutrrr url «%s» for «%s». %s", service.Shoutrrr, service.Name, err)
 		}
