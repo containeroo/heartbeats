@@ -11,7 +11,6 @@ import (
 )
 
 var HeartbeatsServer Heartbeats
-var HistoryCache *LocalCache
 
 // Cache holds the configuration for the cache
 type Cache struct {

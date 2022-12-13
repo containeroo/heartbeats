@@ -1,4 +1,4 @@
-package internal
+package cache
 
 import (
 	"fmt"
@@ -6,14 +6,16 @@ import (
 	"time"
 )
 
+var Local *localCache
+
 // Enum for Event
 type Event int16
 
 const (
-	Ping Event = iota
-	Grace
-	Failed
-	Send
+	EventPing Event = iota
+	EventGrace
+	EventFailed
+	EventSend
 )
 
 func (s Event) String() string {
@@ -30,7 +32,7 @@ type cachedHistory struct {
 	Histories []History `mapstructure:"history"`
 }
 
-type LocalCache struct {
+type localCache struct {
 	wg      sync.WaitGroup       `mapstructure:"waitgroup"`
 	mu      sync.RWMutex         `mapstructure:"mutex"`
 	maxSize int                  `mapstructure:"max_size"`
@@ -38,8 +40,8 @@ type LocalCache struct {
 	History map[string][]History `mapstructure:"history"`
 }
 
-func NewLocalCache(maxSize int, reduce int) *LocalCache {
-	lc := &LocalCache{
+func New(maxSize int, reduce int) *localCache {
+	lc := &localCache{
 		History: make(map[string][]History),
 		maxSize: maxSize,
 		reduce:  reduce,
@@ -58,7 +60,7 @@ func reduceCache(maxSize int, reduce int, history map[string][]History) {
 	}
 }
 
-func (lc *LocalCache) Add(heartbeatName string, h History) {
+func (lc *localCache) Add(heartbeatName string, h History) {
 	lc.mu.Lock()
 	defer lc.mu.Unlock()
 	if h.Time.IsZero() {
@@ -73,7 +75,7 @@ func (lc *LocalCache) Add(heartbeatName string, h History) {
 
 }
 
-func (lc *LocalCache) Get(heartbeatName string) ([]History, error) {
+func (lc *localCache) Get(heartbeatName string) ([]History, error) {
 	if _, ok := lc.History[heartbeatName]; !ok {
 		return nil, fmt.Errorf("History for Heartbeat %s does not exist", heartbeatName)
 	}

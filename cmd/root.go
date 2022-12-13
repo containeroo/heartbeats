@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/containeroo/heartbeats/internal"
+	"github.com/containeroo/heartbeats/internal/cache"
 	"github.com/fsnotify/fsnotify"
 
 	log "github.com/sirupsen/logrus"
@@ -87,7 +88,7 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 		}
 
 		// Initialize the cache
-		internal.HistoryCache = internal.NewLocalCache(internal.HeartbeatsServer.Cache.MaxSize, internal.HeartbeatsServer.Cache.Reduce)
+		cache.Local = cache.New(internal.HeartbeatsServer.Cache.MaxSize, internal.HeartbeatsServer.Cache.Reduce)
 
 		// Initialize the documention
 		internal.Documentation = *internal.NewDocumentation(internal.HeartbeatsServer.Server.SiteRoot)

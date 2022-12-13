@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/ago"
+	"github.com/containeroo/heartbeats/internal/cache"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
 )
@@ -29,7 +31,7 @@ func (h *Heartbeat) TimeAgo(t time.Time) string {
 	if t.IsZero() {
 		return "never"
 	}
-	return CalculateAgo.Format(t)
+	return ago.Calculate.Format(t)
 }
 
 // GotPing starts the timer for the heartbeat (heartbeatName)
@@ -61,20 +63,20 @@ func (h *Heartbeat) GotPing() {
 		h.IntervalTimer = NewTimer(h.Interval, func() {
 			msg := fmt.Sprintf("Timer is expired. Start grace timer with duration %s", h.Grace)
 			log.Infof("%s %s", h.Name, msg)
-			HistoryCache.Add(h.Name, History{
-				Event:   Grace,
+			cache.Local.Add(h.Name, cache.History{
+				Event:   cache.EventGrace,
 				Message: fmt.Sprintf("Timer is expired. Start grace timer with duration %s", h.Grace),
 			})
 			h.Status = "GRACE"
 			h.GraceTimer = NewTimer(h.Grace,
-				NotificationFunc(h.Name, GRACE))
+				Notify(h.Name, GRACE))
 		})
 		msg = fmt.Sprintf("Start timer with interval %s", h.Interval)
 	}
 
 	// inform the user that the heartbeat is running again
 	if h.Status != "" && h.Status != "OK" {
-		go NotificationFunc(h.Name, OK)()
+		go Notify(h.Name, OK)()
 	}
 
 	h.LastPing = time.Now()
@@ -83,8 +85,8 @@ func (h *Heartbeat) GotPing() {
 	PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(1)
 
 	log.Infof("%s %s", h.Name, msg)
-	HistoryCache.Add(h.Name, History{
-		Event:   Ping,
+	cache.Local.Add(h.Name, cache.History{
+		Event:   cache.EventPing,
 		Message: msg,
 	})
 }
@@ -101,7 +103,7 @@ func (h *Heartbeat) GotPingFail() {
 		h.IntervalTimer.Cancel()
 	}
 
-	go NotificationFunc(h.Name, FAILED)()
+	go Notify(h.Name, FAILED)()
 
 	h.LastPing = time.Now()
 	h.Status = "FAIL"
@@ -109,8 +111,8 @@ func (h *Heartbeat) GotPingFail() {
 	PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(0)
 
 	log.Infof("%s got '/fail' ping", h.Name)
-	HistoryCache.Add(h.Name, History{
-		Event:   Failed,
+	cache.Local.Add(h.Name, cache.History{
+		Event:   cache.EventFailed,
 		Message: "got '/fail' ping",
 	})
 }

@@ -3,6 +3,7 @@ package internal
 import (
 	"os"
 
+	"github.com/containeroo/heartbeats/internal/cache"
 	"github.com/containrrr/shoutrrr"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -30,11 +31,11 @@ func (s Status) String() string {
 	return [...]string{"OK", "NOK", "FAILED"}[s]
 }
 
-// NotificationFunc returns a function that can be used to send notifications
-func NotificationFunc(heartbeatName string, status Status) func() {
+// Notify returns a function that can be used to send notifications
+func Notify(heartbeatName string, status Status) func() {
 	return func() {
 		var msg string
-		var history History
+		var history cache.History
 		heartbeat, err := HeartbeatsServer.GetHeartbeatByName(heartbeatName)
 		if err != nil {
 			log.Errorf(err.Error())
@@ -44,31 +45,31 @@ func NotificationFunc(heartbeatName string, status Status) func() {
 		case OK:
 			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(1)
 			msg = "got ping. Status is now «OK»"
-			history = History{
-				Event:   Ping,
+			history = cache.History{
+				Event:   cache.EventPing,
 				Message: msg,
 			}
 			log.Infof(msg)
 		case GRACE:
 			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
 			msg = "Grace is expired. Sending notification(s)"
-			history = History{
-				Event:   Grace,
+			history = cache.History{
+				Event:   cache.EventGrace,
 				Message: msg,
 			}
 			log.Warnf(msg)
 		case FAILED:
 			PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
 			msg = "got 'failed' ping. Sending notification(s)"
-			history = History{
-				Event:   Failed,
+			history = cache.History{
+				Event:   cache.EventFailed,
 				Message: msg,
 			}
 			log.Warnf("%s %s", heartbeatName, msg)
 		}
 
 		heartbeat.Status = status.String()
-		HistoryCache.Add(heartbeatName, history)
+		cache.Local.Add(heartbeatName, history)
 
 		for name, service := range heartbeat.NotificationsMap {
 			notificationService, err := HeartbeatsServer.GetServiceByName(service)
@@ -107,8 +108,8 @@ func NotificationFunc(heartbeatName string, status Status) func() {
 				log.Errorf("%s Could not send notification to «%s». %s", heartbeatName, notificationService.Name, err)
 				continue
 			}
-			HistoryCache.Add(heartbeatName, History{
-				Event:   Send,
+			cache.Local.Add(heartbeatName, cache.History{
+				Event:   cache.EventSend,
 				Message: "Sent notification to " + notificationService.Name,
 			})
 		}

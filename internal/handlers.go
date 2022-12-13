@@ -8,6 +8,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/ago"
+	"github.com/containeroo/heartbeats/internal/cache"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
@@ -30,7 +32,7 @@ func (h *HeartbeatStatus) TimeAgo(t time.Time) string {
 	if t.IsZero() {
 		return "never"
 	}
-	return CalculateAgo.Format(t)
+	return ago.Calculate.Format(t)
 }
 
 // HandlerHome is the handler for the / endpoint
@@ -163,7 +165,7 @@ LastPing: {{ .TimeAgo .LastPing }}`
 // outputHistory outputs history in wanted format
 func outputHistory(w http.ResponseWriter, req *http.Request, outputFormat string, heartbeatName string) {
 	if heartbeatName == "" {
-		WriteOutput(w, http.StatusOK, outputFormat, &HistoryCache.History, "{{ . }}")
+		WriteOutput(w, http.StatusOK, outputFormat, &cache.Local.History, "{{ . }}")
 		return
 	}
 
@@ -172,7 +174,7 @@ func outputHistory(w http.ResponseWriter, req *http.Request, outputFormat string
 		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
 		return
 	}
-	histories, ok := HistoryCache.History[heartbeat.Name]
+	histories, ok := cache.Local.History[heartbeat.Name]
 	if !ok {
 		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: "No history found"}, "Status: {{ .Status }}\nError: {{  .Error }}")
 		return
@@ -220,15 +222,15 @@ func HandlerHistory(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if heartbeatName == "" {
-		err = tmpl.ExecuteTemplate(w, "base", HistoryCache)
+		err = tmpl.ExecuteTemplate(w, "base", cache.Local)
 	} else {
-		history, err := HistoryCache.Get(heartbeatName)
+		history, err := cache.Local.Get(heartbeatName)
 		if err != nil {
 			log.Warnf("Error getting history: %s", err.Error())
 		}
 		h := struct {
 			Name    string
-			History *[]History
+			History *[]cache.History
 		}{
 			Name:    heartbeatName,
 			History: &history,
