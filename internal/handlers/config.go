@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Config returns the configuration of the heartbeats server
 func Config(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
@@ -47,4 +48,5 @@ func Config(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
 		return
 	}
+
 }

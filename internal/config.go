@@ -100,7 +100,7 @@ func ReadConfigFile(configPath string, init bool) error {
 		return err
 	}
 
-	if err := ProecessHeartbeatsSettings(); err != nil {
+	if err := ProcessHeartbeatsSettings(); err != nil {
 		return err
 	}
 
@@ -186,7 +186,8 @@ func ProcessServiceSettings() error {
 	return nil
 }
 
-func ProecessHeartbeatsSettings() error {
+// ProcessHeartbeatsSettings checks if all heartbeats are valid and can be parsed
+func ProcessHeartbeatsSettings() error {
 	for i, h := range HeartbeatsServer.Heartbeats {
 		m := make(map[string]string)
 

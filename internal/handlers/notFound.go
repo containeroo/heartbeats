@@ -2,6 +2,7 @@ package handlers
 
 import "net/http"
 
+// NotFound is the handler for the 404 page
 func NotFound(w http.ResponseWriter, req *http.Request) {
 	templs := []string{
 		"web/templates/base.html",
@@ -9,5 +10,5 @@ func NotFound(w http.ResponseWriter, req *http.Request) {
 		"web/templates/404.html",
 		"web/templates/footer.html",
 	}
-	ParseTemplates(templs, w)
+	ParseTemplates(templs, nil, w)
 }

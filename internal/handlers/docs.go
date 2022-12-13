@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Docs is the handler for the docs page
 func Docs(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
@@ -21,9 +22,10 @@ func Docs(w http.ResponseWriter, req *http.Request) {
 		"web/templates/footer.html",
 	}
 
-	ParseTemplates(templs, w)
+	ParseTemplates(templs, nil, w)
 }
 
+// Chapter is the handler for the documentation chapters
 func Chapter(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
@@ -49,5 +51,5 @@ func Chapter(w http.ResponseWriter, req *http.Request) {
 			"web/templates/footer.html",
 		}
 	}
-	ParseTemplates(templs, w)
+	ParseTemplates(templs, &docs.Documentation, w)
 }

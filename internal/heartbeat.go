@@ -38,9 +38,7 @@ func (h *Heartbeat) TimeAgo(t time.Time) string {
 
 // GotPing starts the timer for the heartbeat (heartbeatName)
 func (h *Heartbeat) GotPing() {
-
 	var msg string
-
 	// Timer is expired, grace is running but not completed
 	if h.IntervalTimer != nil && h.IntervalTimer.Completed && h.GraceTimer != nil && !h.GraceTimer.Completed {
 		log.Tracef("Timer is expired, grace is running but not completed")
@@ -93,6 +91,7 @@ func (h *Heartbeat) GotPing() {
 	})
 }
 
+// GotPingFail stops the timer for the heartbeat
 func (h *Heartbeat) GotPingFail() {
 
 	// cancel grace timer if running

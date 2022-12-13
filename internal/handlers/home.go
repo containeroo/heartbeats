@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/containeroo/heartbeats/internal"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,5 +18,5 @@ func Home(w http.ResponseWriter, req *http.Request) {
 		"web/templates/heartbeats.html",
 		"web/templates/footer.html",
 	}
-	ParseTemplates(templs, w)
+	ParseTemplates(templs, internal.HeartbeatsServer, w)
 }

@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/containeroo/heartbeats/internal/docs"
 	log "github.com/sirupsen/logrus"
 )
 
-// HandlerDashboard is the handler for the /dashboard endpoint
+// Dashboard is the handler for the dashboard page
 func Dashboard(w http.ResponseWriter, req *http.Request) {
 	log.Tracef("%s %s%s", req.Method, req.RequestURI, strings.TrimSpace(req.URL.RawQuery))
 
@@ -15,5 +16,5 @@ func Dashboard(w http.ResponseWriter, req *http.Request) {
 		"web/templates/dashboard.html",
 	}
 
-	ParseTemplates(templs, w)
+	ParseTemplates(templs, &docs.Documentation, w)
 }

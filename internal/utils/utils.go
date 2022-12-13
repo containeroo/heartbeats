@@ -32,6 +32,7 @@ func CheckDefault(value string, defaultValue string) string {
 	return value
 }
 
+// IsInListOfStrings checks if value is in list
 func IsInListOfStrings(list []string, value string) bool {
 	for _, v := range list {
 		if v == value {
