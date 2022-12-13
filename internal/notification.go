@@ -12,6 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Service represents a notification service
 type Service struct {
 	Name         string `mapstructure:"name"`
 	Enabled      *bool  `mapstructure:"enabled,omitempty"`
@@ -23,12 +24,14 @@ type Service struct {
 // Enum for Status
 type Status int16
 
+// Enum values for Status
 const (
 	OK Status = iota
 	GRACE
 	FAILED
 )
 
+// String returns the string representation of the Status
 func (s Status) String() string {
 	return [...]string{"OK", "NOK", "FAILED"}[s]
 }
