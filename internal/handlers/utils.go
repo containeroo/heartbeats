@@ -36,8 +36,8 @@ func (h *HeartbeatStatus) TimeAgo(t time.Time) string {
 	return ago.Calculate.Format(t)
 }
 
-// ParseTemplates parses the templates for docs and writes the output to the response writer
-func ParseTemplates(templates []string, data any, w http.ResponseWriter) {
+// ParseBaseTemplates parses the templates for docs and writes the output to the response writer
+func ParseTemplates(name string, templates []string, data any, w http.ResponseWriter) {
 	tmpl, err := template.ParseFS(internal.StaticFS, templates...)
 	if err != nil {
 		log.Errorf("Error parsing template: %s", err.Error())
@@ -46,7 +46,7 @@ func ParseTemplates(templates []string, data any, w http.ResponseWriter) {
 		return
 	}
 
-	if err := tmpl.ExecuteTemplate(w, "base", data); err != nil {
+	if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
 		log.Errorf("Error executing template: %s", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))

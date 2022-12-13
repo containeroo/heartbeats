@@ -18,5 +18,5 @@ func Home(w http.ResponseWriter, req *http.Request) {
 		"web/templates/heartbeats.html",
 		"web/templates/footer.html",
 	}
-	ParseTemplates(templs, internal.HeartbeatsServer, w)
+	ParseTemplates("base", templs, internal.HeartbeatsServer, w)
 }

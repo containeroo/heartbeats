@@ -10,5 +10,5 @@ func NotFound(w http.ResponseWriter, req *http.Request) {
 		"web/templates/404.html",
 		"web/templates/footer.html",
 	}
-	ParseTemplates(templs, nil, w)
+	ParseTemplates("base", templs, nil, w)
 }

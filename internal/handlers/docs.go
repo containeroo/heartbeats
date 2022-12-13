@@ -19,10 +19,11 @@ func Docs(w http.ResponseWriter, req *http.Request) {
 		"web/templates/base.html",
 		"web/templates/navbar.html",
 		"web/templates/docs.html",
+		"web/templates/docs/api.html",
 		"web/templates/footer.html",
 	}
 
-	ParseTemplates(templs, nil, w)
+	ParseTemplates("base", templs, &docs.Documentation, w)
 }
 
 // Chapter is the handler for the documentation chapters
@@ -51,5 +52,5 @@ func Chapter(w http.ResponseWriter, req *http.Request) {
 			"web/templates/footer.html",
 		}
 	}
-	ParseTemplates(templs, &docs.Documentation, w)
+	ParseTemplates("base", templs, &docs.Documentation, w)
 }
