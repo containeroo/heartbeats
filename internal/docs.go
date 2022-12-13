@@ -44,12 +44,12 @@ func NewDocumentation(siteRoot string) *Docs {
 	}
 	d.endpoints()
 	d.examples()
-	d.heartbeat()
+	d.heartbeats()
 
 	return &d
 }
 
-func (d *Docs) heartbeat() {
+func (d *Docs) heartbeats() {
 	heartbeats := []HeartbeatDocs{}
 
 	heartbeat := HeartbeatDocs{
