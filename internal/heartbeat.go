@@ -23,9 +23,9 @@ type Heartbeat struct {
 	LastPing         time.Time         `mapstructure:"lastPing"`
 	Status           string            `mapstructure:"status"`
 	Notifications    []string          `mapstructure:"notifications"`
-	NotificationsMap map[string]string `mapstructure:",-,omitempty" deepcopier:"skip"`
-	IntervalTimer    *timer.Timer      `mapstructure:"-,omitempty" deepcopier:"skip"`
-	GraceTimer       *timer.Timer      `mapstructure:"-,omitempty" deepcopier:"skip"`
+	NotificationsMap map[string]string `mapstructure:",-,omitempty"`
+	IntervalTimer    *timer.Timer      `mapstructure:"intervalTimer,omitempty"`
+	GraceTimer       *timer.Timer      `mapstructure:"graceTimer,omitempty"`
 }
 
 // TimeAgo returns a string with the time since the last ping

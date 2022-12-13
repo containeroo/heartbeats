@@ -13,6 +13,7 @@ import (
 )
 
 var HeartbeatsServer Heartbeats
+var ConfigCopy Heartbeats
 var StaticFS embed.FS
 
 // NotifyConfig holds the configuration for the notifications
@@ -30,7 +31,7 @@ type Defaults struct {
 
 // Cache holds the configuration for the cache
 type Cache struct {
-	MaxSize int `mapstructure:"max_size"`
+	MaxSize int `mapstructure:"maxSize"`
 	Reduce  int `mapstructure:"reduce"`
 }
 
