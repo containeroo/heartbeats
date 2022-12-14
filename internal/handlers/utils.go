@@ -142,3 +142,11 @@ func IsValidUUID(u string) bool {
 	_, err := uuid.Parse(u)
 	return err == nil
 }
+
+func LogPingRequest(req *http.Request, heartbeatName string) {
+	proto := req.Proto
+	userAgent := req.UserAgent()
+	clientIP := req.RemoteAddr
+	method := req.Method
+	log.Debugf("%s proto: %s\nclient-ip: %s\nmethod: %s\nuser-agent: %s", heartbeatName, proto, clientIP, method, userAgent)
+}

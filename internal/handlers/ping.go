@@ -54,7 +54,14 @@ func Ping(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	heartbeat.GotPing()
+	details := map[string]string{
+		"proto":     req.Proto,
+		"clientIP":  req.RemoteAddr,
+		"method":    req.Method,
+		"userAgent": req.UserAgent(),
+	}
+
+	heartbeat.GotPing(details)
 
 	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
 }
@@ -86,7 +93,14 @@ func PingFail(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	heartbeat.GotPingFail()
+	details := map[string]string{
+		"proto":     req.Proto,
+		"clientIP":  req.RemoteAddr,
+		"method":    req.Method,
+		"userAgent": req.UserAgent(),
+	}
+
+	heartbeat.GotPingFail(details)
 
 	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
 }

@@ -44,7 +44,7 @@ func (h *Heartbeat) TimeAgo(t time.Time) string {
 }
 
 // GotPing starts the timer for the heartbeat (heartbeatName)
-func (h *Heartbeat) GotPing() {
+func (h *Heartbeat) GotPing(details map[string]string) {
 	var msg string
 	// Timer is expired, grace is running but not completed
 	if h.IntervalTimer != nil && h.IntervalTimer.Completed && h.GraceTimer != nil && !h.GraceTimer.Completed {
@@ -92,14 +92,16 @@ func (h *Heartbeat) GotPing() {
 	metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(1)
 
 	log.Infof("%s %s", h.Name, msg)
+
 	cache.Local.Add(h.Name, cache.History{
 		Event:   cache.EventPing,
 		Message: msg,
+		Details: details,
 	})
 }
 
 // GotPingFail stops the timer for the heartbeat
-func (h *Heartbeat) GotPingFail() {
+func (h *Heartbeat) GotPingFail(details map[string]string) {
 
 	// cancel grace timer if running
 	if h.GraceTimer != nil && !h.GraceTimer.Completed {
@@ -122,6 +124,7 @@ func (h *Heartbeat) GotPingFail() {
 	cache.Local.Add(h.Name, cache.History{
 		Event:   cache.EventFailed,
 		Message: "got '/fail' ping",
+		Details: details,
 	})
 }
 

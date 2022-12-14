@@ -38,16 +38,11 @@ func History(w http.ResponseWriter, req *http.Request) {
 	outputFormat := req.URL.Query().Get("output")
 
 	var heartbeat *internal.Heartbeat
-	var err error
 
 	if IsValidUUID(heartbeatName) {
-		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByUUID(heartbeatName)
+		heartbeat, _ = internal.HeartbeatsServer.GetHeartbeatByUUID(heartbeatName)
 	} else {
-		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByName(heartbeatName)
-	}
-	if err != nil {
-		WriteOutput(w, http.StatusNotFound, GetOutputFormat(req), &ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
-		return
+		heartbeat, _ = internal.HeartbeatsServer.GetHeartbeatByName(heartbeatName)
 	}
 
 	// if output is given, return history in wanted format
@@ -85,7 +80,7 @@ func History(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if heartbeat.Name == "" {
+	if heartbeat == nil {
 		// if no heartbeat is given, return all heartbeats
 		err = tmpl.ExecuteTemplate(w, "base", cache.Local)
 	} else {
@@ -98,7 +93,7 @@ func History(w http.ResponseWriter, req *http.Request) {
 			Name    string
 			History *[]cache.History
 		}{
-			Name:    heartbeatName,
+			Name:    heartbeat.Name,
 			History: &history,
 		}
 		err = tmpl.ExecuteTemplate(w, "base", h)

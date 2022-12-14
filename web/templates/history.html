@@ -12,8 +12,8 @@
     {{ range  .History }}
     <tr>
       <td>{{ .Time.Format "2006-01-02 15:04:05" }}</td>
-      <td>{{ .Event}}</td>
-      <td>{{ .Message}}</td>
+      <td>{{ .Event }}</td>
+      <td>{{ if .Details }}<a data-toggle="tooltip" data-html="true" data-placement="top" title='<p class="text-md-start">{{ range $key,$value := .Details }}{{ $key }}: {{ $value }}<br>{{end}}</p>'>{{ else }}<a>{{end}}{{ .Message }}</a></td>
     </tr>
     {{end}}
     </tbody>

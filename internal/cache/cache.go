@@ -28,9 +28,10 @@ func (s Event) String() string {
 
 // History is the struct for the history of a heartbeat
 type History struct {
-	Time    time.Time `mapstructure:"time"`
-	Event   Event     `mapstructure:"event"`
-	Message string    `mapstructure:"message"`
+	Time    time.Time         `mapstructure:"time"`
+	Event   Event             `mapstructure:"event"`
+	Message string            `mapstructure:"message"`
+	Details map[string]string `mapstructure:"details"`
 }
 
 // localCache is the struct for the local cache
