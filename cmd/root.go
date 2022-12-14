@@ -92,7 +92,7 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 		// Initialize the cache
 		cache.Local = cache.New(internal.HeartbeatsServer.Cache.MaxSize, internal.HeartbeatsServer.Cache.Reduce)
 
-		// Initialize the documention
+		// Initialize the documentation
 		c := docs.Cache{
 			MaxSize: internal.HeartbeatsServer.Cache.MaxSize,
 			Reduce:  internal.HeartbeatsServer.Cache.Reduce,
