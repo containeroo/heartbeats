@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var Local *localCache
@@ -53,15 +55,6 @@ func New(maxSize int, reduce int) *localCache {
 	return lc
 }
 
-// reduceCache reduces the cache to the given size
-func reduceCache(maxSize int, reduce int, history map[string][]History) {
-	for k, v := range history {
-		if len(v) > maxSize {
-			history[k] = v[len(v)-reduce:]
-		}
-	}
-}
-
 // Add adds a new history item to the local cache
 func (lc *localCache) Add(heartbeatName string, h History) {
 	lc.mu.Lock()
@@ -71,7 +64,8 @@ func (lc *localCache) Add(heartbeatName string, h History) {
 	}
 
 	if len(lc.History[heartbeatName]) > lc.maxSize {
-		reduceCache(lc.maxSize, lc.reduce, lc.History)
+		lc.History[heartbeatName] = lc.History[heartbeatName][lc.reduce:]
+		log.Debugf("%s Reduced history to %d", heartbeatName, len(lc.History[heartbeatName]))
 	}
 
 	lc.History[heartbeatName] = append(lc.History[heartbeatName], h)
