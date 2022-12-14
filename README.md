@@ -25,14 +25,19 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 
 | Path                     | Method        | Description                              |
 | :----------------------- | :------------ | :--------------------------------------- |
-| `/`                      | `GET`         | Show small overview                      |
+| `/`                      | `GET`         | Home Page                                |
 | `/config`                | `GET`         | Shows current configuration              |
 | `/ping/{HEARTBEAT}`      | `GET`, `POST` | Resets timer at configured interval      |
 | `/ping/{HEARTBEAT}/fail` | `GET`, `POST` | Mark heartbeat as failed                 |
 | `/status`                | `GET`         | Returns current status of all Heartbeats |
 | `/status/{HEARTBEAT}`    | `GET`         | Returns current status of Heartbeat      |
+| `/history`               | `GET`         | Show history of all Heartbeats           |
+| `/history/{HEARTBEAT}`   | `GET`         | Show history of Heartbeat                |
 | `/metrics`               | `GET`         | Entrypoint for prometheus metrics        |
 | `/healthz`               | `GET`         | Show if Heartbeats is healthy            |
+| `/version`               | `GET`         | Show version of Heartbeats server        |
+
+Add the query `output=json|yaml|text` to receive the response in the corresponding format.
 
 ## Send a heartbeat
 
@@ -42,21 +47,6 @@ GET|POST https://heartbeats.example.com/ping/heartbeat1
 
 Sends a "alive" message.
 
-### Query parameters
-
-```text
-output=json|yaml|yml|text|txt
-```
-
-Format response in one of the passed format. If no specific format is passed the response will be `text`.
-
-### Response Codes
-
-| Status        | Description                    |
-| :------------ | :----------------------------- |
-| 404 Not Found | Given heartbeat not found      |
-| 200 OK        | Heartbeat was successully send |
-
 ## Send a failed heartbeat
 
 ```sh
@@ -64,21 +54,6 @@ GET|POST https://heartbeats.example.com/ping/heartbeat1/fail
 ```
 
 Send a direct failure to not wait until the heartbeat grace period is expired.
-
-### Query parameters
-
-```text
-output=json|yaml|yml|text|txt
-```
-
-Format response in one of the passed format. If no specific format is passed the response will be `text`.
-
-### Response Codes
-
-| Status        | Description                |
-| :------------ | :------------------------- |
-| 404 Not Found | Given heartbeat not found  |
-| 200 OK        | Fail was successfully send |
 
 ## Show heartbeat status
 
@@ -92,22 +67,6 @@ Shows current status of all heartbeats.
 GET https://heartbeats.example.com/status/heartbeat
 ```
 
-Shows current status of given heartbeat.
-### Query parameters
-
-```text
-output=json|yaml|yml|text|txt
-```
-
-Format response in one of the passed format. If no specific format is passed the response will be `text`.
-
-### Response Codes
-
-| Status        | Description                |
-| :------------ | :------------------------- |
-| 404 Not Found | Given heartbeat not found  |
-| 200 OK        | Status successful received |
-
 ## Show configuration
 
 ```sh
@@ -115,21 +74,6 @@ GET https://heartbeats.example.com/config
 ```
 
 Shows current configuration.
-
-### Query parameters
-
-```text
-output=json|yaml|yml|text|txt
-```
-
-Format response in one of the passed format. If no specific format is passed the response will be `text`.
-
-### Response Codes
-
-| Status                        | Description                            |
-| :---------------------------- | :------------------------------------- |
-| 500 StatusInternalServerError | Problem with processing current config |
-| 200 OK                        | Configuration successful received      |
 
 ## Show metrics
 
@@ -139,12 +83,6 @@ GET https://heartbeats.example.com/metrics
 
 Shows metrics for Prometheus.
 
-### Response Codes
-
-| Status | Description                 |
-| :----- | :-------------------------- |
-| 200 OK | Metrics successful received |
-
 ## Show Heartbeats server status
 
 ```sh
@@ -152,12 +90,6 @@ GET https://heartbeats.example.com/healthz
 ```
 
 Shows Heartbeats server status.
-
-### Response Codes
-
-| Status | Description                                  |
-| :----- | :------------------------------------------- |
-| 200 OK | Heartbeats Server status successful received |
 
 ## Config file
 
