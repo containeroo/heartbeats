@@ -22,6 +22,7 @@ type NotificationsMap struct {
 // Heartbeat is a struct for a heartbeat
 type Heartbeat struct {
 	Name             string             `mapstructure:"name"`
+	UUID             string             `mapstructure:"uuid,omitempty"`
 	Enabled          *bool              `mapstructure:"enabled"`
 	Description      string             `mapstructure:"description"`
 	Interval         time.Duration      `mapstructure:"interval"`
@@ -142,4 +143,14 @@ func (h *Heartbeats) GetHeartbeatByName(name string) (*Heartbeat, error) {
 		}
 	}
 	return nil, fmt.Errorf("Heartbeat with name %s not found", name)
+}
+
+// GetHeartbeatByUUID search heartbeat in HeartbeatsConfig.Heartbeats by uuid and returns it
+func (h *Heartbeats) GetHeartbeatByUUID(uuid string) (*Heartbeat, error) {
+	for i, heartbeat := range h.Heartbeats {
+		if heartbeat.UUID == uuid {
+			return &h.Heartbeats[i], nil
+		}
+	}
+	return nil, fmt.Errorf("Heartbeat with uuid %s not found", uuid)
 }

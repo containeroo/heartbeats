@@ -28,6 +28,14 @@ The name must be unique and can only contain letters, numbers, dashes and unders
 	heartbeats = append(heartbeats, heartbeat)
 
 	heartbeat = Heartbeat{
+		Key: "uuid",
+		Description: `The UUID of the heartbeat. This is an alternative to the name. This is used to identify the heartbeat in the URL and in the status page.
+The UUID must be unique and can only contain letters, numbers, dashes and underscores.`,
+		Example: "9e22b12b-a9c0-4820-8e54-1b9e226ff45f",
+	}
+	heartbeats = append(heartbeats, heartbeat)
+
+	heartbeat = Heartbeat{
 		Key: "description",
 		Description: `The description of the heartbeat. This is used to identify the heartbeat in the status page.
 The description can be any string.`,
@@ -38,15 +46,16 @@ The description can be any string.`,
 	heartbeat = Heartbeat{
 		Key: "interval",
 		Description: `The interval in seconds between each heartbeat. This is used to calculate the next expected heartbeat.
-The interval must be a positive integer.`,
+The interval must be a positive duration.`,
 		Example: "60",
 	}
 	heartbeats = append(heartbeats, heartbeat)
 
 	heartbeat = Heartbeat{
-		Key:         "grace",
-		Description: "The grace period in seconds before a heartbeat is considered failed. Sometimes a ping can be considered valid if it has a certain amount of \"delay\". The grace must be a positive integer.",
-		Example:     "120",
+		Key: "grace",
+		Description: `The grace period in seconds before a heartbeat is considered failed. Sometimes a ping can be considered
+valid if it has a certain amount of \"delay\". The grace must be a positive duration.`,
+		Example: "120",
 	}
 	heartbeats = append(heartbeats, heartbeat)
 

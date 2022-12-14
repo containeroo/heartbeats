@@ -175,6 +175,7 @@ Examples:
 ---
 heartbeats:
   - name: watchdog-prometheus-prd
+    uuid: 9e22b12b-a9c0-4820-8e54-1b9e226ff45f
     description: test prometheus -> alertmanager workflow
     interval: 5m
     grace: 30s
@@ -208,6 +209,7 @@ Each Heartbeat must have following parameters:
 | Key             | Description                                                                                    | Example                   |
 | :-------------- | :--------------------------------------------------------------------------------------------- | :------------------------ |
 | `name`          | Name for heartbeat                                                                             | `watchdog-prometheus-prd` |
+| `uuid` | uuid as alternative identifier                                                             | `9e22b12b-a9c0-4820-8e54-1b9e226ff45f` |
 | `description`   | Description for heartbeat                                           | `test workflow prometheus -> alertmanager workflow`  |
 | `interval`      | Interval in which ping should arrive                                                           |`5m`                       |
 | `grace`         | Grace period which starts after `interval` expired                                             | `30`                      |

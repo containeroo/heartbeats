@@ -12,6 +12,7 @@ import (
 	"github.com/containeroo/heartbeats/internal"
 	"github.com/containeroo/heartbeats/internal/ago"
 	"github.com/containeroo/heartbeats/internal/utils"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -134,4 +135,10 @@ func GetOutputFormat(req *http.Request) string {
 		outputFormat = "txt"
 	}
 	return outputFormat
+}
+
+// IsValidUUID checks if the given string is a valid UUID
+func IsValidUUID(u string) bool {
+	_, err := uuid.Parse(u)
+	return err == nil
 }
