@@ -155,7 +155,8 @@ func ProcessServiceSettings() error {
 	var heartbeat Heartbeat
 
 	if HeartbeatsServer.Notifications.Defaults.SendResolved == nil {
-		HeartbeatsServer.Notifications.Defaults.SendResolved = new(bool) // must be set, otherwise the debug message will fail because of a nil pointer
+		t := true
+		HeartbeatsServer.Notifications.Defaults.SendResolved = &t
 		log.Tracef("Default «sendResolved» not explicitly enabled. Defaulting to true")
 	}
 
@@ -179,7 +180,8 @@ func ProcessServiceSettings() error {
 		}
 
 		if service.Enabled == nil {
-			service.Enabled = new(bool) // must be set, otherwise the debug message below will fail because of a nil pointer
+			t := true
+			service.Enabled = &t // must be set, otherwise the debug message below will fail because of a nil pointer
 			log.Tracef("service «%s» not explicitly enabled. Defaulting to true", service.Name)
 		}
 
