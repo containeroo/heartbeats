@@ -41,16 +41,12 @@ func Ping(w http.ResponseWriter, req *http.Request) {
 
 	if IsValidUUID(heartbeatName) {
 		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByUUID(heartbeatName)
-		if err != nil {
-			WriteOutput(w, http.StatusNotFound, outputFormat, &ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
-			return
-		}
 	} else {
 		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByName(heartbeatName)
-		if err != nil {
-			WriteOutput(w, http.StatusNotFound, outputFormat, &ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
-			return
-		}
+	}
+	if err != nil {
+		WriteOutput(w, http.StatusNotFound, outputFormat, &ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
+		return
 	}
 
 	if heartbeat.Enabled != nil && !*heartbeat.Enabled {
@@ -77,16 +73,12 @@ func PingFail(w http.ResponseWriter, req *http.Request) {
 
 	if IsValidUUID(heartbeatName) {
 		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByUUID(heartbeatName)
-		if err != nil {
-			WriteOutput(w, http.StatusNotFound, outputFormat, &ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
-			return
-		}
 	} else {
 		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByName(heartbeatName)
-		if err != nil {
-			WriteOutput(w, http.StatusServiceUnavailable, outputFormat, &ResponseStatus{Status: "nok", Error: "heartbeat not found"}, "Status: {{ .Status }}\nError: {{  .Error }}")
-			return
-		}
+	}
+	if err != nil {
+		WriteOutput(w, http.StatusServiceUnavailable, outputFormat, &ResponseStatus{Status: "nok", Error: "heartbeat not found"}, "Status: {{ .Status }}\nError: {{  .Error }}")
+		return
 	}
 
 	if heartbeat.Enabled != nil && !*heartbeat.Enabled {

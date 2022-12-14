@@ -13,17 +13,13 @@ import (
 
 // outputHistory outputs history in wanted format
 func outputHistory(w http.ResponseWriter, req *http.Request, outputFormat string, heartbeatName string) {
+	// if no heartbeat is given, return all heartbeats
 	if heartbeatName == "" {
 		WriteOutput(w, http.StatusOK, outputFormat, &cache.Local.History, "{{ . }}")
 		return
 	}
 
-	heartbeat, err := internal.HeartbeatsServer.GetHeartbeatByName(heartbeatName)
-	if err != nil {
-		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
-		return
-	}
-	histories, ok := cache.Local.History[heartbeat.Name]
+	histories, ok := cache.Local.History[heartbeatName]
 	if !ok {
 		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: "No history found"}, "Status: {{ .Status }}\nError: {{  .Error }}")
 		return
@@ -39,8 +35,24 @@ func History(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	heartbeatName := vars["heartbeat"]
 
-	if outputFormat := req.URL.Query().Get("output"); outputFormat != "" {
-		outputHistory(w, req, outputFormat, heartbeatName)
+	outputFormat := req.URL.Query().Get("output")
+
+	var heartbeat *internal.Heartbeat
+	var err error
+
+	if IsValidUUID(heartbeatName) {
+		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByUUID(heartbeatName)
+	} else {
+		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByName(heartbeatName)
+	}
+	if err != nil {
+		WriteOutput(w, http.StatusNotFound, GetOutputFormat(req), &ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
+		return
+	}
+
+	// if output is given, return history in wanted format
+	if outputFormat != "" {
+		outputHistory(w, req, outputFormat, heartbeat.Name)
 		return
 	}
 
@@ -73,10 +85,12 @@ func History(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if heartbeatName == "" {
+	if heartbeat.Name == "" {
+		// if no heartbeat is given, return all heartbeats
 		err = tmpl.ExecuteTemplate(w, "base", cache.Local)
 	} else {
-		history, err := cache.Local.Get(heartbeatName)
+		// if heartbeat is given, return history for this heartbeat
+		history, err := cache.Local.Get(heartbeat.Name)
 		if err != nil {
 			log.Warnf("Error getting history: %s", err.Error())
 		}

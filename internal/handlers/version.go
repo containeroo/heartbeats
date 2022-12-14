@@ -10,7 +10,5 @@ import (
 func Version(w http.ResponseWriter, req *http.Request) {
 	LogRequest(req)
 
-	outputFormat := GetOutputFormat(req)
-
-	WriteOutput(w, http.StatusOK, outputFormat, &internal.HeartbeatsServer, "{{ .Version }}")
+	WriteOutput(w, http.StatusOK, GetOutputFormat(req), &internal.HeartbeatsServer, "{{ .Version }}")
 }

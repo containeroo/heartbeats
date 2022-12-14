@@ -9,6 +9,7 @@ func NotFound(w http.ResponseWriter, req *http.Request) {
 	LogRequest(req)
 
 	if outputFormat := req.URL.Query().Get("output"); outputFormat != "" {
+		// if output is given, return history in wanted format
 		WriteOutput(w, http.StatusNotFound, outputFormat, &ResponseStatus{Status: "nok", Error: "404 Not Found"}, "Status: {{ .Status }}\nError: {{  .Error }}")
 		return
 	}

@@ -8,7 +8,5 @@ import (
 func Healthz(w http.ResponseWriter, req *http.Request) {
 	LogRequest(req)
 
-	outputFormat := GetOutputFormat(req)
-
-	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
+	WriteOutput(w, http.StatusOK, GetOutputFormat(req), &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
 }

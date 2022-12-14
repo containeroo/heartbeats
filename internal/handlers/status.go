@@ -33,16 +33,12 @@ LastPing: {{ .TimeAgo .LastPing }}`
 
 	if IsValidUUID(heartbeatName) {
 		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByUUID(heartbeatName)
-		if err != nil {
-			WriteOutput(w, http.StatusNotFound, outputFormat, &ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
-			return
-		}
 	} else {
 		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByName(heartbeatName)
-		if err != nil {
-			WriteOutput(w, http.StatusNotFound, outputFormat, &ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
-			return
-		}
+	}
+	if err != nil {
+		WriteOutput(w, http.StatusNotFound, outputFormat, &ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
+		return
 	}
 
 	heartbeatStates := &HeartbeatStatus{
