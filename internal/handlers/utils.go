@@ -145,7 +145,10 @@ func IsValidUUID(u string) bool {
 
 func LogPingRequest(req *http.Request, heartbeatName string) {
 	proto := req.Proto
-	userAgent := req.UserAgent()
+	userAgent := strings.Replace(req.UserAgent(), "\n", "", -1)
+	userAgent = strings.Replace(userAgent, "\r", "", -1)
+	userAgent = strings.TrimSpace(userAgent)
+
 	clientIP := req.RemoteAddr
 	method := req.Method
 	log.Debugf("%s proto: %s\nclient-ip: %s\nmethod: %s\nuser-agent: %s", heartbeatName, proto, clientIP, method, userAgent)

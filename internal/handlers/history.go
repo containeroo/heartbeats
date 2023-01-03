@@ -52,6 +52,7 @@ func History(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var templs []string
+	var err error
 
 	if heartbeatName == "" {
 		templs = []string{
