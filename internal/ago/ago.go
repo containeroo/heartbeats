@@ -1,4 +1,4 @@
-package internal
+package ago
 
 // borrowed from https://github.com/xeonx/timeago/
 
@@ -40,7 +40,7 @@ type Ago struct {
 }
 
 // Predefined english configuration
-var CalculateAgo = Ago{
+var Calculate = Ago{
 	PastPrefix:   "",
 	PastSuffix:   " ago",
 	FuturePrefix: "in ",

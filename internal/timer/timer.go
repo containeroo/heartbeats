@@ -1,10 +1,11 @@
-package internal
+package timer
 
 import (
 	"sync"
 	"time"
 )
 
+// Timer is a struct for a timer
 type Timer struct {
 	mutex     sync.Mutex
 	timer     *time.Timer

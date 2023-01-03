@@ -1,22 +1,25 @@
 package internal
 
 import (
+	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/containeroo/heartbeats/internal/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 var HeartbeatsServer Heartbeats
+var ConfigCopy Heartbeats
+var StaticFS embed.FS
 
-// Config config holds general configuration
-type Config struct {
-	Path         string `mapstructure:"path"`
-	PrintVersion bool   `mapstructure:"printVersion"`
-	Logging      string `mapstructure:"logging"`
+// NotifyConfig holds the configuration for the notifications
+type Notifications struct {
+	Defaults Defaults  `mapstructure:"defaults"`
+	Services []Service `mapstructure:"services"`
 }
 
 // Details details holds defaults for notifications
@@ -26,10 +29,23 @@ type Defaults struct {
 	SendResolved *bool  `mapstructure:"sendResolved"`
 }
 
-// NotifyConfig holds the configuration for the notifications
-type Notifications struct {
-	Defaults Defaults       `mapstructure:"defaults"`
-	Services []Notification `mapstructure:"services"`
+// Cache holds the configuration for the cache
+type Cache struct {
+	MaxSize int `mapstructure:"maxSize"`
+	Reduce  int `mapstructure:"reduce"`
+}
+
+// Server is the holds HTTP server settings
+type Server struct {
+	Hostname string `mapstructure:"hostname"`
+	Port     int    `mapstructure:"port"`
+	SiteRoot string `mapstructure:"siteRoot"`
+}
+
+// Config config holds general configuration
+type Config struct {
+	Path    string `mapstructure:"path"`
+	Logging string `mapstructure:"logging"`
 }
 
 // Heartbeats is the main configuration struct
@@ -37,6 +53,7 @@ type Heartbeats struct {
 	Version       string        `mapstructure:"version"`
 	Config        Config        `mapstructure:"config"`
 	Server        Server        `mapstructure:"server"`
+	Cache         Cache         `mapstructure:"cache"`
 	Heartbeats    []Heartbeat   `mapstructure:"heartbeats"`
 	Notifications Notifications `mapstructure:"notifications"`
 }
@@ -84,6 +101,15 @@ func ReadConfigFile(configPath string, init bool) error {
 		return err
 	}
 
+	if err := ProcessHeartbeatsSettings(); err != nil {
+		return err
+	}
+
+	// check if reduce is bigger than MaxSize
+	if HeartbeatsServer.Cache.Reduce > HeartbeatsServer.Cache.MaxSize {
+		return fmt.Errorf("reduce is bigger than maxSize")
+	}
+
 	if !init {
 		ResetTimerIfRunning(&previousHeartbeats)
 	}
@@ -129,7 +155,8 @@ func ProcessServiceSettings() error {
 	var heartbeat Heartbeat
 
 	if HeartbeatsServer.Notifications.Defaults.SendResolved == nil {
-		HeartbeatsServer.Notifications.Defaults.SendResolved = new(bool) // must be set, otherwise the debug message will fail because of a nil pointer
+		t := true
+		HeartbeatsServer.Notifications.Defaults.SendResolved = &t
 		log.Tracef("Default «sendResolved» not explicitly enabled. Defaulting to true")
 	}
 
@@ -139,21 +166,22 @@ func ProcessServiceSettings() error {
 	}
 
 	for _, service := range HeartbeatsServer.Notifications.Services {
-		url := os.ExpandEnv(service.URL)            // expand any environment variables
-		url, err := FormatTemplate(url, &heartbeat) // expand any template variables
+		url := os.ExpandEnv(service.Shoutrrr)
+		_, err := utils.FormatTemplate(url, &heartbeat) //test if there is an error when expanding any template variables
 		if err != nil {
-			return fmt.Errorf("Could not format shoutrrr url «%s» for «%s». %s", service.URL, service.Name, err)
+			return fmt.Errorf("Could not format shoutrrr url «%s» for «%s». %s", service.Shoutrrr, service.Name, err)
 		}
 
-		message := CheckDefault(service.Message, HeartbeatsServer.Notifications.Defaults.Message)
+		message := utils.CheckDefault(service.Message, HeartbeatsServer.Notifications.Defaults.Message)
 		message = os.ExpandEnv(message)                    // expand any environment variables
-		message, err = FormatTemplate(message, &heartbeat) // expand any template variables
+		_, err = utils.FormatTemplate(message, &heartbeat) // expand any template variables
 		if err != nil {
 			return fmt.Errorf("Could not format message «%s» for «%s». %s", service.Message, service.Name, err)
 		}
 
 		if service.Enabled == nil {
-			service.Enabled = new(bool) // must be set, otherwise the debug message below will fail because of a nil pointer
+			t := true
+			service.Enabled = &t // must be set, otherwise the debug message below will fail because of a nil pointer
 			log.Tracef("service «%s» not explicitly enabled. Defaulting to true", service.Name)
 		}
 
@@ -163,6 +191,40 @@ func ProcessServiceSettings() error {
 
 		log.Debugf("service «%s» is enabled: %t", service.Name, *service.Enabled)
 	}
+	return nil
+}
 
+// ProcessHeartbeatsSettings checks if all heartbeats are valid and can be parsed
+func ProcessHeartbeatsSettings() error {
+	supportedServices := []string{"discord", "smtp", "gotify", "googlechat", "ifttt", "join", "mattermost", "matrix", "pushover", "rocketchat", "slack", "teams", "telegram", "zulip", "webhook"}
+	for i, h := range HeartbeatsServer.Heartbeats {
+		// reset HeartbeatsServer.Heartbeats[i].NotificationsMap to avoid duplicates
+		HeartbeatsServer.Heartbeats[i].NotificationsMap = []NotificationsMap{}
+
+		for _, n := range h.Notifications {
+			s, err := HeartbeatsServer.GetServiceByName(n)
+			if err != nil {
+				return err
+			}
+			// extract everything befor :// from the shoutrrr url
+			shoutrrrType := s.Shoutrrr[:strings.Index(s.Shoutrrr, "://")]
+
+			if !utils.IsInListOfStrings(supportedServices, shoutrrrType) {
+				return fmt.Errorf("service «%s» is not supported", shoutrrrType)
+			}
+
+			if s.Enabled == nil {
+				trueVar := true
+				s.Enabled = &trueVar
+			}
+
+			n := NotificationsMap{
+				Name:    n,
+				Type:    shoutrrrType,
+				Enabled: *s.Enabled,
+			}
+			HeartbeatsServer.Heartbeats[i].NotificationsMap = append(HeartbeatsServer.Heartbeats[i].NotificationsMap, n)
+		}
+	}
 	return nil
 }

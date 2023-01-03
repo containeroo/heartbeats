@@ -1,0 +1,52 @@
+{{define "body"}}
+
+{{ $URL := .Server.SiteRoot }}
+
+<table class="table table-hover" id="heardbeats">
+  <h1 class="mt-5">Heartbeats</h1>
+  <thead>
+    <tr>
+      <th scope="col"></th>
+      <th scope="col">Name</th>
+      <th scope="col">Heartbeat URL</th>
+      <th scope="col">Notifications</th>
+      <th scope="col">Interval</th>
+      <th scope="col">Grace</th>
+      <th scope="col">Last Ping</th>
+      <th scope="col"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .Heartbeats}}
+    <tr>
+      <td>
+        <span class="icons {{ if eq .Status "OK" }}is-up{{ else if eq .Status "NOK" }}is-down{{else if eq .Status "GRACE" }}is-grace{{else }}is-empty{{end}}">
+        </span>
+      </td>
+      <td>
+        <span>{{ .Name }}</span>
+      </td>
+      <td>
+        <span id="base-url" href="{{ $URL }}/ping/{{ .Name }}">{{ $URL }}/ping/{{ .Name }} </span>
+        <button class="copy" data-clipboard-text="{{ $URL }}/ping/{{ .Name }}">copy</button>
+      </td>
+      <td>
+        {{ range .NotificationsMap }}
+        <span>
+          <img class="notifications {{ if not .Enabled }}notificationsDisabled{{end}}" src="/static/assets/img/{{ .Type }}.png" title="{{ .Name }} {{if not .Enabled }}(disabled){{end}}" alt="{{ .Name }}"/>
+        </span>
+        {{ end }}
+      </td>
+      <td>{{ .Interval }}</td>
+      <td>{{ .Grace }}</td>
+      <td>{{ .TimeAgo .LastPing }}</td>
+      <td>
+        <form action="/history/{{ .Name }}">
+        <input type="submit" value="..." title="show history" />
+        </form>
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{end}}

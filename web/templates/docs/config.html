@@ -1,0 +1,74 @@
+{{define "docs"}}
+
+{{ $siteRoot := .SiteRoot }}
+
+<h1 class="mt-5">Config</h1>
+<p>
+<div>
+  Heartbeats and notifications must be configured in a file.
+  Config files can be <code>yaml</code>, <code>json</code> or <code>toml</code>. The config file should be loaded
+  automatically if changed. Please check the log output to control if the automatic config reload works in your
+  environment.
+  If <code>interval</code> and <code>grace</code> where changed, they will be reset to the corresponding <b>new
+    value</b>!
+</div>
+</p>
+
+<p>
+<div>
+  Avoid using "secrets" directly in your config file by using environment variables. Use regular "bash" variables like
+  <code>${MY_VAR}</code> or <code>$MY_VAR</code>.
+</div>
+</p>
+
+<p>
+<div>
+
+  Examples:
+</div>
+</p>
+
+<p>
+<div>
+  <code>./config.yaml</code>
+</div>
+</p>
+
+<p>
+<div class="p-3 mb-2 bg-light">
+  <pre>
+    <code>
+---
+heartbeats:
+  - name: watchdog-prometheus-prd
+    uuid: 9e22b12b-a9c0-4820-8e54-1b9e226ff45f
+    description: test prometheus -> alertmanager workflow
+    interval: 5m
+    grace: 30s
+    notifications: # must match with notifications.services[*].name
+      - slack
+  - name: watchdog-prometheus-int
+    description: test prometheus -> alertmanager workflow
+    interval: 60m
+    grace: 5m
+    notifications:
+      - gmail
+notifications:
+  defaults:
+    sendResolved: true
+    message: Heartbeat is «{{`{{ .Status }}`}}». Last Ping was «{{`{{ .TimeAgo .LastPing }}`}}»
+  services:
+  - name: slack
+    enabled: true
+    shoutrrr: |
+      slack://$SLACK_TOKEN@test?color={{`{{ if eq .Status "OK" }}`}}good{{`{{ else }}`}}danger{{`{{ end }}`}}&title=Heartbeat {{`{{ .Name }}`}} «{{`{{ .Status }}`}}»&botname=heartbeats
+  - name: gmail
+    enabled: true
+    shoutrrr: |
+      smtp://USERNAME:${MAIL_PASSWORD}@smtp.gmail.com:587?from=example@gmail.com&to=example@gmail.com&subject=Heartbeat {{`{{ .Name }}`}} «{{`{{ .Status }}`}}»
+
+</code>
+</pre>
+</div>
+</p>
+{{ end }}

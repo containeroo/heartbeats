@@ -16,9 +16,16 @@ limitations under the License.
 package main
 
 import (
+	"embed"
+
 	"github.com/containeroo/heartbeats/cmd"
+	"github.com/containeroo/heartbeats/internal"
 )
 
+//go:embed web
+var staticFs embed.FS
+
 func main() {
+	internal.StaticFS = staticFs
 	cmd.Execute()
 }

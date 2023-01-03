@@ -11,9 +11,11 @@ services:
       - --debug
       - --host
       - 0.0.0.0
+      - -c
+      - /tmp/config.yaml
     ports:
       - "8090:8090"
     volumes:
-      - ./config.conf:/tmp/config.conf
+      - ./config.yaml:/tmp/config.yaml
     networks:
       - YOUR_NETWORK
