@@ -54,7 +54,7 @@ The interval must be a positive duration.`,
 	heartbeat = Heartbeat{
 		Key: "grace",
 		Description: `The grace period in seconds before a heartbeat is considered failed. Sometimes a ping can be considered
-valid if it has a certain amount of \"delay\". The grace must be a positive duration.`,
+valid if it has a certain amount of "delay". The grace must be a positive duration.`,
 		Example: "120",
 	}
 	heartbeats = append(heartbeats, heartbeat)

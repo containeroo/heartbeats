@@ -39,158 +39,23 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 
 Add the query `output=json|yaml|text` to receive the response in the corresponding format.
 
-## Send a heartbeat
-
-```sh
-GET|POST https://heartbeats.example.com/ping/heartbeat1
-```
-
-Sends a "alive" message.
-
-## Send a failed heartbeat
-
-```sh
-GET|POST https://heartbeats.example.com/ping/heartbeat1/fail
-```
-
-Send a direct failure to not wait until the heartbeat grace period is expired.
-
-## Show heartbeat status
-
-```sh
-GET https://heartbeats.example.com/status
-```
-
-Shows current status of all heartbeats.
-
-```sh
-GET https://heartbeats.example.com/status/heartbeat
-```
-
-## Show configuration
-
-```sh
-GET https://heartbeats.example.com/config
-```
-
-Shows current configuration.
-
-## Show metrics
-
-```sh
-GET https://heartbeats.example.com/metrics
-```
-
-Shows metrics for Prometheus.
-
-## Show Heartbeats server status
-
-```sh
-GET https://heartbeats.example.com/healthz
-```
-
-Shows Heartbeats server status.
-
-## Config file
+## Configuration
 
 Heartbeats and notifications must be configured in a file.
-Config files can be `yaml`, `json` or `toml`. The config file should be loaded automatically if changed. Please check the log output to control if the automatic config reload works in your environment.
-If `interval` and `grace` where changed, they will be reset to the corresponding *new value*!
+The config file can be `yaml`, `json` or `toml`. The config file should be loaded automatically if changed. Please check the log output to control if the automatic config reload works in your environment.
+If `interval` and `grace` where changed, they will be reset to the corresponding __new value__!
 
-Avoid using "secrets" directly in your config file by using environment variables. Use regular "bash" variables like `${MY_VAR}` or `$MY_VAR`.
+## Deployment
 
-Examples:
+Download the binary and update the example [config.yaml](./deploy/config.yaml) according your needs.
+If you prefer to run heartbeats in docker, you find a `docker-compose.yaml` & `config.yaml` [here](./deploy/).
+For a kubernetes deployment you find the manifests [here](./deploy/kubernetes).
 
-`./config.yaml`
+## Notification
 
-```yaml
----
-heartbeats:
-  - name: watchdog-prometheus-prd
-    uuid: 9e22b12b-a9c0-4820-8e54-1b9e226ff45f
-    description: test prometheus -> alertmanager workflow
-    interval: 5m
-    grace: 30s
-    notifications: # must match with notifications.services[*].name
-      - slack
-  - name: watchdog-prometheus-int
-    description: test prometheus -> alertmanager workflow
-    interval: 60m
-    grace: 5m
-    notifications:
-      - gmail
-notifications:
-  defaults:
-    sendResolved: true
-    message: Heartbeat is «{{ .Status }}». Last Ping was «{{ .TimeAgo .LastPing }}»
-  services:
-  - name: slack
-    enabled: true
-    shoutrrr: |
-      slack://$SLACK_TOKEN@test?color={{ if eq .Status "OK" }}good{{ else }}danger{{ end }}&title=Heartbeat {{ .Name }} «{{ .Status }}»&botname=heartbeats
-  - name: gmail
-    enabled: true
-    shoutrrr: |
-      smtp://USERNAME:${MAIL_PASSWORD}@smtp.gmail.com:587?from=example@gmail.com&to=example@gmail.com&subject=Heartbeat {{ .Name }} «{{ .Status }}»
-```
+Heartbeat uses the library [https://github.com/containrrr/shoutrrr/](https://github.com/containrrr/shoutrrr/) for notifications.
+See their documentation for how to generate the necessary url.
 
-### Heartbeat
+## Documentation
 
-Each Heartbeat must have following parameters:
-
-| Key             | Description                                                                                    | Example                   |
-| :-------------- | :--------------------------------------------------------------------------------------------- | :------------------------ |
-| `name`          | Name for heartbeat                                                                             | `watchdog-prometheus-prd` |
-| `uuid` | uuid as alternative identifier                                                             | `9e22b12b-a9c0-4820-8e54-1b9e226ff45f` |
-| `description`   | Description for heartbeat                                           | `test workflow prometheus -> alertmanager workflow`  |
-| `interval`      | Interval in which ping should arrive                                                           |`5m`                       |
-| `grace`         | Grace period which starts after `interval` expired                                             | `30`                      |
-| `notifications` | List of notification to use if grace period is expired. Must match with `Notifications[*].name` | - `slack` <br> `- gmail`  |
-
-### Notifications
-
-Heartbeat uses the library [https://github.com/containrrr/shoutrrr/](https://github.com/containrrr/shoutrrr/) to send notifications.
-
-`Defaults` (`notification.defaults`) set the general `message` and/or `sendResolved` for each service.
-Each service can override these settings by adding the corresponding key (`message` and/or `sendResolved`).
-
-You can use all properties from `heartbeats` in `shoutrrr` and/or `message`. The variables must start with a dot, a capital letter and be surrounded by double curly brackets. Example: `{{ .Status }}`
-
-There is a function (`TimeAgo`) that calculates the time of the last ping to now. (borrowed from [here](https://github.com/xeonx/timeago/))
-
-Example:
-
-```yaml
-message: "Last ping was: {{ .TimeAgo .LastPing }}"
-```
-
-### Service
-
-| Key            | Description                                                            | Example                                                                                                                                                |
-| :------------- | :--------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`         | Name for this service                                                  | `slack-events`                                                                                                                                         |
-| `enabled`      | If enabled, Heartbeat will use this service to send notification       | `true` or `false`                                                                                                                                      |
-| `sendResolved` | Send notification if heartbeat changes back to «OK»                    | `true`                                                                                                                                                 |
-| `message`      | Message for Notification. If not set, `defaults.message` will be used. | `"Heartbeat is missing.\n\n{{.Description}}"`                                                                                                          |
-| `shoutrrr`     | Shoutrrr URL, see [here](https://containrrr.dev/shoutrrr/)             | `slack://$SLACK_TOKEN@prod?color={{ if eq .Status "OK" }}good{{ else }}danger{{ end }}&title=Heartbeat {{ .Name }} «{{ .Status }}»&botname=heartbeats` |
-
-You can use environment variables in `message` and `shoutrrr`, like `$MY_VAR` or `${MY_VAR}`.
-Heartbeats will also try to parse `message` and `shoutrrr` as a go-template with the content of the corresponding `heartbeat`.
-
-## Metrics
-
-Prometheus metrics can be scraped at the endpoint `/metrics`.
-Prometheus metrics starts with `heartbeats_`.
-
-Do not forget to update your Prometheus scrape config.
-
-Example:
-
-```yaml
-scrape_configs:
-- job_name: heartbeats
-  scrape_interval: 30s
-  static_configs:
-  - targets:
-    - heardbeats:8090
-```
+Start heartbeats and go to the url [http://localhost:8090/docs](http://localhost:8090/docs).
