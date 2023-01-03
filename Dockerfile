@@ -1,6 +1,5 @@
 FROM golang:1.19-alpine as builder
 
-
 WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -10,10 +9,7 @@ COPY go.sum go.sum
 RUN go mod download
 
 # Copy the go source
-COPY main.go main.go
-COPY cmd/ cmd/
-COPY internal/ internal/
-COPY web/ web/
+COPY . .
 
 # Build
 RUN CGO_ENABLED=0 GO111MODULE=on go build -a -installsuffix nocgo -o /heartbeats
