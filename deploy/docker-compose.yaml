@@ -2,7 +2,7 @@ version: "2"
 
 services:
   heartbeats:
-    image: ghcr.io/containeroo/heartbeats:v0.3.0
+    image: ghcr.io/containeroo/heartbeats:v0.4.1
     hostname: heartbeats
     environment:
       - "SLACK_TOKEN=TOKEN"
