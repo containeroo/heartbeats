@@ -13,6 +13,7 @@ RUN go mod download
 COPY main.go main.go
 COPY cmd/ cmd/
 COPY internal/ internal/
+COPY web/ web/
 
 # Build
 RUN CGO_ENABLED=0 GO111MODULE=on go build -a -installsuffix nocgo -o /heartbeats
