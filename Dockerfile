@@ -10,8 +10,6 @@ RUN go mod download
 # Copy the go source
 COPY . .
 
-RUN ls -lah
-
 # Build
 RUN CGO_ENABLED=0 GO111MODULE=on go build -a -installsuffix nocgo -o /heartbeats
 
