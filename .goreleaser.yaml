@@ -25,6 +25,7 @@ dockers:
       - main.go
       - cmd
       - internal
+      - web
     build_flag_templates:
       - --pull
       - --platform=linux/amd64
@@ -46,6 +47,7 @@ dockers:
       - main.go
       - cmd
       - internal
+      - web
     goarch: arm64
     build_flag_templates:
       - --pull
