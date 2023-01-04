@@ -41,7 +41,7 @@ func (s Status) String() string {
 func Notify(heartbeatName string, status Status) func() {
 	return func() {
 		var msg string
-		var history cache.History
+
 		heartbeat, err := HeartbeatsServer.GetHeartbeatByName(heartbeatName)
 		if err != nil {
 			log.Errorf(err.Error())
@@ -50,32 +50,25 @@ func Notify(heartbeatName string, status Status) func() {
 		switch status {
 		case OK:
 			metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(1)
-			msg = "got ping. Status is now «OK»"
-			history = cache.History{
-				Event:   cache.EventPing,
-				Message: msg,
-			}
-			log.Infof(msg)
 		case GRACE:
 			metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
 			msg = "Grace is expired. Sending notification(s)"
-			history = cache.History{
+			cache.Local.Add(heartbeatName, cache.History{
 				Event:   cache.EventGrace,
 				Message: msg,
-			}
+			})
 			log.Warnf(msg)
 		case FAILED:
 			metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
 			msg = "got 'failed' ping. Sending notification(s)"
-			history = cache.History{
+			cache.Local.Add(heartbeatName, cache.History{
 				Event:   cache.EventFailed,
 				Message: msg,
-			}
+			})
 			log.Warnf("%s %s", heartbeatName, msg)
 		}
 
 		heartbeat.Status = status.String()
-		cache.Local.Add(heartbeatName, history)
 
 		for _, notification := range heartbeat.NotificationsMap {
 			notificationService, err := HeartbeatsServer.GetServiceByName(notification.Name)
