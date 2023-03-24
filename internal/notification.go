@@ -30,11 +30,12 @@ const (
 	OK Status = iota
 	GRACE
 	FAILED
+	AGAIN
 )
 
 // String returns the string representation of the Status
 func (s Status) String() string {
-	return [...]string{"OK", "NOK", "FAILED"}[s]
+	return [...]string{"OK", "NOK", "FAILED", "AGAIN"}[s]
 }
 
 // Notify returns a function that can be used to send notifications
@@ -50,6 +51,14 @@ func Notify(heartbeatName string, status Status) func() {
 		switch status {
 		case OK:
 			metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(1)
+		case AGAIN:
+			metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(1)
+			msg = "Timer got ping after grace. Sending notification(s)"
+			cache.Local.Add(heartbeatName, cache.History{
+				Event:   cache.EventPing,
+				Message: msg,
+			})
+			log.Infof(msg)
 		case GRACE:
 			metrics.PromMetrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": heartbeatName}).Set(0)
 			msg = "Grace is expired. Sending notification(s)"
