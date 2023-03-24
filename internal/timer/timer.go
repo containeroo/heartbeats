@@ -14,6 +14,34 @@ type Timer struct {
 	Completed bool
 }
 
+// IsCompleted returns true if the timer is completed
+func (t *Timer) IsCompleted() bool {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	return t.Completed
+}
+
+// IsCancelled returns true if the timer is cancelled
+func (t *Timer) IsCancelled() bool {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	return t.Cancelled
+}
+
+// SetCompleted sets the completed flag
+func (t *Timer) SetCompleted(completed bool) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	t.Completed = completed
+}
+
+// SetCancelled sets the cancelled flag
+func (t *Timer) SetCancelled(cancelled bool) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+	t.Cancelled = cancelled
+}
+
 // NewTimer creates a new timer with a duration and a callback function that is called when the timer is expired
 func NewTimer(duration time.Duration, complete func()) *Timer {
 	t := &Timer{}

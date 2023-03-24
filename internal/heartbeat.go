@@ -46,15 +46,16 @@ func (h *Heartbeat) TimeAgo(t time.Time) string {
 // GotPing starts the timer for the heartbeat (heartbeatName)
 func (h *Heartbeat) GotPing(details map[string]string) {
 	var msg string
+
 	// Timer is expired, grace is running but not completed
-	if h.IntervalTimer != nil && h.IntervalTimer.Completed && h.GraceTimer != nil && !h.GraceTimer.Completed && !h.GraceTimer.Cancelled {
+	if h.IntervalTimer != nil && h.IntervalTimer.IsCompleted() && h.GraceTimer != nil && !h.GraceTimer.IsCompleted() && !h.GraceTimer.IsCancelled() {
 		log.Trace("Timer is expired, grace is running but not completed")
-		h.GraceTimer.Cancel()
+		h.GraceTimer.SetCancelled(true)
 		msg = "got ping. Stop grace timer"
 	}
 
 	// Heartbeat is running and not expired
-	if h.IntervalTimer != nil && !h.IntervalTimer.Completed {
+	if h.IntervalTimer != nil && !h.IntervalTimer.IsCompleted() {
 		log.Trace("Heartbeat is running and not expired")
 		h.IntervalTimer.Reset(h.Interval)
 		msg = fmt.Sprintf("got ping. Reset timer with interval %s", h.Interval)
@@ -62,10 +63,10 @@ func (h *Heartbeat) GotPing(details map[string]string) {
 
 	// This is the first ping or after a grace period has expired
 	// IntervalTimer is nil when never started
-	// IntervalTimer.Completed is true when expired
+	// IntervalTimer.IsCompleted is true when expired
 	// GraceTimer is nil when never started
-	// GraceTimer.Completed is true when expired
-	if (h.IntervalTimer == nil || h.IntervalTimer.Completed) && (h.GraceTimer == nil || h.GraceTimer.Completed || h.GraceTimer.Cancelled) {
+	// GraceTimer.IsCompleted is true when expired
+	if (h.IntervalTimer == nil || h.IntervalTimer.IsCompleted()) && (h.GraceTimer == nil || h.GraceTimer.IsCompleted() || h.GraceTimer.IsCancelled()) {
 		log.Tracef("First ping or ping after a grace period has expired")
 		h.IntervalTimer = timer.NewTimer(h.Interval, func() {
 			msg := fmt.Sprintf("Timer is expired. Start grace timer with duration %s", h.Grace)
@@ -75,15 +76,14 @@ func (h *Heartbeat) GotPing(details map[string]string) {
 				Message: fmt.Sprintf("Timer is expired. Start grace timer with duration %s", h.Grace),
 			})
 			h.Status = "GRACE"
-			h.GraceTimer = timer.NewTimer(h.Grace,
-				Notify(h.Name, GRACE))
+			h.GraceTimer = timer.NewTimer(h.Grace, Notify(h.Name, GRACE))
 		})
 		msg = fmt.Sprintf("Start timer with interval %s", h.Interval)
 	}
 
 	// inform the user that the heartbeat is running again
 	if h.Status != "" && h.Status != "OK" && h.Status != "GRACE" {
-		go Notify(h.Name, OK)()
+		go Notify(h.Name, AGAIN)()
 	}
 
 	h.LastPing = time.Now()
@@ -104,13 +104,13 @@ func (h *Heartbeat) GotPing(details map[string]string) {
 func (h *Heartbeat) GotPingFail(details map[string]string) {
 
 	// cancel grace timer if running
-	if h.GraceTimer != nil && !h.GraceTimer.Completed {
-		h.GraceTimer.Cancel()
+	if h.GraceTimer != nil && !h.GraceTimer.IsCompleted() {
+		h.GraceTimer.SetCancelled(true)
 	}
 
 	// cancel interval timer if running
-	if h.IntervalTimer != nil && !h.IntervalTimer.Completed {
-		h.IntervalTimer.Cancel()
+	if h.IntervalTimer != nil && !h.IntervalTimer.IsCompleted() {
+		h.IntervalTimer.SetCancelled(true)
 	}
 
 	go Notify(h.Name, FAILED)()
