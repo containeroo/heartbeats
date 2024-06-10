@@ -12,8 +12,8 @@ services:
       - "EMAIL_TO=example@gmail.com"
     command:
       - --debug
-      - --host
-      - 0.0.0.0
+      - --listen-address
+      - 0.0.0.0;8080
       - -c
       - /tmp/config.yaml
     ports:

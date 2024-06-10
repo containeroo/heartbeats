@@ -15,8 +15,8 @@ func ParseFlags(currentVersion string) error {
 
 	pflag.StringVarP(&config.App.Path, "config", "c", "./deploy/config.yaml", "Path to the configuration file")
 	pflag.StringVarP(&config.App.Server.ListenAddress, "listen-address", "l", "localhost:8080", "Address to listen on")
-	pflag.StringVarP(&config.App.Server.SiteRoot, "siteRoot", "s", "", "Site root for the heartbeat service (default \"http://<listenAddress>\")")
-	pflag.IntVarP(&config.App.Cache.MaxSize, "maxSize", "m", 100, "Maximum size of the cache")
+	pflag.StringVarP(&config.App.Server.SiteRoot, "site-root", "s", "", "Site root for the heartbeat service (default \"http://<listenAddress>\")")
+	pflag.IntVarP(&config.App.Cache.MaxSize, "max-size", "m", 100, "Maximum size of the cache")
 	pflag.IntVarP(&config.App.Cache.Reduce, "reduce", "r", 10, "Amount to reduce when max size is exceeded")
 	pflag.BoolVarP(&config.App.Verbose, "verbose", "v", false, "Enable verbose logging")
 	pflag.BoolVar(&showVersion, "version", false, "Show version and exit")
