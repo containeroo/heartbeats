@@ -23,8 +23,8 @@ spec:
           args:
             - --config
             - /tmp/config.yaml
-            - --host
-            - 0.0.0.0
+            - --listen-address
+            - 0.0.0.0:8080
             - --site-root
             - https://heartbeats.example.com
           env:
@@ -59,6 +59,8 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /tmp/
+            - name: webhooks
+              mountPath: /secrets/teams
       #affinity:
       #  podAntiAffinity:
       #    requiredDuringSchedulingIgnoredDuringExecution:
@@ -72,4 +74,8 @@ spec:
         - name: config
           configMap:
             name: heartbeats
+            defaultMode: 0755
+        - name: webhooks
+          configMap:
+            name: webhooks
             defaultMode: 0755

@@ -1,0 +1,89 @@
+/* heartbeats */
+.url-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.copy-btn {
+  visibility: hidden;
+  margin-left: 10px;
+  cursor: pointer;
+  color: #3182ce;
+}
+.url-cell:hover .copy-btn {
+  visibility: visible;
+}
+.icon {
+  width: 20px;
+  height: 20px;
+}
+.icon.disabled {
+  filter: grayscale(100%);
+}
+.notification-icons {
+  display: flex;
+  gap: 5px;
+}
+.heart-icon {
+  width: 20px;
+  height: 20px;
+}
+.text-pink-500 {
+  fill: #ff66b2;
+}
+.text-red-500 {
+  fill: #ef4444;
+}
+.text-orange-500 {
+  fill: #f97316;
+}
+.text-gray-500 {
+  fill: #6b7280;
+}
+.hover-row:hover {
+  background-color: #ffccff;
+}
+th {
+  cursor: pointer;
+  text-align: left;
+}
+.config-icon {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+/* history */
+.message-cell {
+  position: relative;
+}
+.tooltip {
+  visibility: hidden;
+  background-color: #f56565;
+  color: #fff;
+  text-align: left;
+  padding: 5px;
+  border-radius: 5px;
+  position: absolute;
+  z-index: 1;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 200px;
+}
+.message-cell:hover .tooltip {
+  visibility: visible;
+}
+.triangle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-bottom: 10px solid #f56565;
+  cursor: pointer;
+}

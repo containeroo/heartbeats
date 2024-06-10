@@ -1,0 +1,133 @@
+package notifier
+
+import (
+	"context"
+	"fmt"
+	"heartbeats/internal/notify/resolve"
+	"heartbeats/internal/notify/services/slack"
+	"heartbeats/internal/notify/utils"
+	"time"
+)
+
+const SlackType = "slack"
+
+// SlackConfig holds the configuration for Slack notifications inside the config file.
+type SlackConfig struct {
+	Channel string `mapstructure:"channel"`
+	Token   string `mapstructure:"token"`
+	Title   string `json:"title,omitempty"`
+	Text    string `json:"text,omitempty"`
+}
+
+// SlackNotifier implements Notifier for sending Slack notifications.
+type SlackNotifier struct {
+	Config SlackConfig
+}
+
+// Send sends a Slack notification with the given data and resolution status.
+//
+// Parameters:
+//   - ctx: Context for controlling the lifecycle of the notification sending.
+//   - data: The data to be included in the notification.
+//   - isResolved: Boolean indicating if the notification is a resolution.
+//   - formatter: Function to format the title and text.
+//
+// Returns:
+//   - error: An error if sending the notification fails.
+func (s SlackNotifier) Send(ctx context.Context, data interface{}, isResolved bool, formatter Formatter) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	slackConfig, err := resolveSlackConfig(s.Config)
+	if err != nil {
+		return fmt.Errorf("cannot resolve Slack config. %w", err)
+	}
+	headers := map[string]string{
+		"Authorization": "Bearer " + slackConfig.Token,
+		"Content-Type":  "application/json",
+	}
+
+	slackClient := slack.New(headers, true)
+
+	title, err := formatter(slackConfig.Title, data, isResolved)
+	if err != nil {
+		return fmt.Errorf("cannot format Slack title. %w", err)
+	}
+
+	text, err := formatter(slackConfig.Text, data, false)
+	if err != nil {
+		return fmt.Errorf("cannot format Slack message. %w", err)
+	}
+
+	color := determineColor(data)
+
+	attachment := slack.Attachment{
+		Text:  text,
+		Color: color,
+		Title: title,
+	}
+
+	slackItem := slack.Slack{
+		Channel:     s.Config.Channel,
+		Attachments: []slack.Attachment{attachment},
+	}
+
+	_, err = slackClient.Send(ctx, slackItem)
+	if err != nil {
+		return fmt.Errorf("cannot send Slack notification. %w", err)
+	}
+
+	return nil
+}
+
+// CheckResolveVariables checks if the configuration fields are resolvable.
+func (e SlackNotifier) CheckResolveVariables() error {
+	if _, err := resolveSlackConfig(e.Config); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// resolveSlackConfig resolves token, title and text.
+func resolveSlackConfig(config SlackConfig) (SlackConfig, error) {
+	token, err := resolve.ResolveVariable(config.Token)
+	if err != nil {
+		return SlackConfig{}, fmt.Errorf("cannot resolve Slack token. %w", err)
+	}
+
+	channel, err := resolve.ResolveVariable(config.Channel)
+	if err != nil {
+		return SlackConfig{}, fmt.Errorf("cannot resolve Slack channel. %w", err)
+	}
+
+	title, err := resolve.ResolveVariable(config.Title)
+	if err != nil {
+		return SlackConfig{}, fmt.Errorf("cannot resolve Slack title. %w", err)
+	}
+
+	text, err := resolve.ResolveVariable(config.Text)
+	if err != nil {
+		return SlackConfig{}, fmt.Errorf("cannot resolve Slack text. %w", err)
+	}
+
+	return SlackConfig{
+		Token:   token,
+		Channel: channel,
+		Title:   title,
+		Text:    text,
+	}, nil
+}
+
+// String returns the type of the notifier.
+func (s SlackNotifier) String() string {
+	return SlackType
+}
+
+// determineColor determines the color for the Slack message based on the notification data.
+func determineColor(data interface{}) string {
+	color := `{{ if eq .Status "ok" }}good{{ else }}danger{{ end }}`
+	result, _ := utils.FormatTemplate("determineColor", color, data)
+
+	return result
+}

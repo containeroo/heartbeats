@@ -1,31 +1,40 @@
-/*
-Copyright © 2022 containeroo https://github.com/containeroo
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package main
 
 import (
+	"context"
 	"embed"
-
-	"github.com/containeroo/heartbeats/cmd"
-	"github.com/containeroo/heartbeats/internal"
+	"fmt"
+	"heartbeats/internal/config"
+	"heartbeats/internal/flags"
+	"heartbeats/internal/logger"
+	"heartbeats/internal/server"
+	"os"
 )
 
+const version = "0.0.0"
+
 //go:embed web
-var staticFs embed.FS
+var templates embed.FS
+
+func run(ctx context.Context, verbose bool) error {
+	log := logger.NewLogrusLogger(verbose)
+
+	if err := config.App.Read(); err != nil {
+		return fmt.Errorf("Error reading config file: %v", err)
+	}
+
+	return server.Run(ctx, config.App.Server.ListenAddress, templates, log)
+}
 
 func main() {
-	internal.StaticFS = staticFs
-	cmd.Execute()
+	if err := flags.ParseFlags(version); err != nil {
+		fmt.Printf("error parsing flags. %s\n", err)
+		os.Exit(1)
+	}
+
+	ctx := context.Background()
+	if err := run(ctx, config.App.Verbose); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
 }
