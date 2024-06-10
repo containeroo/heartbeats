@@ -1,94 +1,70 @@
 package timer
 
 import (
+	"context"
 	"sync"
 	"time"
 )
 
-// Timer is a struct for a timer
+// TimerCallback is a function type that defines the signature for callback functions
+// to be executed by Timer.
+type TimerCallback func()
+
+// Timer encapsulates a time.Timer for scheduling callbacks at specific intervals.
 type Timer struct {
-	mutex     sync.Mutex
-	timer     *time.Timer
-	duration  *time.Duration
-	Cancelled bool
-	Completed bool
+	Timer    *time.Timer    `mapstructure:"-" yaml:"-"`
+	Interval *time.Duration `mapstructure:"interval" yaml:"interval,omitempty"`
+	Mutex    sync.Mutex     `mapstructure:"-" yaml:"-"`
+	cancel   context.CancelFunc
 }
 
-// IsCompleted returns true if the timer is completed
-func (t *Timer) IsCompleted() bool {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
-	return t.Completed
-}
+// RunTimer runs the interval timer and executes the callback when elapsed.
+// The timer respects the context for cancellation.
+//
+// Parameters:
+//   - ctx: Context controlling the lifecycle of the timer.
+//   - callback: Function to be executed when the timer elapses.
+func (t *Timer) RunTimer(ctx context.Context, callback TimerCallback) {
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
 
-// IsCancelled returns true if the timer is cancelled
-func (t *Timer) IsCancelled() bool {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
-	return t.Cancelled
-}
+	// If there's an existing timer, stop it
+	if t.Timer != nil {
+		t.Timer.Stop()
+	}
 
-// SetCompleted sets the completed flag
-func (t *Timer) SetCompleted(completed bool) {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
-	t.Completed = completed
-}
+	// Create a new context with cancel function
+	var cancelCtx context.Context
+	cancelCtx, t.cancel = context.WithCancel(ctx)
 
-// SetCancelled sets the cancelled flag
-func (t *Timer) SetCancelled(cancelled bool) {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
-	t.Cancelled = cancelled
-}
-
-// NewTimer creates a new timer with a duration and a callback function that is called when the timer is expired
-func NewTimer(duration time.Duration, complete func()) *Timer {
-	t := &Timer{}
-	t.duration = &duration
-	t.timer = time.NewTimer(duration)
-	go t.wait(complete)
-	return t
-}
-
-// Reset resets the timer with a new duration
-func (t *Timer) Reset(duration time.Duration) {
-	if !t.timer.Stop() {
+	// Create a new timer
+	t.Timer = time.AfterFunc(*t.Interval, func() {
 		select {
-		case <-t.timer.C:
+		case <-cancelCtx.Done():
+			// Context was cancelled
+			return
 		default:
+			// Timer elapsed
+			callback()
 		}
-	}
-	t.timer.Reset(duration)
+	})
 }
 
-// Cancel cancels the timer
-func (t *Timer) Cancel() {
-	t.mutex.Lock()
-	if t.Completed {
-		t.mutex.Unlock()
-		return
-	}
-	t.Cancelled = true
-	t.mutex.Unlock()
+// StopTimer stops the interval timer.
+//
+// This function cancels any in-progress timer callbacks and stops the timer.
+func (t *Timer) StopTimer() {
+	t.Mutex.Lock()
+	defer t.Mutex.Unlock()
 
-	if !t.timer.Stop() {
-		select {
-		case <-t.timer.C:
-		default:
-		}
+	// Cancel the context to stop any in-progress timer callbacks
+	if t.cancel != nil {
+		t.cancel()
+		t.cancel = nil
 	}
-}
 
-// wait waits for the timer to expire or be cancelled
-func (t *Timer) wait(complete func()) {
-	<-t.timer.C
-	t.mutex.Lock()
-	if !t.Cancelled {
-		t.Completed = true
-		t.mutex.Unlock()
-		complete()
-		return
+	if t.Timer != nil {
+		t.Timer.Stop()
+		t.Timer = nil
 	}
-	t.mutex.Unlock()
 }

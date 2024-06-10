@@ -1,24 +1,27 @@
 package handlers
 
 import (
+	"heartbeats/internal/logger"
 	"net/http"
 )
 
-// NotFound is the handler for the 404 page
-func NotFound(w http.ResponseWriter, req *http.Request) {
-	LogRequest(req)
-
-	if outputFormat := req.URL.Query().Get("output"); outputFormat != "" {
-		// if output is given, return history in wanted format
-		WriteOutput(w, http.StatusNotFound, outputFormat, &ResponseStatus{Status: "nok", Error: "404 Not Found"}, "Status: {{ .Status }}\nError: {{  .Error }}")
-		return
-	}
-
-	templs := []string{
-		"web/templates/base.html",
-		"web/templates/navbar.html",
-		"web/templates/404.html",
-		"web/templates/footer.html",
-	}
-	ParseTemplates("base", templs, nil, w)
+func NotFound(logger logger.Logger) http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			body := `
+<html>
+	<head>
+		<title>404 Not Found</title>
+	</head>
+	<body>
+		<h1>404 Not Found</h1>
+		<p>The page you requested could not be found.</p>
+	</body>
+</html>
+	`
+			if _, err := w.Write([]byte(body)); err != nil {
+				logger.Errorf("Error writing 404 response: %v", err)
+			}
+		})
 }

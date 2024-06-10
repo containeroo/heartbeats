@@ -1,111 +1,57 @@
 package handlers
 
 import (
-	"fmt"
+	"embed"
+	"heartbeats/internal/config"
+	"heartbeats/internal/history"
+	"heartbeats/internal/logger"
+	"html/template"
 	"net/http"
-	"text/template"
 
-	"github.com/containeroo/heartbeats/internal"
-	"github.com/containeroo/heartbeats/internal/cache"
-	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
+	"github.com/Masterminds/sprig"
 )
 
-// outputHistory outputs history in wanted format
-func outputHistory(w http.ResponseWriter, req *http.Request, outputFormat string, heartbeatName string) {
-	// if no heartbeat is given, return all heartbeats
-	if heartbeatName == "" {
-		WriteOutput(w, http.StatusOK, outputFormat, &cache.Local.History, "{{ . }}")
-		return
-	}
+// History handles the /history endpoint
+func History(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		heartbeatName := r.PathValue("id")
+		logger.Debugf("%s /history/%s %s %s", r.Method, heartbeatName, r.RemoteAddr, r.UserAgent())
 
-	histories, ok := cache.Local.History[heartbeatName]
-	if !ok {
-		WriteOutput(w, http.StatusNotFound, outputFormat, ResponseStatus{Status: "nok", Error: "No history found"}, "Status: {{ .Status }}\nError: {{  .Error }}")
-		return
-	}
-
-	WriteOutput(w, http.StatusOK, outputFormat, &histories, "{{ . }}")
-}
-
-// HandlerHistory is the handler for the /history endpoint
-func History(w http.ResponseWriter, req *http.Request) {
-	LogRequest(req)
-
-	vars := mux.Vars(req)
-	heartbeatName := vars["heartbeat"]
-
-	outputFormat := req.URL.Query().Get("output")
-
-	var heartbeat *internal.Heartbeat
-
-	if IsValidUUID(heartbeatName) {
-		heartbeat, _ = internal.HeartbeatsServer.GetHeartbeatByUUID(heartbeatName)
-	} else {
-		heartbeat, _ = internal.HeartbeatsServer.GetHeartbeatByName(heartbeatName)
-	}
-
-	// if output is given, return history in wanted format
-	if outputFormat != "" {
-		outputHistory(w, req, outputFormat, heartbeat.Name)
-		return
-	}
-
-	var templs []string
-	var err error
-
-	if heartbeatName == "" {
-		templs = []string{
-			"web/templates/base.html",
-			"web/templates/navbar.html",
-			"web/templates/history_all.html",
-			"web/templates/footer.html",
+		h := config.App.HeartbeatStore.Get(heartbeatName)
+		if h == nil {
+			logger.Warnf("Heartbeat «%s» not found", heartbeatName)
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte("heartbeat not found")) // Make linter happy
+			return
 		}
-	} else {
-		templs = []string{
-			"web/templates/base.html",
-			"web/templates/navbar.html",
-			"web/templates/history.html",
-			"web/templates/footer.html",
-		}
-	}
 
-	tmpl, err := template.ParseFS(internal.StaticFS, templs...)
-	if err != nil {
-		log.Errorf("Error parsing template: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		_, err := w.Write([]byte(fmt.Sprintf("cannot parse template. %s", err.Error())))
+		fmap := sprig.TxtFuncMap()
+		fmap["formatTime"] = formatTime
+
+		tmpl, err := template.New("heartbeat").
+			Funcs(fmap).
+			ParseFS(
+				staticFS,
+				"web/templates/history.html",
+				"web/templates/footer.html",
+			)
 		if err != nil {
-			log.Errorf("Error writing response: %s", err.Error())
+			logger.Errorf("Failed to parse template: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
 		}
-		return
-	}
 
-	if heartbeat == nil {
-		// if no heartbeat is given, return all heartbeats
-		err = tmpl.ExecuteTemplate(w, "base", cache.Local)
-	} else {
-		// if heartbeat is given, return history for this heartbeat
-		history, err := cache.Local.Get(heartbeat.Name)
-		if err != nil {
-			log.Warnf("Error getting history: %s", err.Error())
-		}
-		h := struct {
+		data := struct {
 			Name    string
-			History *[]cache.History
+			Entries []history.HistoryEntry
 		}{
-			Name:    heartbeat.Name,
-			History: &history,
+			Name:    heartbeatName,
+			Entries: config.HistoryStore.Get(heartbeatName).GetAllEntries(),
 		}
-		err = tmpl.ExecuteTemplate(w, "base", h)
-	}
-	if err != nil {
-		log.Errorf("Error executing template: %s", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		_, err := w.Write([]byte(fmt.Sprintf("cannot execute template. %s", err.Error())))
-		if err != nil {
-			log.Errorf("Error writing response: %s", err.Error())
+
+		if err := tmpl.ExecuteTemplate(w, "history", data); err != nil {
+			logger.Errorf("Failed to execute template: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
-		return
 	}
 }

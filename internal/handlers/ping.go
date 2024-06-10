@@ -1,106 +1,56 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
-	"math/rand"
+	"heartbeats/internal/config"
+	"heartbeats/internal/heartbeat"
+	"heartbeats/internal/history"
+	"heartbeats/internal/logger"
 	"net/http"
-
-	"github.com/containeroo/heartbeats/internal"
-	"github.com/gorilla/mux"
 )
 
-// PingHelp is the handler for the /ping endpoint
-func PingHelp(w http.ResponseWriter, req *http.Request) {
-	LogRequest(req)
+// Ping handles the /ping/{id} endpoint
+func Ping(logger logger.Logger) http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			// Use context.Background() to ensure the timers are not tied to the HTTP request context.
+			// This prevents timers from being cancelled when the request context is done or cancelled.
+			ctx := context.Background()
 
-	outputFormat := GetOutputFormat(req)
+			heartbeatName := r.PathValue("id")
+			logger.Debugf("%s /ping/%s %s %s", r.Method, heartbeatName, r.RemoteAddr, r.UserAgent())
 
-	n := rand.Int() % len(internal.HeartbeatsServer.Heartbeats) // pick a random heartbeat
-	usage := struct {
-		Status string `json:"status"`
-		Usage  string `json:"usage"`
-	}{
-		Status: "nok",
-		Usage:  fmt.Sprintf("You must specify the name or the uuid of the wanted heartbeat in the URL.\nExamples: %s/ping/%s", internal.HeartbeatsServer.Server.SiteRoot, internal.HeartbeatsServer.Heartbeats[n].Name),
-	}
+			h := config.App.HeartbeatStore.Get(heartbeatName)
+			if h == nil {
+				logger.Warnf("%s Heartbeat «%s» not found", heartbeat.EventBeat, heartbeatName)
+				w.WriteHeader(http.StatusNotFound)
+				_, _ = w.Write([]byte(fmt.Sprintf("heartbeat '%s' not found", heartbeatName))) // Make linter happy
+				return
+			}
+			details := map[string]string{
+				"proto":     r.Proto,
+				"clientIP":  r.RemoteAddr,
+				"method":    r.Method,
+				"userAgent": r.UserAgent(),
+			}
 
-	WriteOutput(w, http.StatusNotFound, outputFormat, &usage, "{{ .Usage }}")
-}
+			msg := "got ping"
+			logger.Infof("%s %s", heartbeatName, msg)
 
-// Ping is the handler for the /ping/<heartbeat> endpoint
-func Ping(w http.ResponseWriter, req *http.Request) {
-	LogRequest(req)
+			hs := config.HistoryStore.Get(heartbeatName)
+			hs.AddEntry(history.Beat, msg, details)
 
-	outputFormat := GetOutputFormat(req)
+			if h.Enabled != nil && !*h.Enabled {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_, _ = w.Write([]byte("nok")) // Make linter happy
+				return
+			}
 
-	vars := mux.Vars(req)
-	heartbeatName := vars["heartbeat"]
+			ns := config.App.NotificationStore
+			h.StartInterval(ctx, logger, ns, hs)
 
-	var heartbeat *internal.Heartbeat
-	var err error
-
-	if IsValidUUID(heartbeatName) {
-		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByUUID(heartbeatName)
-	} else {
-		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByName(heartbeatName)
-	}
-	if err != nil {
-		WriteOutput(w, http.StatusNotFound, outputFormat, &ResponseStatus{Status: "nok", Error: err.Error()}, "Status: {{ .Status }}\nError: {{  .Error }}")
-		return
-	}
-
-	if heartbeat.Enabled != nil && !*heartbeat.Enabled {
-		WriteOutput(w, http.StatusServiceUnavailable, outputFormat, &ResponseStatus{Status: "nok", Error: "heartbeat is disabled"}, "Status: {{ .Status }}\nError: {{  .Error }}")
-		return
-	}
-
-	details := map[string]string{
-		"proto":     req.Proto,
-		"clientIP":  req.RemoteAddr,
-		"method":    req.Method,
-		"userAgent": req.UserAgent(),
-	}
-
-	heartbeat.GotPing(details)
-
-	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
-}
-
-// PingFail is the handler for the /ping/<heartbeat>/fail endpoint
-func PingFail(w http.ResponseWriter, req *http.Request) {
-	LogRequest(req)
-
-	outputFormat := GetOutputFormat(req)
-
-	vars := mux.Vars(req)
-	heartbeatName := vars["heartbeat"]
-
-	var heartbeat *internal.Heartbeat
-	var err error
-
-	if IsValidUUID(heartbeatName) {
-		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByUUID(heartbeatName)
-	} else {
-		heartbeat, err = internal.HeartbeatsServer.GetHeartbeatByName(heartbeatName)
-	}
-	if err != nil {
-		WriteOutput(w, http.StatusServiceUnavailable, outputFormat, &ResponseStatus{Status: "nok", Error: "heartbeat not found"}, "Status: {{ .Status }}\nError: {{  .Error }}")
-		return
-	}
-
-	if heartbeat.Enabled != nil && !*heartbeat.Enabled {
-		WriteOutput(w, http.StatusServiceUnavailable, outputFormat, &ResponseStatus{Status: "nok", Error: "heartbeat is disabled"}, "Status: {{ .Status }}\nError: {{  .Error }}")
-		return
-	}
-
-	details := map[string]string{
-		"proto":     req.Proto,
-		"clientIP":  req.RemoteAddr,
-		"method":    req.Method,
-		"userAgent": req.UserAgent(),
-	}
-
-	heartbeat.GotPingFail(details)
-
-	WriteOutput(w, http.StatusOK, outputFormat, &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok")) // Make linter happy
+		})
 }

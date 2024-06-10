@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"heartbeats/internal/logger"
 	"net/http"
 )
 
-// Healthz is the handler for the /healthz endpoint
-func Healthz(w http.ResponseWriter, req *http.Request) {
-	LogRequest(req)
-
-	WriteOutput(w, http.StatusOK, GetOutputFormat(req), &ResponseStatus{Status: "ok", Error: ""}, "{{ .Status }}")
+func Healthz(logger logger.Logger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger.Info("Health check endpoint called")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok")) // Make linter happy
+	})
 }

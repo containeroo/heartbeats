@@ -1,0 +1,93 @@
+{{define "heartbeat"}} {{ $URL := .SiteRoot }}
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Heartbeat Monitor</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    />
+    <link rel="stylesheet" href="/static/css/heartbeats.css" />
+  </head>
+  <body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+      <h1 class="text-3xl font-bold mb-6 text-center">Heartbeat Monitor</h1>
+      <div class="bg-white shadow-lg rounded-lg p-6">
+        <table id="heartbeatTable" class="min-w-full bg-white">
+          <thead>
+            <tr>
+              <th class="py-2 px-4 border-b-2 border-gray-200" onclick="sortTable(0)">Status</th>
+              <th class="py-2 px-4 border-b-2 border-gray-200" onclick="sortTable(1)">Name</th>
+              <th class="py-2 px-4 border-b-2 border-gray-200" onclick="sortTable(2)">URL</th>
+              <th class="py-2 px-4 border-b-2 border-gray-200" onclick="sortTable(3)">Notifications</th>
+              <th class="py-2 px-4 border-b-2 border-gray-200" onclick="sortTable(4)">Interval</th>
+              <th class="py-2 px-4 border-b-2 border-gray-200" onclick="sortTable(5)">Grace</th>
+              <th class="py-2 px-4 border-b-2 border-gray-200" onclick="sortTable(6)">Last Ping</th>
+              <th class="py-2 px-4 border-b-2 border-gray-200" onclick="sortTable(7)">History</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range $name, $heartbeat := .Heartbeats}}
+            <tr class="hover-row">
+              <td title="Status: {{if eq $heartbeat.Status "never" }}never{{else}}{{upper $heartbeat.Status}}{{end}}" class="py-2 px-4 border-b border-gray-200">
+                <svg class="heart-icon {{if eq $heartbeat.Status "ok"}}text-pink-500{{else if eq $heartbeat.Status "nok"}}text-red-500{{else if eq $heartbeat.Status "grace"}}text-orange-500{{else}}text-gray-500{{end}}" viewBox="0 0 24 24">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                </svg>
+              </td>
+              <td class="py-2 px-4 border-b border-gray-200">
+                {{$heartbeat.Name}}
+              </td>
+              <td class="py-2 px-4 border-b border-gray-200">
+                <div
+                  class="url-cell"
+                  onclick="copyToClipboard('{{$URL}}/{{$heartbeat.Name}}', this)"
+                >
+                  <span class="text-blue-500 hover:underline cursor-pointer">{{$URL}}/{{$heartbeat.Name}}</span>
+                  <span class="copy-btn">Copy</span>
+                </div>
+              </td>
+              <td class="py-2 px-4 border-b border-gray-200">
+                <div class="notification-icons">
+                  {{range $key, $notification := $heartbeat.Notifications}}
+                  <div title="{{ $notification.Name }} ({{ $notification.Type }})">
+                    <img
+                      src="/static/icons/{{ $notification.Type }}.png"
+                      alt="{{ $notification.Name }} ({{ $notification.Type }})"
+                      class="icon {{if isFalse $notification.Enabled}}disabled{{end}}"
+                    />
+                  </div>
+                  {{end}}
+                </div>
+              </td>
+              <td class="py-2 px-4 border-b border-gray-200">
+                {{$heartbeat.Interval.Interval}}
+              </td>
+              <td class="py-2 px-4 border-b border-gray-200">
+                {{$heartbeat.Grace.Interval}}
+              </td>
+              <td class="py-2 px-4 border-b border-gray-200">
+                {{if $heartbeat.LastPing.IsZero }}Never{{else}}{{ ago $heartbeat.LastPing }}{{end}}
+              </td>
+              <td class="py-2 px-4 border-b border-gray-200">
+                <a
+                  href="{{$URL}}/history/{{$heartbeat.Name}}"
+                  class="text-blue-500 hover:underline"
+                  >View</a>
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <a href="{{$URL}}/config" title="View Config">
+      <img src="/static/svg/settings.svg" alt="Settings" class="config-icon">
+    </a>
+  {{ template "footer" }}
+  </body>
+</html>
+{{end}}
+

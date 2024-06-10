@@ -1,21 +1,56 @@
-{{define "body"}}
-<table class="table table-hover" id="history">
-  <p></p><h1 class="mt-5">History: {{ .Name }}</h1></p>
-  <thead>
-    <tr>
-      <th scope="col">Time</th>
-      <th scope="col">Event</th>
-      <th scope="col">Message</th>
-    </tr>
-  </thead>
-  <tbody>
-    {{ range  .History }}
-    <tr>
-      <td>{{ .Time.Format "2006-01-02 15:04:05" }}</td>
-      <td>{{ .Event }}</td>
-      <td>{{ if .Details }}<a data-toggle="tooltip" data-html="true" data-placement="top" title='<p class="text-md-start">{{ range $key,$value := .Details }}{{ $key }}: {{ $value }}<br>{{end}}</p>'>{{ else }}<a>{{end}}{{ .Message }}</a></td>
-    </tr>
-    {{end}}
-    </tbody>
-	</table>
+{{define "history"}}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Heartbeat History</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    />
+    <link rel="stylesheet" href="/static/css/heartbeats.css" />
+  </head>
+  <body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+      <h1 class="text-3xl font-bold mb-6 text-center">
+        Heartbeat History for {{.Name}}
+      </h1>
+      <div class="bg-white shadow-lg rounded-lg p-6">
+        <table class="min-w-full bg-white">
+          <thead>
+            <tr>
+              <th class="py-2 px-4 border-b-2 border-gray-200">Timestamp</th>
+              <th class="py-2 px-4 border-b-2 border-gray-200">Event</th>
+              <th class="py-2 px-4 border-b-2 border-gray-200">Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Entries}}
+            <tr class="hover-row">
+              <td class="py-2 px-4 border-b border-gray-200">
+                {{formatTime .Time "2006-01-02 15:04:05"}}
+              </td>
+              <td class="py-2 px-4 border-b border-gray-200">{{.Event}}</td>
+              <td class="py-2 px-4 border-b border-gray-200 message-cell">
+                {{.Message}} {{if .Details}}
+                <div class="triangle"></div>
+                <div class="tooltip">
+                  {{range $key, $value := .Details}}
+                  <div>{{$key}}: {{$value}}</div>
+                  {{end}}
+                </div>
+                {{end}}
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4">
+        <a href="/" class="text-blue-500 hover:underline">Back to Heartbeats</a>
+      </div>
+    </div>
+  </body>
+</html>
 {{end}}

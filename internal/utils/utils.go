@@ -2,42 +2,54 @@ package utils
 
 import (
 	"bytes"
-	"fmt"
-	"text/template"
+	"encoding/json"
+	"net"
+	"strconv"
+
+	"gopkg.in/yaml.v3"
 )
 
-// FormatTemplate format template with intr as input
-func FormatTemplate(tmpl string, intr any) (string, error) {
-	if tmpl == "" {
-		return "", fmt.Errorf("Template is empty")
-	}
-	t, err := template.New("status").Parse(tmpl)
-	if err != nil {
-		return "", fmt.Errorf("Error executing template: %s", err.Error())
-	}
-	buf := &bytes.Buffer{}
-	err = t.Execute(buf, &intr)
-	if err != nil {
-		return "", fmt.Errorf("Error executing template: %s", err.Error())
-	}
-
-	return buf.String(), nil
+// FormatOutput maps each possible output to its corresponding converting function
+var FormatOutput = map[string]func(interface{}) (string, error){
+	"json": ConvertToJson,
+	"yaml": ConvertToYaml,
+	"yml":  ConvertToYaml,
+	"text": ConvertToYaml,
+	"txt":  ConvertToYaml,
 }
 
-// CheckDefault checks if value is empty and returns default value
-func CheckDefault(value string, defaultValue string) string {
-	if value == "" {
-		return defaultValue
+// convertToYaml converts the output to yaml
+func ConvertToYaml(output interface{}) (string, error) {
+	var b bytes.Buffer
+	yamlEncoder := yaml.NewEncoder(&b)
+	yamlEncoder.SetIndent(2)
+	if err := yamlEncoder.Encode(output); err != nil {
+		return "", err
 	}
-	return value
+	return b.String(), nil
 }
 
-// IsInListOfStrings checks if value is in list
-func IsInListOfStrings(list []string, value string) bool {
-	for _, v := range list {
-		if v == value {
-			return true
-		}
+func ConvertToJson(output interface{}) (string, error) {
+	var b bytes.Buffer
+	jsonEncoder := json.NewEncoder(&b)
+	jsonEncoder.SetIndent("", "  ")
+	if err := jsonEncoder.Encode(&output); err != nil {
+		return "", err
 	}
-	return false
+	return b.String(), nil
+}
+
+// ExtractHostAndPort extracts the hostname and port from the listen address
+func ExtractHostAndPort(address string) (string, int, error) {
+	host, portStr, err := net.SplitHostPort(address)
+	if err != nil {
+		return "", 0, err
+	}
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return host, port, nil
 }
