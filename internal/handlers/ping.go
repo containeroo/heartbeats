@@ -19,7 +19,8 @@ func Ping(logger logger.Logger) http.Handler {
 			ctx := context.Background()
 
 			heartbeatName := r.PathValue("id")
-			logger.Debugf("%s /ping/%s %s %s", r.Method, heartbeatName, r.RemoteAddr, r.UserAgent())
+			clientIP := getClientIP(r)
+			logger.Debugf("%s /ping/%s %s %s", r.Method, heartbeatName, clientIP, r.UserAgent())
 
 			h := config.App.HeartbeatStore.Get(heartbeatName)
 			if h == nil {
@@ -30,7 +31,7 @@ func Ping(logger logger.Logger) http.Handler {
 			}
 			details := map[string]string{
 				"proto":     r.Proto,
-				"clientIP":  r.RemoteAddr,
+				"clientIP":  clientIP,
 				"method":    r.Method,
 				"userAgent": r.UserAgent(),
 			}

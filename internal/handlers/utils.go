@@ -1,6 +1,10 @@
 package handlers
 
-import "time"
+import (
+	"net/http"
+	"strings"
+	"time"
+)
 
 // isFalse returns true if the given boolean pointer is nil or false.
 func isFalse(b *bool) bool {
@@ -19,4 +23,14 @@ func formatTime(t time.Time, format string) string {
 		return "-"
 	}
 	return t.Format(format)
+}
+
+// getClientIP extracts the client's IP address from the request, preferring X-Forwarded-For if present.
+func getClientIP(r *http.Request) string {
+	xff := r.Header.Get("X-Forwarded-For")
+	if xff != "" {
+		ips := strings.Split(xff, ",")
+		return strings.TrimSpace(ips[0])
+	}
+	return r.RemoteAddr
 }
