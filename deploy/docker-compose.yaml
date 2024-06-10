@@ -1,0 +1,25 @@
+version: "2"
+
+services:
+  heartbeats:
+    image: ghcr.io/containeroo/heartbeats:latest
+    hostname: heartbeats
+    environment:
+      - "SLACK_TOKEN=TOKEN"
+      - "EMAIL_USER=example@gmail.com"
+      - "EMAIL_PASSWORD=SUPERSECRET"
+      - "EMAIL_FROM=example@gmail.com"
+      - "EMAIL_TO=example@gmail.com"
+    command:
+      - --debug
+      - --host
+      - 0.0.0.0
+      - -c
+      - /tmp/config.yaml
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/tmp/config.yaml
+      - ./webhooks:/secrets/teams/webhooks
+    networks:
+      - YOUR_NETWORK
