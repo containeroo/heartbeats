@@ -18,18 +18,18 @@ spec:
     spec:
       containers:
         - name: heartbeats
-          image: ghcr.io/containeroo/heartbeats:v0.4.9
+          image: ghcr.io/containeroo/heartbeats:latest
           imagePullPolicy: IfNotPresent
           args:
             - --config
             - /tmp/config.yaml
             - --listen-address
             - 0.0.0.0:8080
-            - --site-root
-            - https://heartbeats.example.com
           env:
             - name: TZ
               value: Europe/Zurich
+            - name: HEARTBEATS_SITE_ROOT
+              value: https://heartbeats.example.com
           envFrom:
             - secretRef:
                 name: heartbeats
