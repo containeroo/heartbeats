@@ -149,7 +149,7 @@ func (h *Heartbeat) SendNotifications(ctx context.Context, log logger.Logger, no
 		}
 
 		if err := notification.Send(ctx, h, isResolved, notify.DefaultFormatter); err != nil {
-			log.Errorf("%s error sending notification '%s' (%s). %s", h.Name, notification.Name, notification.Type, err.Error())
+			h.log(log, logger.ErrorLevel, history, EventSend, fmt.Sprintf("%s error sending notification '%s' (%s). %v", h.Name, notification.Name, notification.Type, err))
 			continue
 		}
 		h.log(log, logger.InfoLevel, history, EventSend, fmt.Sprintf("successfully send notification to %s (%s)", notification.Name, notification.Type))
