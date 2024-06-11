@@ -109,20 +109,12 @@ func (s *Store) Add(name string, notification *Notification) error {
 	defer s.mu.Unlock()
 
 	if found := s.notifications[name]; found != nil {
-		return fmt.Errorf("notification '%s' already exists.", notification.Name)
+		return fmt.Errorf("notification '%s' already exists", name)
 	}
 
-	var instance notifier.Notifier
-
-	switch {
-	case notification.SlackConfig != nil:
-		instance = &notifier.SlackNotifier{Config: *notification.SlackConfig}
-	case notification.MailConfig != nil:
-		instance = &notifier.EmailNotifier{Config: *notification.MailConfig}
-	case notification.MSTeamsConfig != nil:
-		instance = &notifier.MSTeamsNotifier{Config: *notification.MSTeamsConfig}
-	default:
-		return fmt.Errorf("notification configuration is missing or unsupported.")
+	instance, err := evaluateNotifier(notification)
+	if err != nil {
+		return err
 	}
 
 	notification.Name = name
@@ -155,22 +147,13 @@ func (s *Store) Update(name string, notification *Notification) error {
 		return fmt.Errorf("notification '%s' does not exist", name)
 	}
 
-	var instance notifier.Notifier
-
-	switch {
-	case notification.SlackConfig != nil:
-		instance = &notifier.SlackNotifier{Config: *notification.SlackConfig}
-	case notification.MailConfig != nil:
-		instance = &notifier.EmailNotifier{Config: *notification.MailConfig}
-	case notification.MSTeamsConfig != nil:
-		instance = &notifier.MSTeamsNotifier{Config: *notification.MSTeamsConfig}
-	default:
-		return fmt.Errorf("notification configuration is missing or unsupported")
+	instance, err := evaluateNotifier(notification)
+	if err != nil {
+		return err
 	}
 
 	notification.Notifier = instance
 	s.notifications[name] = notification
-
 	return nil
 }
 
@@ -186,4 +169,25 @@ func DefaultFormatter(content string, data interface{}, isResolved bool) (string
 	}
 
 	return formattedContent, nil
+}
+
+// evaluateNotifier evaluates and returns the appropriate Notifier instance based on the notification configuration.
+//
+// Parameters:
+//   - notification: The Notification object containing the configuration details.
+//
+// Returns:
+//   - notifier.Notifier: The Notifier instance based on the configuration.
+//   - error: An error if the configuration is missing or unsupported.
+func evaluateNotifier(notification *Notification) (notifier.Notifier, error) {
+	switch {
+	case notification.SlackConfig != nil:
+		return &notifier.SlackNotifier{Config: *notification.SlackConfig}, nil
+	case notification.MailConfig != nil:
+		return &notifier.EmailNotifier{Config: *notification.MailConfig}, nil
+	case notification.MSTeamsConfig != nil:
+		return &notifier.MSTeamsNotifier{Config: *notification.MSTeamsConfig}, nil
+	default:
+		return nil, fmt.Errorf("notification configuration is missing or unsupported")
+	}
 }
