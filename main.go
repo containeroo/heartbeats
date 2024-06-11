@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-const version = "0.6.2"
+const version = "0.6.3"
 
 //go:embed web
 var templates embed.FS
