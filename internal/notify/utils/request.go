@@ -68,6 +68,7 @@ func (hc *HttpClient) DoRequest(ctx context.Context, method, url string, body []
 //   - *http.Client: The configured HTTP client.
 func (hc *HttpClient) createHTTPClient() *http.Client {
 	tr := &http.Transport{
+		Proxy:           http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: hc.SkipInsecure},
 	}
 
