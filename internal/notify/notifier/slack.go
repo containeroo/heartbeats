@@ -13,10 +13,11 @@ const SlackType = "slack"
 
 // SlackConfig holds the configuration for Slack notifications inside the config file.
 type SlackConfig struct {
-	Channel string `mapstructure:"channel"`
-	Token   string `mapstructure:"token"`
-	Title   string `json:"title,omitempty"`
-	Text    string `json:"text,omitempty"`
+	Channel       string `mapstructure:"channel"`
+	Token         string `mapstructure:"token"`
+	Title         string `yaml:"title,omitempty"`
+	Text          string `yaml:"text,omitempty"`
+	ColorTemplate string `mapstructure:"color_template,omitempty" yaml:"-"`
 }
 
 // SlackNotifier implements Notifier for sending Slack notifications.
@@ -59,7 +60,7 @@ func (s SlackNotifier) Send(ctx context.Context, data interface{}, isResolved bo
 		return fmt.Errorf("cannot format Slack message. %w", err)
 	}
 
-	color := determineColor(data)
+	color := determineColor(data, slackConfig.ColorTemplate)
 
 	attachment := slack.Attachment{
 		Text:  text,
@@ -121,11 +122,17 @@ func resolveSlackConfig(config SlackConfig) (SlackConfig, error) {
 		return SlackConfig{}, fmt.Errorf("cannot resolve Slack text. %w", err)
 	}
 
+	colorTemplate, err := resolve.ResolveVariable(config.ColorTemplate)
+	if err != nil {
+		return SlackConfig{}, fmt.Errorf("cannot resolve Slack color template. %w", err)
+	}
+
 	return SlackConfig{
-		Token:   token,
-		Channel: channel,
-		Title:   title,
-		Text:    text,
+		Token:         token,
+		Channel:       channel,
+		Title:         title,
+		Text:          text,
+		ColorTemplate: colorTemplate,
 	}, nil
 }
 
@@ -135,15 +142,8 @@ func (s SlackNotifier) String() string {
 }
 
 // determineColor determines the color for the Slack message based on the notification data.
-//
-// Parameters:
-//   - data: The data used to determine the color.
-//
-// Returns:
-//   - string: The determined color.
-func determineColor(data interface{}) string {
-	color := `{{ if eq .Status "ok" }}good{{ else }}danger{{ end }}`
-	result, _ := utils.FormatTemplate("determineColor", color, data)
+func determineColor(data interface{}, template string) string {
+	result, _ := utils.FormatTemplate("determineColor", template, data)
 
 	return result
 }

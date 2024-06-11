@@ -60,6 +60,11 @@ func (c *Config) Read() error {
 		if err := c.NotificationStore.Add(name, n); err != nil {
 			return fmt.Errorf("failed to add notification '%s'. %w", n.Name, err)
 		}
+
+		notification := c.NotificationStore.Get(name)
+		if notification.Type == "slack" && notification.SlackConfig.ColorTemplate == "" {
+			notification.SlackConfig.ColorTemplate = `{{ if eq .Status "ok" }}good{{ else }}danger{{ end }}`
+		}
 	}
 
 	heartbeats := make(map[string]*heartbeat.Heartbeat)

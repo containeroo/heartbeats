@@ -158,13 +158,14 @@ func (h *Heartbeat) SendNotifications(ctx context.Context, log logger.Logger, no
 
 // updateStatus updates the heartbeat's status and triggers notifications if needed.
 func (h *Heartbeat) updateStatus(ctx context.Context, log logger.Logger, newStatus Status, notificationStore *notify.Store, hist *history.History) {
-	if h.Status == StatusNOK.String() && newStatus == StatusOK && (h.SendResolve == nil || *h.SendResolve) {
+	currentStatus := h.Status
+	h.Status = newStatus.String()
+	h.LastPing = time.Now()
+
+	if currentStatus == StatusNOK.String() && newStatus == StatusOK && (h.SendResolve == nil || *h.SendResolve) {
 		log.Debugf("%s switched status from 'nok' to 'ok'", h.Name)
 		h.SendNotifications(ctx, log, notificationStore, hist, true)
 	}
-
-	h.Status = newStatus.String()
-	h.LastPing = time.Now()
 }
 
 // log writes a message to the log and history.
