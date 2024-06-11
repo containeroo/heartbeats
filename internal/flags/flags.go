@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"heartbeats/internal/config"
 	"os"
+	"strings"
 
 	"github.com/spf13/pflag"
 )
@@ -37,6 +38,8 @@ func ParseFlags(currentVersion string) error {
 		pflag.PrintDefaults()
 	}
 
+	processEnvVariables()
+
 	pflag.Parse()
 
 	// Show help and exit
@@ -58,4 +61,17 @@ func ParseFlags(currentVersion string) error {
 	config.App.Version = currentVersion
 
 	return nil
+}
+
+// processEnvVariables checks for environment variables with the prefix "HEARTBEATS_" and sets the corresponding flags.
+func processEnvVariables() {
+	prefix := "HEARTBEATS_"
+	pflag.VisitAll(func(f *pflag.Flag) {
+		envVar := prefix + strings.ToUpper(strings.ReplaceAll(f.Name, "-", "_"))
+		if val, ok := os.LookupEnv(envVar); ok {
+			if err := f.Value.Set(val); err != nil {
+				fmt.Fprintf(os.Stderr, "Error setting flag from environment variable %s: %v\n", envVar, err)
+			}
+		}
+	})
 }

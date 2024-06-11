@@ -18,6 +18,17 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 -h, --help                    Show help and exit
 ```
 
+## Environment Variables
+
+You can also set configuration values using environment variables. The command-line flags will take precedence over environment variables. The following environment variables are supported:
+
+- `HEARTBEATS_CONFIG`: Path to the configuration file (corresponds to `--config` or `-c`).
+- `HEARTBEATS_LISTEN_ADDRESS`: Address to listen on (corresponds to `--listen-address` or `-l`).
+- `HEARTBEATS_SITE_ROOT`: Site root for the heartbeat service (corresponds to `--site-root` or `-s`).
+- `HEARTBEATS_MAX_SIZE`: Maximum size of the cache (corresponds to `--max-size` or `-m`).
+- `HEARTBEATS_REDUCE`: Amount to reduce when max size is exceeded (corresponds to `--reduce` or `-r`).
+- `HEARTBEATS_VERBOSE`: Enable verbose logging (corresponds to `--verbose` or `-v`).
+
 ## Endpoints
 
 | Path                   | Method        | Description                         |
