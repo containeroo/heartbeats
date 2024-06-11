@@ -8,22 +8,31 @@ import (
 	"github.com/Masterminds/sprig"
 )
 
-// FormatTemplate format template with intr as input
-func FormatTemplate(name, tmpl string, intr any) (string, error) {
+// FormatTemplate formats a template string with the provided data.
+//
+// Parameters:
+//   - name: The name of the template.
+//   - tmpl: The template string to format.
+//   - intr: The data to be injected into the template.
+//
+// Returns:
+//   - string: The formatted template.
+//   - error: An error if the template formatting fails.
+func FormatTemplate(name, tmpl string, intr interface{}) (string, error) {
 	if tmpl == "" {
-		return "", fmt.Errorf("Template is empty")
+		return "", fmt.Errorf("template is empty")
 	}
 
 	fmap := sprig.TxtFuncMap()
 
 	t, err := template.New(name).Funcs(fmap).Parse(tmpl)
 	if err != nil {
-		return "", fmt.Errorf("Error executing template: %s", err.Error())
+		return "", fmt.Errorf("error parsing template. %w", err)
 	}
+
 	buf := &bytes.Buffer{}
-	err = t.Execute(buf, &intr)
-	if err != nil {
-		return "", fmt.Errorf("Error executing template: %s", err.Error())
+	if err := t.Execute(buf, &intr); err != nil {
+		return "", fmt.Errorf("error executing template. %w", err)
 	}
 
 	return buf.String(), nil

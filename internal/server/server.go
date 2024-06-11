@@ -9,8 +9,7 @@ import (
 	"time"
 )
 
-var StaticFS embed.FS
-
+// Run starts the HTTP server and handles shutdown on context cancellation.
 func Run(ctx context.Context, listenAddress string, templates embed.FS, logger logger.Logger) error {
 	router := newRouter(logger, templates)
 
@@ -22,10 +21,11 @@ func Run(ctx context.Context, listenAddress string, templates embed.FS, logger l
 		IdleTimeout:  5 * time.Second,
 	}
 
+	// Start server in a goroutine
 	go func() {
-		logger.Infof("listening on %s", listenAddress)
+		logger.Infof("Listening on %s", listenAddress)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Errorf("error listening and serving: %s", err)
+			logger.Errorf("Error listening and serving. %s", err)
 		}
 	}()
 
@@ -37,7 +37,7 @@ func Run(ctx context.Context, listenAddress string, templates embed.FS, logger l
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := server.Shutdown(shutdownCtx); err != nil {
-			logger.Errorf("error shutting down http server: %s", err)
+			logger.Errorf("Error shutting down HTTP server. %s", err)
 		}
 	}()
 	wg.Wait()

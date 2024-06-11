@@ -2,33 +2,33 @@ package handlers
 
 import (
 	"embed"
+	"fmt"
 	"heartbeats/internal/config"
 	"heartbeats/internal/history"
 	"heartbeats/internal/logger"
 	"html/template"
 	"net/http"
-
-	"github.com/Masterminds/sprig"
 )
 
-// History handles the /history endpoint
-func History(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+// History handles the /history/{id} endpoint
+func History(logger logger.Logger, staticFS embed.FS) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		heartbeatName := r.PathValue("id")
 		logger.Debugf("%s /history/%s %s %s", r.Method, heartbeatName, r.RemoteAddr, r.UserAgent())
 
 		h := config.App.HeartbeatStore.Get(heartbeatName)
 		if h == nil {
-			logger.Warnf("Heartbeat «%s» not found", heartbeatName)
-			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte("heartbeat not found")) // Make linter happy
+			errMsg := fmt.Sprintf("Heartbeat '%s' not found", heartbeatName)
+			logger.Warn(errMsg)
+			http.Error(w, errMsg, http.StatusNotFound)
 			return
 		}
 
-		fmap := sprig.TxtFuncMap()
-		fmap["formatTime"] = formatTime
+		fmap := template.FuncMap{
+			"formatTime": formatTime,
+		}
 
-		tmpl, err := template.New("heartbeat").
+		tmpl, err := template.New("history").
 			Funcs(fmap).
 			ParseFS(
 				staticFS,
@@ -36,7 +36,7 @@ func History(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
 				"web/templates/footer.html",
 			)
 		if err != nil {
-			logger.Errorf("Failed to parse template: %v", err)
+			logger.Errorf("Failed to parse template. %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -50,8 +50,8 @@ func History(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
 		}
 
 		if err := tmpl.ExecuteTemplate(w, "history", data); err != nil {
-			logger.Errorf("Failed to execute template: %v", err)
+			logger.Errorf("Failed to execute template. %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
-	}
+	})
 }

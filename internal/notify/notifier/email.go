@@ -63,6 +63,9 @@ func (e EmailNotifier) Send(ctx context.Context, data interface{}, isResolved bo
 }
 
 // CheckResolveVariables checks if the configuration fields are resolvable.
+//
+// Returns:
+//   - error: An error if the configuration fields are not resolvable.
 func (e EmailNotifier) CheckResolveVariables() error {
 	if _, err := resolveSMTPConfig(e.Config.SMTP); err != nil {
 		return fmt.Errorf("cannot resolve SMTP config. %w", err)
@@ -76,6 +79,13 @@ func (e EmailNotifier) CheckResolveVariables() error {
 }
 
 // resolveSMTPConfig resolves host, from, username and password.
+//
+// Parameters:
+//   - config: The SMTP configuration to resolve.
+//
+// Returns:
+//   - email.SMTPConfig: The resolved SMTP configuration.
+//   - error: An error if resolving any field fails.
 func resolveSMTPConfig(config email.SMTPConfig) (email.SMTPConfig, error) {
 	var err error
 	config.Host, err = resolve.ResolveVariable(config.Host)
@@ -98,6 +108,13 @@ func resolveSMTPConfig(config email.SMTPConfig) (email.SMTPConfig, error) {
 }
 
 // resolveEmailConfig resolves to, cc, bcc, subject and body.
+//
+// Parameters:
+//   - config: The email configuration to resolve.
+//
+// Returns:
+//   - email.Email: The resolved email configuration.
+//   - error: An error if resolving any field fails.
 func resolveEmailConfig(config email.Email) (email.Email, error) {
 	var err error
 

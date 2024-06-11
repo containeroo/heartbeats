@@ -152,19 +152,20 @@ func (h *Heartbeat) SendNotifications(ctx context.Context, log logger.Logger, no
 			log.Errorf("%s error sending notification '%s' (%s). %s", h.Name, notification.Name, notification.Type, err.Error())
 			continue
 		}
-		h.log(log, logger.InfoLevel, history, EventSend, fmt.Sprintf("successfully send notifiction to %s (%s)", notification.Name, notification.Type))
+		h.log(log, logger.InfoLevel, history, EventSend, fmt.Sprintf("successfully send notification to %s (%s)", notification.Name, notification.Type))
 	}
 }
 
 // updateStatus updates the heartbeat's status and triggers notifications if needed.
 func (h *Heartbeat) updateStatus(ctx context.Context, log logger.Logger, newStatus Status, notificationStore *notify.Store, hist *history.History) {
-	if h.Status == StatusNOK.String() && newStatus == StatusOK && (h.SendResolve == nil || *h.SendResolve) {
+	currentStatus := h.Status
+	h.Status = newStatus.String()
+	h.LastPing = time.Now()
+
+	if currentStatus == StatusNOK.String() && newStatus == StatusOK && (h.SendResolve == nil || *h.SendResolve) {
 		log.Debugf("%s switched status from 'nok' to 'ok'", h.Name)
 		h.SendNotifications(ctx, log, notificationStore, hist, true)
 	}
-
-	h.Status = newStatus.String()
-	h.LastPing = time.Now()
 }
 
 // log writes a message to the log and history.

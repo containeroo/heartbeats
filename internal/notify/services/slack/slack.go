@@ -33,6 +33,13 @@ type Client struct {
 }
 
 // New creates a new Slack client with the given token and TLS setting.
+//
+// Parameters:
+//   - headers: HTTP headers to be used in the requests.
+//   - skipTLS: Whether to skip TLS verification.
+//
+// Returns:
+//   - *Client: A new instance of the Client.
 func New(headers map[string]string, skipTLS bool) *Client {
 	return &Client{
 		HttpClient: utils.NewHttpClient(headers, skipTLS),
@@ -40,17 +47,25 @@ func New(headers map[string]string, skipTLS bool) *Client {
 }
 
 // Send sends a Slack message using the Slack client.
+//
+// Parameters:
+//   - ctx: Context for controlling the lifecycle of the message sending.
+//   - slackMessage: The Slack message to be sent.
+//
+// Returns:
+//   - *Response: The response from the Slack API.
+//   - error: An error if sending the message fails.
 func (c *Client) Send(ctx context.Context, slackMessage Slack) (*Response, error) {
 	webhookURL := "https://slack.com/api/chat.postMessage"
 
 	data, err := json.Marshal(slackMessage)
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling Slack message: %v", err)
+		return nil, fmt.Errorf("error marshalling Slack message. %w", err)
 	}
 
 	resp, err := c.HttpClient.DoRequest(ctx, "POST", webhookURL, data)
 	if err != nil {
-		return nil, fmt.Errorf("error sending HTTP request: %v", err)
+		return nil, fmt.Errorf("error sending HTTP request. %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -60,7 +75,7 @@ func (c *Client) Send(ctx context.Context, slackMessage Slack) (*Response, error
 
 	var response Response
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %v", err)
+		return nil, fmt.Errorf("error decoding response. %w", err)
 	}
 
 	if !response.Ok {
