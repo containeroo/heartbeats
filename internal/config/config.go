@@ -64,6 +64,9 @@ func (c *Config) Read() error {
 		notification := c.NotificationStore.Get(name)
 		if notification.Type == "slack" && notification.SlackConfig.ColorTemplate == "" {
 			notification.SlackConfig.ColorTemplate = `{{ if eq .Status "ok" }}good{{ else }}danger{{ end }}`
+			if err := c.NotificationStore.Update(name, notification); err != nil {
+				return fmt.Errorf("failed to update notification '%s'. %w", notification.Name, err)
+			}
 		}
 	}
 

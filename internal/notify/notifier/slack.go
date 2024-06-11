@@ -17,7 +17,7 @@ type SlackConfig struct {
 	Token         string `mapstructure:"token"`
 	Title         string `yaml:"title,omitempty"`
 	Text          string `yaml:"text,omitempty"`
-	ColorTemplate string `mapstructure:"color_template,omitempty" yaml:"-"`
+	ColorTemplate string `mapstructure:"color_template,omitempty" yaml:"colorTemplate"`
 }
 
 // SlackNotifier implements Notifier for sending Slack notifications.
@@ -60,7 +60,10 @@ func (s SlackNotifier) Send(ctx context.Context, data interface{}, isResolved bo
 		return fmt.Errorf("cannot format Slack message. %w", err)
 	}
 
-	color := determineColor(data, slackConfig.ColorTemplate)
+	color, err := determineColor(data, slackConfig.ColorTemplate)
+	if err != nil {
+		return fmt.Errorf("cannot determine Slack color. %w", err)
+	}
 
 	attachment := slack.Attachment{
 		Text:  text,
@@ -142,8 +145,11 @@ func (s SlackNotifier) String() string {
 }
 
 // determineColor determines the color for the Slack message based on the notification data.
-func determineColor(data interface{}, template string) string {
-	result, _ := utils.FormatTemplate("determineColor", template, data)
+func determineColor(data interface{}, template string) (string, error) {
+	color, err := utils.FormatTemplate("determineColor", template, data)
+	if err != nil {
+		return "", fmt.Errorf("error determine color. %s", err)
+	}
 
-	return result
+	return color, nil
 }

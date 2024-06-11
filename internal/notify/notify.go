@@ -139,6 +139,41 @@ func (s *Store) Add(name string, notification *Notification) error {
 	return nil
 }
 
+// Update updates an existing notification in the store.
+//
+// Parameters:
+//   - name: The name of the notification to update.
+//   - notification: The Notification object containing the updated configuration.
+//
+// Returns:
+//   - error: An error if the notification does not exist.
+func (s *Store) Update(name string, notification *Notification) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if found := s.notifications[name]; found == nil {
+		return fmt.Errorf("notification '%s' does not exist", name)
+	}
+
+	var instance notifier.Notifier
+
+	switch {
+	case notification.SlackConfig != nil:
+		instance = &notifier.SlackNotifier{Config: *notification.SlackConfig}
+	case notification.MailConfig != nil:
+		instance = &notifier.EmailNotifier{Config: *notification.MailConfig}
+	case notification.MSTeamsConfig != nil:
+		instance = &notifier.MSTeamsNotifier{Config: *notification.MSTeamsConfig}
+	default:
+		return fmt.Errorf("notification configuration is missing or unsupported")
+	}
+
+	notification.Notifier = instance
+	s.notifications[name] = notification
+
+	return nil
+}
+
 // DefaultFormatter expands the content with environment variables, formats the notification content, appending [RESOLVED] if needed.
 func DefaultFormatter(content string, data interface{}, isResolved bool) (string, error) {
 	formattedContent, err := utils.FormatTemplate("default", content, data)
