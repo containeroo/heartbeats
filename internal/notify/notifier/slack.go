@@ -81,6 +81,9 @@ func (s SlackNotifier) Send(ctx context.Context, data interface{}, isResolved bo
 }
 
 // CheckResolveVariables checks if the configuration fields are resolvable.
+//
+// Returns:
+//   - error: An error if any of the configuration fields cannot be resolved.
 func (e SlackNotifier) CheckResolveVariables() error {
 	if _, err := resolveSlackConfig(e.Config); err != nil {
 		return err
@@ -89,7 +92,14 @@ func (e SlackNotifier) CheckResolveVariables() error {
 	return nil
 }
 
-// resolveSlackConfig resolves token, title and text.
+// resolveSlackConfig resolves token, channel, title, and text.
+//
+// Parameters:
+//   - config: The SlackConfig containing the raw configuration values.
+//
+// Returns:
+//   - SlackConfig: The resolved SlackConfig.
+//   - error: An error if any of the configuration values cannot be resolved.
 func resolveSlackConfig(config SlackConfig) (SlackConfig, error) {
 	token, err := resolve.ResolveVariable(config.Token)
 	if err != nil {
@@ -125,6 +135,12 @@ func (s SlackNotifier) String() string {
 }
 
 // determineColor determines the color for the Slack message based on the notification data.
+//
+// Parameters:
+//   - data: The data used to determine the color.
+//
+// Returns:
+//   - string: The determined color.
 func determineColor(data interface{}) string {
 	color := `{{ if eq .Status "ok" }}good{{ else }}danger{{ end }}`
 	result, _ := utils.FormatTemplate("determineColor", color, data)

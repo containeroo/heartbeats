@@ -20,6 +20,13 @@ type Client struct {
 }
 
 // New creates a new MS Teams client with the given TLS setting.
+//
+// Parameters:
+//   - headers: HTTP headers to be used in the requests.
+//   - skipTLS: Whether to skip TLS verification.
+//
+// Returns:
+//   - *Client: A new instance of the Client.
 func New(headers map[string]string, skipTLS bool) *Client {
 	return &Client{
 		HttpClient: utils.NewHttpClient(headers, skipTLS),
@@ -27,15 +34,24 @@ func New(headers map[string]string, skipTLS bool) *Client {
 }
 
 // Send sends an MS Teams message using the MS Teams client.
+//
+// Parameters:
+//   - ctx: Context for controlling the lifecycle of the message sending.
+//   - message: The MS Teams message to be sent.
+//   - webhookURL: The webhook URL to send the message to.
+//
+// Returns:
+//   - string: A success message if the message is sent successfully.
+//   - error: An error if sending the message fails.
 func (c *Client) Send(ctx context.Context, message MSTeams, webhookURL string) (string, error) {
 	data, err := json.Marshal(message)
 	if err != nil {
-		return "", fmt.Errorf("error marshalling MS Teams message: %v", err)
+		return "", fmt.Errorf("error marshalling MS Teams message. %w", err)
 	}
 
 	resp, err := c.HttpClient.DoRequest(ctx, "POST", webhookURL, data)
 	if err != nil {
-		return "", fmt.Errorf("error sending HTTP request: %v", err)
+		return "", fmt.Errorf("error sending HTTP request. %w", err)
 	}
 	defer resp.Body.Close()
 

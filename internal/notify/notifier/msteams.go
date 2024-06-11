@@ -66,6 +66,9 @@ func (s MSTeamsNotifier) Send(ctx context.Context, data interface{}, isResolved 
 }
 
 // CheckResolveVariables checks if the configuration fields are resolvable.
+//
+// Returns:
+//   - error: An error if the configuration fields are not resolvable.
 func (e MSTeamsNotifier) CheckResolveVariables() error {
 	if _, err := resolveMSTeamsConfig(e.Config); err != nil {
 		return err
@@ -75,6 +78,13 @@ func (e MSTeamsNotifier) CheckResolveVariables() error {
 }
 
 // resolveMSTeamsConfig resolves webookURL, title and text.
+//
+// Parameters:
+//   - config: The MS Teams configuration to resolve.
+//
+// Returns:
+//   - MSTeamsConfig: The resolved MS Teams configuration.
+//   - error: An error if resolving any field fails.
 func resolveMSTeamsConfig(config MSTeamsConfig) (MSTeamsConfig, error) {
 	webhookURL, err := resolve.ResolveVariable(config.WebhookURL)
 	if err != nil {

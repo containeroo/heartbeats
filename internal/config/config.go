@@ -43,7 +43,7 @@ type Config struct {
 	NotificationStore *notify.Store    `yaml:"notifications"`
 }
 
-// Read reads and processes the configuration settings from the file specified in Config.Path.
+// Read reads the configuration file and initializes the stores.
 func (c *Config) Read() error {
 	viper.SetConfigFile(c.Path)
 
@@ -71,7 +71,6 @@ func (c *Config) Read() error {
 		if err := c.HeartbeatStore.Add(name, h); err != nil {
 			return fmt.Errorf("failed to add heartbeat '%s'. %w", h.Name, err)
 		}
-
 		historyInstance := history.NewHistory(c.Cache.MaxSize, c.Cache.Reduce)
 		if err := HistoryStore.Add(name, historyInstance); err != nil {
 			return fmt.Errorf("failed to create heartbeat history for '%s'. %w", name, err)

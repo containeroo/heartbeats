@@ -32,7 +32,7 @@ type NotificationState struct {
 	Enabled bool
 }
 
-// Heartbeats handles the /heartbeats/{id} endpoint
+// Heartbeats handles the / endpoint
 func Heartbeats(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmap := sprig.TxtFuncMap()
@@ -48,7 +48,7 @@ func Heartbeats(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
 				"web/templates/footer.html",
 			)
 		if err != nil {
-			logger.Errorf("Failed to parse template: %v", err)
+			logger.Errorf("Failed to parse template. %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -85,7 +85,7 @@ func Heartbeats(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
 		}
 
 		if err := tmpl.ExecuteTemplate(w, "heartbeat", data); err != nil {
-			logger.Errorf("Failed to execute template: %v", err)
+			logger.Errorf("Failed to execute template. %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 	}

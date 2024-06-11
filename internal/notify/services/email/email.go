@@ -42,11 +42,24 @@ type MailClient struct {
 }
 
 // New creates a new MailClient with the given SMTP configuration.
+//
+// Parameters:
+//   - smtpConfig: The SMTP configuration settings.
+//
+// Returns:
+//   - *MailClient: A new instance of MailClient.
 func New(smtpConfig SMTPConfig) *MailClient {
 	return &MailClient{smtpConfig}
 }
 
 // Send sends an email using the MailClient's SMTP configuration.
+//
+// Parameters:
+//   - ctx: Context for controlling the lifecycle of the email sending.
+//   - email: The email message to be sent.
+//
+// Returns:
+//   - error: An error if sending the email fails.
 func (c *MailClient) Send(ctx context.Context, email Email) error {
 	msg := createMIMEMessage(email, c.SMTPConfig.From)
 
@@ -63,40 +76,47 @@ func (c *MailClient) Send(ctx context.Context, email Email) error {
 			InsecureSkipVerify: c.SMTPConfig.SkipInsecureVerify != nil && *c.SMTPConfig.SkipInsecureVerify,
 		}
 		if err := conn.StartTLS(tlsConfig); err != nil {
-			return fmt.Errorf("error starting TLS: %v", err)
+			return fmt.Errorf("error starting TLS. %w", err)
 		}
 	}
 
 	if c.SMTPConfig.Username != "" {
 		auth := smtp.PlainAuth("", c.SMTPConfig.Username, c.SMTPConfig.Password, c.SMTPConfig.Host)
 		if err := conn.Auth(auth); err != nil {
-			return fmt.Errorf("error authenticating to SMTP server: %v", err)
+			return fmt.Errorf("error authenticating to SMTP server. %w", err)
 		}
 	}
 
 	if err := conn.Mail(c.SMTPConfig.From); err != nil {
-		return fmt.Errorf("error setting sender: %v", err)
+		return fmt.Errorf("error setting sender. %w", err)
 	}
 	for _, recipient := range email.To {
 		if err := conn.Rcpt(recipient); err != nil {
-			return fmt.Errorf("error setting recipient (%s): %v", recipient, err)
+			return fmt.Errorf("error setting recipient (%s). %w", recipient, err)
 		}
 	}
 
 	wc, err := conn.Data()
 	if err != nil {
-		return fmt.Errorf("error opening data connection: %v", err)
+		return fmt.Errorf("error opening data connection. %w", err)
 	}
 	defer wc.Close()
 
 	if _, err = wc.Write(msg); err != nil {
-		return fmt.Errorf("error writing email body: %v", err)
+		return fmt.Errorf("error writing email body. %w", err)
 	}
 
 	return nil
 }
 
 // createMIMEMessage constructs a MIME message from the given Email struct and sender address.
+//
+// Parameters:
+//   - email: The email message to be converted into MIME format.
+//   - fromAddress: The email address of the sender.
+//
+// Returns:
+//   - []byte: The constructed MIME message as a byte slice.
 func createMIMEMessage(email Email, fromAddress string) []byte {
 	boundary := "mimeboundary"
 	header := make(map[string]string)

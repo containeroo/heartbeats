@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"heartbeats/internal/config"
-	"heartbeats/internal/heartbeat"
 	"heartbeats/internal/history"
 	"heartbeats/internal/logger"
 	"net/http"
@@ -24,11 +23,12 @@ func Ping(logger logger.Logger) http.Handler {
 
 			h := config.App.HeartbeatStore.Get(heartbeatName)
 			if h == nil {
-				logger.Warnf("%s Heartbeat «%s» not found", heartbeat.EventBeat, heartbeatName)
-				w.WriteHeader(http.StatusNotFound)
-				_, _ = w.Write([]byte(fmt.Sprintf("heartbeat '%s' not found", heartbeatName))) // Make linter happy
+				errMsg := fmt.Sprintf("Heartbeat '%s' not found", heartbeatName)
+				logger.Warn(errMsg)
+				http.Error(w, errMsg, http.StatusNotFound)
 				return
 			}
+
 			details := map[string]string{
 				"proto":     r.Proto,
 				"clientIP":  clientIP,
@@ -43,8 +43,7 @@ func Ping(logger logger.Logger) http.Handler {
 			hs.AddEntry(history.Beat, msg, details)
 
 			if h.Enabled != nil && !*h.Enabled {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				_, _ = w.Write([]byte("nok")) // Make linter happy
+				http.Error(w, fmt.Sprintf("Heartbeat '%s' not enabled", heartbeatName), http.StatusServiceUnavailable)
 				return
 			}
 
@@ -52,6 +51,8 @@ func Ping(logger logger.Logger) http.Handler {
 			h.StartInterval(ctx, logger, ns, hs)
 
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("ok")) // Make linter happy
+			if _, err := w.Write([]byte("ok")); err != nil {
+				logger.Errorf("Failed to write response. %v", err)
+			}
 		})
 }
