@@ -36,13 +36,11 @@ func ParseFlags(currentVersion string) error {
 
 	pflag.Parse()
 
-	// Show help and exit
 	if showHelp {
 		pflag.Usage()
 		os.Exit(0)
 	}
 
-	// Show version and exit
 	if showVersion {
 		fmt.Println(currentVersion)
 		os.Exit(0)
