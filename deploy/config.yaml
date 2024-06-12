@@ -25,7 +25,7 @@ notifications:
       text: |
         *Description:*
         {{ .Description }}.
-        Last ping: {{ ago .LastPing }}
+        Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
   int-slack:
     enabled: true
     slack_config:
@@ -35,7 +35,7 @@ notifications:
       text: |
         *Description:*
         {{ .Description }}.
-        Last ping: {{ ago .LastPing }}
+        Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
   gmail:
     enabled: false
     mail_config:
@@ -53,7 +53,7 @@ notifications:
         body: |
           <b>Description:</b><br>
           {{ .Description }}.<br>
-          Last ping: {{ ago .LastPing }}
+          Last ping: {{ .LastPing }}
         to:
           - monitoring@gmail.com
           - env:EMAIL_TO
@@ -64,5 +64,5 @@ notifications:
       text: |
         *Description:*
         {{ .Description }}.
-        Last ping: {{ ago .LastPing }}
+        Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
       webhook_url: file:/secrets/teams/webhooks//int-teams

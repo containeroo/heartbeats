@@ -140,6 +140,7 @@ All Keys marked with `*` will be resolved as described before.
 ### Examples
 
 ```yaml
+---
 notifications:
   dev-slack:
     enabled: true
@@ -150,7 +151,7 @@ notifications:
       text: |
         *Description:*
         {{ .Description }}.
-        Last ping: {{ ago .LastPing }}
+        Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
   int-slack:
     enabled: true
     slack_config:
@@ -160,7 +161,7 @@ notifications:
       text: |
         *Description:*
         {{ .Description }}.
-        Last ping: {{ ago .LastPing }}
+        Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
   gmail:
     enabled: false
     mail_config:
@@ -176,9 +177,9 @@ notifications:
         isHTML: true
         subject: Heartbeat {{ .Name }} {{ upper .Status }}
         body: |
-          <b>Description:<b><br>
+          <b>Description:</b><br>
           {{ .Description }}.<br>
-          Last ping: {{ ago .LastPing }}
+          Last ping: {{ .LastPing }}
         to:
           - monitoring@gmail.com
           - env:EMAIL_TO
@@ -189,8 +190,8 @@ notifications:
       text: |
         *Description:*
         {{ .Description }}.
-        Last ping: {{ ago .LastPing }}
-      url: file:/secrets/teams/webhooks//int-teams
+        Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
+      webhook_url: file:/secrets/teams/webhooks//int-teams
 ```
 
 ## Deployment
