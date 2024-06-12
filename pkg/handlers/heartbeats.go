@@ -12,12 +12,14 @@ import (
 	"github.com/Masterminds/sprig"
 )
 
+// HeartbeatPageData represents the data structure passed to the heartbeat template.
 type HeartbeatPageData struct {
 	Version    string
 	SiteRoot   string
 	Heartbeats []*HeartbeatData
 }
 
+// HeartbeatData represents individual heartbeat data.
 type HeartbeatData struct {
 	Name          string
 	Status        string
@@ -27,6 +29,7 @@ type HeartbeatData struct {
 	Notifications []NotificationState
 }
 
+// NotificationState represents the state of a notification.
 type NotificationState struct {
 	Name    string
 	Type    string
@@ -81,7 +84,7 @@ func Heartbeats(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
 		}
 
 		data := HeartbeatPageData{
-			Version:    config.App.CurrentVersion,
+			Version:    config.App.Version,
 			SiteRoot:   config.App.Server.SiteRoot,
 			Heartbeats: heartbeatDataList,
 		}

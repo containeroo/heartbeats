@@ -17,7 +17,7 @@ const version = "0.6.8"
 var templates embed.FS
 
 func run(ctx context.Context, verbose bool) error {
-	log := logger.NewLogrusLogger(verbose)
+	log := logger.NewLogger(verbose)
 
 	if err := config.App.Read(); err != nil {
 		return fmt.Errorf("Error reading config file: %v", err)

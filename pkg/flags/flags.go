@@ -50,7 +50,7 @@ func ParseFlags(currentVersion string) error {
 		config.App.Server.SiteRoot = fmt.Sprintf("http://%s", config.App.Server.ListenAddress)
 	}
 
-	config.App.CurrentVersion = currentVersion
+	config.App.Version = currentVersion
 
 	return nil
 }

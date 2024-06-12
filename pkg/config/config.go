@@ -33,7 +33,7 @@ type Server struct {
 
 // Config holds the entire application configuration.
 type Config struct {
-	CurrentVersion    string           `yaml:"version"`
+	Version           string           `yaml:"version"`
 	Verbose           bool             `yaml:"verbose"`
 	Path              string           `yaml:"path"`
 	Server            Server           `yaml:"server"`

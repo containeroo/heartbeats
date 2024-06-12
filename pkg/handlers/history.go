@@ -46,7 +46,7 @@ func History(logger logger.Logger, staticFS embed.FS) http.Handler {
 			Name    string
 			Entries []history.HistoryEntry
 		}{
-			Version: config.App.CurrentVersion,
+			Version: config.App.Version,
 			Name:    heartbeatName,
 			Entries: config.HistoryStore.Get(heartbeatName).GetAllEntries(),
 		}
