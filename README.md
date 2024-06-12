@@ -26,8 +26,13 @@ You can also set configuration values using environment variables. The command-l
 - `HEARTBEATS_LISTEN_ADDRESS`: Address to listen on (corresponds to `--listen-address` or `-l`).
 - `HEARTBEATS_SITE_ROOT`: Site root for the heartbeat service (corresponds to `--site-root` or `-s`).
 - `HEARTBEATS_MAX_SIZE`: Maximum size of the cache (corresponds to `--max-size` or `-m`).
-- `HEARTBEATS_REDUCE`: Amount to reduce when max size is exceeded (corresponds to `--reduce` or `-r`).
 - `HEARTBEATS_VERBOSE`: Enable verbose logging (corresponds to `--verbose` or `-v`).
+- `HEARTBEATS_REDUCE`: Amount to reduce when max size is exceeded (corresponds to `--reduce` or `-r`).
+
+Additionally, you can set the following environment variables for proxy configuration:
+
+- `HTTP_PROXY`: URL of the proxy server to use for HTTP requests.
+- `HTTPS_PROXY`: URL of the proxy server to use for HTTPS requests.
 
 ## Endpoints
 
