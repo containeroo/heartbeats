@@ -12,14 +12,14 @@ const MSTeamsType = "msteams"
 
 // MSTeamsConfig holds the configuration for MS Teams notifications inside the config file.
 type MSTeamsConfig struct {
-	WebhookURL string `mapstructure:"webhook_url"`
-	Title      string `json:"title,omitempty"`
-	Text       string `json:"text,omitempty"`
+	WebhookURL string `yaml:"webhook_url"`
+	Title      string `yaml:"title"`
+	Text       string `yaml:"text"`
 }
 
 // MSTeamsNotifier Notifier for sending MS Teams notifications.
 type MSTeamsNotifier struct {
-	Config MSTeamsConfig
+	Config MSTeamsConfig `yaml:"msteams_config"`
 }
 
 // Send sends an MS Teams notification with the given data and resolution status.

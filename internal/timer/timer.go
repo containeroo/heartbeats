@@ -12,10 +12,27 @@ type TimerCallback func()
 
 // Timer encapsulates a time.Timer for scheduling callbacks at specific intervals.
 type Timer struct {
-	Timer    *time.Timer    `mapstructure:"-" yaml:"-"`
-	Interval *time.Duration `mapstructure:"interval" yaml:"interval,omitempty"`
-	Mutex    sync.Mutex     `mapstructure:"-" yaml:"-"`
+	Timer    *time.Timer    `yaml:"-"`
+	Interval *time.Duration `yaml:"interval,omitempty"`
+	Mutex    sync.Mutex     `yaml:"-"`
 	cancel   context.CancelFunc
+}
+
+// UnmarshalYAML custom unmarshals a duration string into a Timer.
+func (t *Timer) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var durationStr string
+	if err := unmarshal(&durationStr); err != nil {
+		return err
+	}
+
+	duration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		return err
+	}
+
+	t.Interval = &duration
+
+	return nil
 }
 
 // RunTimer runs the interval timer and executes the callback when elapsed.

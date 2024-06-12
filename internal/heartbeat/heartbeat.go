@@ -8,7 +8,6 @@ import (
 	"heartbeats/internal/metrics"
 	"heartbeats/internal/notify"
 	"heartbeats/internal/timer"
-	"strings"
 	"sync"
 	"time"
 
@@ -17,15 +16,15 @@ import (
 
 // Heartbeat represents the configuration and state of a monitoring heartbeat.
 type Heartbeat struct {
-	Name          string       `mapstructure:"name" yaml:"name"`
-	Enabled       *bool        `mapstructure:"enabled" yaml:"enabled,omitempty"`
-	Description   string       `mapstructure:"description" yaml:"description,omitempty"`
-	LastPing      time.Time    `mapstructure:"-" yaml:"lastPing,omitempty"`
-	Interval      *timer.Timer `mapstructure:"-" yaml:"interval,omitempty" json:"-"`
-	Grace         *timer.Timer `mapstructure:"-" yaml:"grace,omitempty" json:"-"`
-	Notifications []string     `mapstructure:"-" yaml:"notifications,omitempty"`
-	Status        string       `mapstructure:"-" yaml:"status,omitempty"`
-	SendResolve   *bool        `mapstructure:"sendResolve" yaml:"sendResolve,omitempty"`
+	Name          string       `yaml:"name"`
+	Enabled       *bool        `yaml:"enabled,omitempty"`
+	Description   string       `yaml:"description,omitempty"`
+	LastPing      time.Time    `yaml:"lastPing,omitempty"`
+	Interval      *timer.Timer `yaml:"interval,omitempty" json:"-"`
+	Grace         *timer.Timer `yaml:"grace,omitempty" json:"-"`
+	Notifications []string     `yaml:"notifications,omitempty"`
+	Status        string       `yaml:"status,omitempty"`
+	SendResolve   *bool        `yaml:"sendResolve,omitempty"`
 }
 
 // Store manages the storage and retrieval of heartbeats.
@@ -138,7 +137,7 @@ func (h *Heartbeat) StopTimers() {
 // SendNotifications sends notifications based on the current status of the heartbeat.
 func (h *Heartbeat) SendNotifications(ctx context.Context, log logger.Logger, notificationStore *notify.Store, history *history.History, isResolved bool) {
 	for _, n := range h.Notifications {
-		notification := notificationStore.Get(strings.ToLower(n))
+		notification := notificationStore.Get(n)
 		if notification == nil {
 			log.Debugf("%s Notification '%s' not found", EventSend, n)
 			continue

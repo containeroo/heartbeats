@@ -10,30 +10,30 @@ import (
 
 // SMTPConfig holds the configuration settings for an SMTP server.
 type SMTPConfig struct {
-	Host               string `mapstructure:"host,omitempty" yaml:"host,omitempty"`
-	Port               int    `mapstructure:"port,omitempty" yaml:"port,omitempty"`
-	From               string `mapstructure:"from,omitempty" yaml:"from,omitempty"`
-	Username           string `mapstructure:"username,omitempty" yaml:"username,omitempty"`
-	Password           string `mapstructure:"password,omitempty" yaml:"password,omitempty"`
-	StartTLS           *bool  `mapstructure:"startTLS,omitempty" yaml:"startTLS,omitempty"`
-	SkipInsecureVerify *bool  `mapstructure:"skipInsecureVerify,omitempty" yaml:"skipInsecureVerify,omitempty"`
+	Host               string `yaml:"host,omitempty"`
+	Port               int    `yaml:"port,omitempty"`
+	From               string `yaml:"from,omitempty"`
+	Username           string `yaml:"username,omitempty"`
+	Password           string `yaml:"password,omitempty"`
+	StartTLS           *bool  `yaml:"startTLS,omitempty"`
+	SkipInsecureVerify *bool  `yaml:"skipInsecureVerify,omitempty"`
 }
 
 // Email represents the structure of an email message.
 type Email struct {
-	To          []string     `mapstructure:"to,omitempty" yaml:"to,omitempty"`
-	Cc          []string     `mapstructure:"cc,omitempty" yaml:"cc,omitempty"`
-	Bcc         []string     `mapstructure:"bcc,omitempty" yaml:"bcc,omitempty"`
-	IsHTML      bool         `mapstructure:"isHTML,omitempty" yaml:"isHTML,omitempty"`
-	Subject     string       `mapstructure:"subject,omitempty" yaml:"subject,omitempty"`
-	Body        string       `mapstructure:"body,omitempty" yaml:"body,omitempty"`
-	Attachments []Attachment `mapstructure:"attachments,omitempty" yaml:"attachments,omitempty"`
+	To          []string     `yaml:"to,omitempty"`
+	Cc          []string     `yaml:"cc,omitempty"`
+	Bcc         []string     `yaml:"bcc,omitempty"`
+	IsHTML      bool         `yaml:"isHTML,omitempty"`
+	Subject     string       `yaml:"subject,omitempty"`
+	Body        string       `yaml:"body,omitempty"`
+	Attachments []Attachment `yaml:"attachments,omitempty"`
 }
 
 // Attachment represents an email attachment.
 type Attachment struct {
-	Filename string `mapstructure:"filename"`
-	Data     []byte `mapstructure:"-"`
+	Filename string
+	Data     []byte
 }
 
 // MailClient handles the connection and sending of emails.

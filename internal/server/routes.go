@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+// newRouter creates a new HTTP server mux, setting up routes and handlers
 func newRouter(logger logger.Logger, staticFS embed.FS) http.Handler {
 	mux := http.NewServeMux()
 

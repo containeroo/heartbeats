@@ -15,7 +15,7 @@ heartbeats:
     notifications: # must match with notifications
       - dev-slack
       - gmail
-notifications: # keys must be lowercause
+notifications:
   dev-slack:
     enabled: true
     slack_config:

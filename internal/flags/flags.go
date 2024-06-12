@@ -11,12 +11,6 @@ import (
 )
 
 // ParseFlags initializes the command-line flags and sets the values in the global config.App.
-//
-// Parameters:
-//   - currentVersion: The current version of the application.
-//
-// Returns:
-//   - error: An error if parsing the flags fails.
 func ParseFlags(currentVersion string) error {
 	var showVersion, showHelp bool
 

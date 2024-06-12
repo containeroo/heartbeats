@@ -13,16 +13,16 @@ const SlackType = "slack"
 
 // SlackConfig holds the configuration for Slack notifications inside the config file.
 type SlackConfig struct {
-	Channel       string `mapstructure:"channel"`
-	Token         string `mapstructure:"token"`
-	Title         string `yaml:"title,omitempty"`
-	Text          string `yaml:"text,omitempty"`
-	ColorTemplate string `mapstructure:"color_template,omitempty" yaml:"colorTemplate"`
+	Channel       string `yaml:"channel"`
+	Token         string `yaml:"token"`
+	Title         string `yaml:"title"`
+	Text          string `yaml:"text"`
+	ColorTemplate string `yaml:"colorTemplate"`
 }
 
 // SlackNotifier implements Notifier for sending Slack notifications.
 type SlackNotifier struct {
-	Config SlackConfig
+	Config SlackConfig `yaml:"slack_config"`
 }
 
 // Send sends a Slack notification with the given data and resolution status.

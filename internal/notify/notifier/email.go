@@ -12,13 +12,13 @@ const EmailType = "email"
 
 // MailConfig holds configuration settings for email notifications.
 type MailConfig struct {
-	SMTP  email.SMTPConfig `mapstructure:"smtp"`
-	Email email.Email      `mapstructure:"email"`
+	SMTP  email.SMTPConfig `yaml:"smtp"`
+	Email email.Email      `yaml:"email"`
 }
 
 // EmailNotifier implements Notifier for sending email notifications.
 type EmailNotifier struct {
-	Config MailConfig
+	Config MailConfig `yaml:"mail_config"`
 }
 
 // Send sends an email notification with the given data and resolution status.

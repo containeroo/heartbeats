@@ -11,13 +11,13 @@ import (
 // Notification represents a single notification configuration, including the type (Slack, Email, etc.)
 // and its enabled status.
 type Notification struct {
-	Name          string                  `mapstructure:"name" yaml:"-"`
-	Enabled       *bool                   `mapstructure:"enabled,omitempty" yaml:"enabled,omitempty"`
-	Type          string                  `mapstructure:"type,omitempty" yaml:"type,omitempty"`
-	SlackConfig   *notifier.SlackConfig   `mapstructure:"slack_config,omitempty" yaml:"slack_config,omitempty"`
-	MailConfig    *notifier.MailConfig    `mapstructure:"mail_config,omitempty" yaml:"mail_config,omitempty"`
-	MSTeamsConfig *notifier.MSTeamsConfig `mapstructure:"msteams_config,omitempty" yaml:"msteams_config,omitempty"`
-	Notifier      notifier.Notifier       `mapstructure:"notifier,omitempty" yaml:"notifier,omitempty"`
+	Name          string                  `yaml:"-"`
+	Enabled       *bool                   `yaml:"enabled,omitempty"`
+	Type          string                  `yaml:"type,omitempty"`
+	SlackConfig   *notifier.SlackConfig   `yaml:"slack_config,omitempty"`
+	MailConfig    *notifier.MailConfig    `yaml:"mail_config,omitempty"`
+	MSTeamsConfig *notifier.MSTeamsConfig `yaml:"msteams_config,omitempty"`
+	Notifier      notifier.Notifier       `yaml:"notifier,omitempty"`
 }
 
 // String returns the name of the notification.
