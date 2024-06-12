@@ -8,18 +8,17 @@ import (
 	"net/http"
 )
 
-// newRouter creates a new HTTP server mux, setting up routes and handlers
+// newRouter creates a new Server mux and appends Handlers
 func newRouter(logger logger.Logger, staticFS embed.FS) http.Handler {
 	mux := http.NewServeMux()
 
-	// handler for embed static files
-	fsys := fs.FS(staticFS)
-	contentStatic, _ := fs.Sub(fsys, "web/static")
-	fs := http.FileServer(http.FS(contentStatic))
-	mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
+	// Handler for embedded static files
+	filesystem := fs.FS(staticFS)
+	staticContent, _ := fs.Sub(filesystem, "web/static")
+	fileServer := http.FileServer(http.FS(staticContent))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
 	mux.Handle("GET /", handlers.Heartbeats(logger, staticFS))
-
 	mux.Handle("GET /ping/{id}", handlers.Ping(logger))
 	mux.Handle("POST /ping/{id}", handlers.Ping(logger))
 	mux.Handle("GET /history/{id}", handlers.History(logger, staticFS))
