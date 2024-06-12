@@ -4,10 +4,10 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"heartbeats/internal/config"
-	"heartbeats/internal/flags"
-	"heartbeats/internal/logger"
-	"heartbeats/internal/server"
+	"heartbeats/pkg/config"
+	"heartbeats/pkg/flags"
+	"heartbeats/pkg/logger"
+	"heartbeats/pkg/server"
 	"os"
 )
 

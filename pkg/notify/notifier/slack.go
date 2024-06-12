@@ -3,9 +3,9 @@ package notifier
 import (
 	"context"
 	"fmt"
-	"heartbeats/internal/notify/resolve"
-	"heartbeats/internal/notify/services/slack"
-	"heartbeats/internal/notify/utils"
+	"heartbeats/pkg/notify/resolve"
+	"heartbeats/pkg/notify/services/slack"
+	"heartbeats/pkg/notify/utils"
 	"time"
 )
 

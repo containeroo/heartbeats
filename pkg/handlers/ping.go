@@ -3,9 +3,9 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"heartbeats/internal/config"
-	"heartbeats/internal/history"
-	"heartbeats/internal/logger"
+	"heartbeats/pkg/config"
+	"heartbeats/pkg/history"
+	"heartbeats/pkg/logger"
 	"net/http"
 )
 

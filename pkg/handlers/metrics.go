@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"heartbeats/internal/logger"
-	"heartbeats/internal/metrics"
+	"heartbeats/pkg/logger"
+	"heartbeats/pkg/metrics"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"

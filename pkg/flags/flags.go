@@ -3,7 +3,7 @@ package flags
 import (
 	"flag"
 	"fmt"
-	"heartbeats/internal/config"
+	"heartbeats/pkg/config"
 	"os"
 	"strings"
 
@@ -50,7 +50,7 @@ func ParseFlags(currentVersion string) error {
 		config.App.Server.SiteRoot = fmt.Sprintf("http://%s", config.App.Server.ListenAddress)
 	}
 
-	config.App.Version = currentVersion
+	config.App.CurrentVersion = currentVersion
 
 	return nil
 }

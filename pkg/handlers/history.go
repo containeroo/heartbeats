@@ -3,9 +3,9 @@ package handlers
 import (
 	"embed"
 	"fmt"
-	"heartbeats/internal/config"
-	"heartbeats/internal/history"
-	"heartbeats/internal/logger"
+	"heartbeats/pkg/config"
+	"heartbeats/pkg/history"
+	"heartbeats/pkg/logger"
 	"html/template"
 	"net/http"
 )
@@ -42,9 +42,11 @@ func History(logger logger.Logger, staticFS embed.FS) http.Handler {
 		}
 
 		data := struct {
+			Version string
 			Name    string
 			Entries []history.HistoryEntry
 		}{
+			Version: config.App.CurrentVersion,
 			Name:    heartbeatName,
 			Entries: config.HistoryStore.Get(heartbeatName).GetAllEntries(),
 		}

@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"embed"
-	"heartbeats/internal/config"
-	"heartbeats/internal/logger"
-	"heartbeats/internal/timer"
+	"heartbeats/pkg/config"
+	"heartbeats/pkg/logger"
+	"heartbeats/pkg/timer"
 	"html/template"
 	"net/http"
 	"time"
@@ -13,6 +13,7 @@ import (
 )
 
 type HeartbeatPageData struct {
+	Version    string
 	SiteRoot   string
 	Heartbeats []*HeartbeatData
 }
@@ -80,6 +81,7 @@ func Heartbeats(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
 		}
 
 		data := HeartbeatPageData{
+			Version:    config.App.CurrentVersion,
 			SiteRoot:   config.App.Server.SiteRoot,
 			Heartbeats: heartbeatDataList,
 		}

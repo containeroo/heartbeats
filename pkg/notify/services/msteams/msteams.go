@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"heartbeats/internal/notify/utils"
+	"heartbeats/pkg/notify/utils"
 	"net/http"
 )
 

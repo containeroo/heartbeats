@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"embed"
-	"heartbeats/internal/logger"
+	"heartbeats/pkg/logger"
 	"net/http"
 	"sync"
 	"time"

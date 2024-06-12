@@ -2,9 +2,9 @@ package config
 
 import (
 	"fmt"
-	"heartbeats/internal/heartbeat"
-	"heartbeats/internal/history"
-	"heartbeats/internal/notify"
+	"heartbeats/pkg/heartbeat"
+	"heartbeats/pkg/history"
+	"heartbeats/pkg/notify"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -33,7 +33,7 @@ type Server struct {
 
 // Config holds the entire application configuration.
 type Config struct {
-	Version           string           `yaml:"version"`
+	CurrentVersion    string           `yaml:"version"`
 	Verbose           bool             `yaml:"verbose"`
 	Path              string           `yaml:"path"`
 	Server            Server           `yaml:"server"`

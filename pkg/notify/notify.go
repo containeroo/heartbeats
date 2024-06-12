@@ -3,8 +3,8 @@ package notify
 import (
 	"context"
 	"fmt"
-	"heartbeats/internal/notify/notifier"
-	"heartbeats/internal/notify/utils"
+	"heartbeats/pkg/notify/notifier"
+	"heartbeats/pkg/notify/utils"
 	"sync"
 )
 

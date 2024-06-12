@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"heartbeats/internal/logger"
+	"heartbeats/pkg/logger"
 	"net/http"
 )
 

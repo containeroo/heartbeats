@@ -2,8 +2,8 @@ package server
 
 import (
 	"embed"
-	"heartbeats/internal/handlers"
-	"heartbeats/internal/logger"
+	"heartbeats/pkg/handlers"
+	"heartbeats/pkg/logger"
 	"io/fs"
 	"net/http"
 )

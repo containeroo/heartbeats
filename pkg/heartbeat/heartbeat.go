@@ -3,11 +3,11 @@ package heartbeat
 import (
 	"context"
 	"fmt"
-	"heartbeats/internal/history"
-	"heartbeats/internal/logger"
-	"heartbeats/internal/metrics"
-	"heartbeats/internal/notify"
-	"heartbeats/internal/timer"
+	"heartbeats/pkg/history"
+	"heartbeats/pkg/logger"
+	"heartbeats/pkg/metrics"
+	"heartbeats/pkg/notify"
+	"heartbeats/pkg/timer"
 	"sync"
 	"time"
 
