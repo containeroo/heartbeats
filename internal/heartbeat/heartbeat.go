@@ -8,6 +8,7 @@ import (
 	"heartbeats/internal/metrics"
 	"heartbeats/internal/notify"
 	"heartbeats/internal/timer"
+	"strings"
 	"sync"
 	"time"
 
@@ -137,7 +138,7 @@ func (h *Heartbeat) StopTimers() {
 // SendNotifications sends notifications based on the current status of the heartbeat.
 func (h *Heartbeat) SendNotifications(ctx context.Context, log logger.Logger, notificationStore *notify.Store, history *history.History, isResolved bool) {
 	for _, n := range h.Notifications {
-		notification := notificationStore.Get(n)
+		notification := notificationStore.Get(strings.ToLower(n))
 		if notification == nil {
 			log.Debugf("%s Notification '%s' not found", EventSend, n)
 			continue

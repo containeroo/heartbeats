@@ -7,6 +7,7 @@ import (
 	"heartbeats/internal/timer"
 	"html/template"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Masterminds/sprig"
@@ -60,7 +61,7 @@ func Heartbeats(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
 		for _, h := range heartbeatStore.GetAll() {
 			var notifications []NotificationState
 			for _, notificationName := range h.Notifications {
-				n := notificationStore.Get(notificationName)
+				n := notificationStore.Get(strings.ToLower(notificationName))
 				if n != nil {
 					notifications = append(notifications, NotificationState{
 						Name:    n.Name,

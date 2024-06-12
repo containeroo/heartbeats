@@ -141,7 +141,7 @@ All Keys marked with `*` will be resolved as described before.
 
 ```yaml
 ---
-notifications:
+notifications: # keys must be lowercase!
   dev-slack:
     enabled: true
     slack_config:
