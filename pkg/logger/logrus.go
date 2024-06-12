@@ -26,7 +26,7 @@ func (f *PlainFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return []byte(fmt.Sprintf("%s %s %s\n", timestamp, paddedLevel, entry.Message)), nil
 }
 
-func NewLogrusLogger(verbose bool) *LogrusLogger {
+func NewLogger(verbose bool) *LogrusLogger {
 	log := logrus.New()
 	log.SetFormatter(&PlainFormatter{})
 
