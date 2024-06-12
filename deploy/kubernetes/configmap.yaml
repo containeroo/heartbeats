@@ -83,4 +83,4 @@ data:
             *Description:*
             {{ .Description }}.
             Last ping: {{ ago .LastPing }}
-          url: file:/secrets/teams/webhooks//int-teams
+          webhook_url: file:/secrets/teams/webhooks//int-teams
