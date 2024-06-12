@@ -87,3 +87,13 @@ th {
   border-bottom: 10px solid #f56565;
   cursor: pointer;
 }
+
+/* footer */
+.version-footer {
+  position: fixed;
+  bottom: 10px;
+  width: 100%;
+  text-align: center;
+  font-size: 10px;
+  color: #6b7280;
+}
