@@ -113,13 +113,13 @@ func (h *Heartbeat) StartInterval(ctx context.Context, log logger.Logger, notifi
 
 // StartGrace initializes and starts the grace timer for the heartbeat.
 func (h *Heartbeat) StartGrace(ctx context.Context, log logger.Logger, notificationStore *notify.Store, hist *history.History) {
-	h.updateStatus(ctx, log, StatusGrace, notificationStore, hist)
+	h.Status = StatusGrace.String() // only update status
 	h.log(log, logger.InfoLevel, hist, EventGrace, fmt.Sprintf("start grace timer %s", h.Grace.Interval))
 
 	h.StopTimers()
 
 	h.Grace.RunTimer(ctx, func() {
-		h.updateStatus(ctx, log, StatusNOK, notificationStore, hist)
+		h.Status = StatusNOK.String() // only update status
 		h.log(log, logger.DebugLevel, hist, EventGrace, fmt.Sprintf("grace timer %s elapsed", h.Grace.Interval))
 
 		h.SendNotifications(ctx, log, notificationStore, hist, false)
