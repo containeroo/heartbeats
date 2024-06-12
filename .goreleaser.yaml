@@ -23,7 +23,7 @@ dockers:
       - go.mod
       - go.sum
       - main.go
-      - internal
+      - pkg
       - web
     build_flag_templates:
       - --pull
@@ -44,7 +44,7 @@ dockers:
       - go.mod
       - go.sum
       - main.go
-      - internal
+      - pkg
       - web
     goarch: arm64
     build_flag_templates:
