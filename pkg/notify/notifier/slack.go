@@ -3,7 +3,7 @@ package notifier
 import (
 	"context"
 	"fmt"
-	"heartbeats/pkg/notify/resolve"
+	"heartbeats/pkg/notify/resolver"
 	"heartbeats/pkg/notify/services/slack"
 	"heartbeats/pkg/notify/utils"
 	"time"
@@ -105,27 +105,27 @@ func (e SlackNotifier) CheckResolveVariables() error {
 //   - SlackConfig: The resolved SlackConfig.
 //   - error: An error if any of the configuration values cannot be resolved.
 func resolveSlackConfig(config SlackConfig) (SlackConfig, error) {
-	token, err := resolve.ResolveVariable(config.Token)
+	token, err := resolver.ResolveVariable(config.Token)
 	if err != nil {
 		return SlackConfig{}, fmt.Errorf("cannot resolve Slack token. %w", err)
 	}
 
-	channel, err := resolve.ResolveVariable(config.Channel)
+	channel, err := resolver.ResolveVariable(config.Channel)
 	if err != nil {
 		return SlackConfig{}, fmt.Errorf("cannot resolve Slack channel. %w", err)
 	}
 
-	title, err := resolve.ResolveVariable(config.Title)
+	title, err := resolver.ResolveVariable(config.Title)
 	if err != nil {
 		return SlackConfig{}, fmt.Errorf("cannot resolve Slack title. %w", err)
 	}
 
-	text, err := resolve.ResolveVariable(config.Text)
+	text, err := resolver.ResolveVariable(config.Text)
 	if err != nil {
 		return SlackConfig{}, fmt.Errorf("cannot resolve Slack text. %w", err)
 	}
 
-	colorTemplate, err := resolve.ResolveVariable(config.ColorTemplate)
+	colorTemplate, err := resolver.ResolveVariable(config.ColorTemplate)
 	if err != nil {
 		return SlackConfig{}, fmt.Errorf("cannot resolve Slack color template. %w", err)
 	}

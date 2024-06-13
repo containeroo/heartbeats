@@ -1,6 +1,5 @@
 package history
 
-// Event type represents various events that can be logged in history.
 type Event int16
 
 const (

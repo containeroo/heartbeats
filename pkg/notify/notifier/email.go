@@ -3,7 +3,7 @@ package notifier
 import (
 	"context"
 	"fmt"
-	"heartbeats/pkg/notify/resolve"
+	"heartbeats/pkg/notify/resolver"
 	"heartbeats/pkg/notify/services/email"
 	"time"
 )
@@ -88,19 +88,19 @@ func (e EmailNotifier) CheckResolveVariables() error {
 //   - error: An error if resolving any field fails.
 func resolveSMTPConfig(config email.SMTPConfig) (email.SMTPConfig, error) {
 	var err error
-	config.Host, err = resolve.ResolveVariable(config.Host)
+	config.Host, err = resolver.ResolveVariable(config.Host)
 	if err != nil {
 		return email.SMTPConfig{}, err
 	}
-	config.From, err = resolve.ResolveVariable(config.From)
+	config.From, err = resolver.ResolveVariable(config.From)
 	if err != nil {
 		return email.SMTPConfig{}, err
 	}
-	config.Username, err = resolve.ResolveVariable(config.Username)
+	config.Username, err = resolver.ResolveVariable(config.Username)
 	if err != nil {
 		return email.SMTPConfig{}, err
 	}
-	config.Password, err = resolve.ResolveVariable(config.Password)
+	config.Password, err = resolver.ResolveVariable(config.Password)
 	if err != nil {
 		return email.SMTPConfig{}, err
 	}
@@ -119,32 +119,32 @@ func resolveEmailConfig(config email.Email) (email.Email, error) {
 	var err error
 
 	for i, to := range config.To {
-		config.To[i], err = resolve.ResolveVariable(to)
+		config.To[i], err = resolver.ResolveVariable(to)
 		if err != nil {
 			return email.Email{}, err
 		}
 	}
 
 	for i, cc := range config.Cc {
-		config.Cc[i], err = resolve.ResolveVariable(cc)
+		config.Cc[i], err = resolver.ResolveVariable(cc)
 		if err != nil {
 			return email.Email{}, err
 		}
 	}
 
 	for i, bcc := range config.Bcc {
-		config.Bcc[i], err = resolve.ResolveVariable(bcc)
+		config.Bcc[i], err = resolver.ResolveVariable(bcc)
 		if err != nil {
 			return email.Email{}, err
 		}
 	}
 
-	config.Subject, err = resolve.ResolveVariable(config.Subject)
+	config.Subject, err = resolver.ResolveVariable(config.Subject)
 	if err != nil {
 		return email.Email{}, err
 	}
 
-	config.Body, err = resolve.ResolveVariable(config.Body)
+	config.Body, err = resolver.ResolveVariable(config.Body)
 	if err != nil {
 		return email.Email{}, err
 	}
