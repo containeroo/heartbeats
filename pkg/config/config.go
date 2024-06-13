@@ -128,7 +128,11 @@ func (c *Config) processHeartbeats(rawHeartbeats interface{}) error {
 			return fmt.Errorf("failed to add heartbeat '%s'. %w", hb.Name, err)
 		}
 
-		historyInstance := history.NewHistory(c.Cache.MaxSize, c.Cache.Reduce)
+		historyInstance, err := history.NewHistory(c.Cache.MaxSize, c.Cache.Reduce)
+		if err != nil {
+			return fmt.Errorf("failed to add heartbeat '%s'. %w", hb.Name, err)
+		}
+
 		if err := HistoryStore.Add(name, historyInstance); err != nil {
 			return fmt.Errorf("failed to create heartbeat history for '%s'. %w", name, err)
 		}
