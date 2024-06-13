@@ -84,7 +84,7 @@ func (c *Config) processNotifications(rawNotifications interface{}) error {
 		}
 
 		if err := c.NotificationStore.Add(name, &notification); err != nil {
-			return fmt.Errorf("failed to add notification '%s'. %w", notification.Name, err)
+			return fmt.Errorf("failed to add notification '%s'. %w", name, err)
 		}
 
 		if err := c.updateSlackNotification(name, &notification); err != nil {
