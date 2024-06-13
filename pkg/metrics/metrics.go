@@ -45,8 +45,8 @@ func init() {
 // NewMetrics creates and initializes a new Metrics instance with all relevant metrics registered.
 func NewMetrics() *Metrics {
 	reg := prometheus.NewRegistry()
-	_ = reg.Register(HeartbeatStatus) // Register the global metric
-	_ = reg.Register(TotalHeartbeats) // Register the new metric
+	reg.MustRegister(HeartbeatStatus)
+	reg.MustRegister(TotalHeartbeats)
 
 	return &Metrics{
 		Registry: reg,
