@@ -31,7 +31,7 @@ func FormatTemplate(name, tmpl string, intr interface{}) (string, error) {
 	}
 
 	buf := &bytes.Buffer{}
-	if err := t.Execute(buf, &intr); err != nil {
+	if err := t.Execute(buf, intr); err != nil {
 		return "", fmt.Errorf("error executing template. %w", err)
 	}
 
