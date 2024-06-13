@@ -1,17 +1,17 @@
 package handlers
 
 import (
-	"embed"
 	"fmt"
 	"heartbeats/pkg/config"
 	"heartbeats/pkg/history"
 	"heartbeats/pkg/logger"
 	"html/template"
+	"io/fs"
 	"net/http"
 )
 
 // History handles the /history/{id} endpoint
-func History(logger logger.Logger, staticFS embed.FS) http.Handler {
+func History(logger logger.Logger, staticFS fs.FS) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		heartbeatName := r.PathValue("id")
 		logger.Debugf("%s /history/%s %s %s", r.Method, heartbeatName, r.RemoteAddr, r.UserAgent())

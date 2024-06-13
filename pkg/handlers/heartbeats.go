@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"embed"
 	"heartbeats/pkg/config"
 	"heartbeats/pkg/logger"
 	"heartbeats/pkg/timer"
 	"html/template"
+	"io/fs"
 	"net/http"
 	"time"
 
@@ -37,7 +37,7 @@ type NotificationState struct {
 }
 
 // Heartbeats handles the / endpoint
-func Heartbeats(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
+func Heartbeats(logger logger.Logger, staticFS fs.FS) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmap := sprig.TxtFuncMap()
 		fmap["isTrue"] = isTrue
@@ -48,7 +48,7 @@ func Heartbeats(logger logger.Logger, staticFS embed.FS) http.HandlerFunc {
 			Funcs(fmap).
 			ParseFS(
 				staticFS,
-				"web/templates/heartbeat.html",
+				"web/templates/heartbeats.html",
 				"web/templates/footer.html",
 			)
 		if err != nil {

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"embed"
 	"heartbeats/pkg/handlers"
 	"heartbeats/pkg/logger"
 	"io/fs"
@@ -9,12 +8,11 @@ import (
 )
 
 // newRouter creates a new Server mux and appends Handlers
-func newRouter(logger logger.Logger, staticFS embed.FS) http.Handler {
+func newRouter(logger logger.Logger, staticFS fs.FS) http.Handler {
 	mux := http.NewServeMux()
 
 	// Handler for embedded static files
-	filesystem := fs.FS(staticFS)
-	staticContent, _ := fs.Sub(filesystem, "web/static")
+	staticContent, _ := fs.Sub(staticFS, "web/static")
 	fileServer := http.FileServer(http.FS(staticContent))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
