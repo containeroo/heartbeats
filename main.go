@@ -17,6 +17,24 @@ const version = "0.6.8"
 var templates embed.FS
 
 func run(ctx context.Context, verbose bool) error {
+	config.App.Version = version
+
+	result := flags.ParseFlags(os.Args, os.Stdout)
+
+	if result.Err != nil {
+		fmt.Fprintf(os.Stderr, "error parsing flags: %v\n", result.Err)
+		os.Exit(1)
+	}
+
+	if result.ShowHelp {
+		os.Exit(0)
+	}
+
+	if result.ShowVersion {
+		fmt.Println(version)
+		os.Exit(0)
+	}
+
 	log := logger.NewLogger(verbose)
 
 	if err := config.App.Read(); err != nil {
@@ -27,11 +45,6 @@ func run(ctx context.Context, verbose bool) error {
 }
 
 func main() {
-	if err := flags.ParseFlags(version); err != nil {
-		fmt.Printf("error parsing flags. %s\n", err)
-		os.Exit(1)
-	}
-
 	ctx := context.Background()
 	if err := run(ctx, config.App.Verbose); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)

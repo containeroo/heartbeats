@@ -1,17 +1,24 @@
 package flags
 
 import (
-	"flag"
 	"fmt"
 	"heartbeats/pkg/config"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/spf13/pflag"
 )
 
+// ParseResult contains the result of the ParseFlags function.
+type ParseResult struct {
+	ShowHelp    bool
+	ShowVersion bool
+	Err         error
+}
+
 // ParseFlags initializes the command-line flags and sets the values in the global config.App.
-func ParseFlags(currentVersion string) error {
+func ParseFlags(args []string, output io.Writer) ParseResult {
 	var showVersion, showHelp bool
 
 	pflag.StringVarP(&config.App.Path, "config", "c", "./deploy/config.yaml", "Path to the configuration file")
@@ -23,36 +30,37 @@ func ParseFlags(currentVersion string) error {
 	pflag.BoolVar(&showVersion, "version", false, "Show version and exit")
 	pflag.BoolVarP(&showHelp, "help", "h", false, "Show help and exit")
 
-	// Disable default help flag
+	pflag.CommandLine.SetOutput(output)
 	pflag.CommandLine.SortFlags = false
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.CommandLine.Init("heartbeats", pflag.ExitOnError)
+
+	// Disable default help flag
 	pflag.CommandLine.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		fmt.Fprintf(output, "Usage of %s:\n", args[0])
 		pflag.PrintDefaults()
 	}
 
 	processEnvVariables()
 
-	pflag.Parse()
+	err := pflag.CommandLine.Parse(args[1:])
+	if err != nil {
+		return ParseResult{Err: err}
+	}
 
 	if showHelp {
 		pflag.Usage()
-		os.Exit(0)
+		return ParseResult{ShowHelp: true}
 	}
 
 	if showVersion {
-		fmt.Println(currentVersion)
-		os.Exit(0)
+		return ParseResult{ShowVersion: true}
 	}
 
 	if config.App.Server.SiteRoot == "" {
 		config.App.Server.SiteRoot = fmt.Sprintf("http://%s", config.App.Server.ListenAddress)
 	}
 
-	config.App.Version = currentVersion
-
-	return nil
+	return ParseResult{}
 }
 
 // processEnvVariables checks for environment variables with the prefix "HEARTBEATS_" and sets the corresponding flags.
