@@ -3,7 +3,7 @@ package notifier
 import (
 	"context"
 	"fmt"
-	"heartbeats/pkg/notify/resolve"
+	"heartbeats/pkg/notify/resolver"
 	"heartbeats/pkg/notify/services/msteams"
 	"time"
 )
@@ -86,17 +86,17 @@ func (e MSTeamsNotifier) CheckResolveVariables() error {
 //   - MSTeamsConfig: The resolved MS Teams configuration.
 //   - error: An error if resolving any field fails.
 func resolveMSTeamsConfig(config MSTeamsConfig) (MSTeamsConfig, error) {
-	webhookURL, err := resolve.ResolveVariable(config.WebhookURL)
+	webhookURL, err := resolver.ResolveVariable(config.WebhookURL)
 	if err != nil {
 		return MSTeamsConfig{}, fmt.Errorf("cannot resolve webhook URL. %w", err)
 	}
 
-	title, err := resolve.ResolveVariable(config.Title)
+	title, err := resolver.ResolveVariable(config.Title)
 	if err != nil {
 		return MSTeamsConfig{}, fmt.Errorf("cannot resolve MS Teams title. %w", err)
 	}
 
-	text, err := resolve.ResolveVariable(config.Text)
+	text, err := resolver.ResolveVariable(config.Text)
 	if err != nil {
 		return MSTeamsConfig{}, fmt.Errorf("cannot resolve MS Teams text. %w", err)
 	}
