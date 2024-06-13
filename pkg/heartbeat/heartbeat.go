@@ -25,6 +25,7 @@ type Heartbeat struct {
 	Notifications []string     `yaml:"notifications,omitempty"`
 	Status        string       `yaml:"status,omitempty"`
 	SendResolve   *bool        `yaml:"sendResolve,omitempty"`
+	mu            sync.Mutex   `mapstructure:"-" yaml:"-"`
 }
 
 // Store manages the storage and retrieval of heartbeats.
@@ -96,15 +97,18 @@ func (s *Store) Delete(name string) {
 }
 
 // StartInterval initializes and starts the interval timer for the heartbeat.
-func (h *Heartbeat) StartInterval(ctx context.Context, log logger.Logger, notificationStore *notify.Store, hist *history.History) {
-	h.updateStatus(ctx, log, StatusOK, notificationStore, hist)
-	h.log(log, logger.InfoLevel, hist, EventInterval, fmt.Sprintf("start interval timer %s", h.Interval.Interval))
+func (h *Heartbeat) StartInterval(ctx context.Context, log logger.Logger, notificationStore *notify.Store, hi *history.History) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	h.updateStatus(ctx, log, StatusOK, notificationStore, hi)
+	h.log(log, logger.InfoLevel, hi, EventInterval, fmt.Sprintf("start interval timer %s", h.Interval.Interval))
 
 	h.StopTimers() // Stop all timers before starting new ones
 
 	h.Interval.RunTimer(ctx, func() {
-		h.log(log, logger.DebugLevel, hist, EventInterval, fmt.Sprintf("interval timer %s elapsed", h.Grace.Interval))
-		h.StartGrace(ctx, log, notificationStore, hist)
+		h.log(log, logger.DebugLevel, hi, EventInterval, fmt.Sprintf("interval timer %s elapsed", h.Grace.Interval))
+		h.StartGrace(ctx, log, notificationStore, hi)
 	})
 
 	metrics.TotalHeartbeats.With(prometheus.Labels{"heartbeat": h.Name}).Inc()
@@ -112,17 +116,20 @@ func (h *Heartbeat) StartInterval(ctx context.Context, log logger.Logger, notifi
 }
 
 // StartGrace initializes and starts the grace timer for the heartbeat.
-func (h *Heartbeat) StartGrace(ctx context.Context, log logger.Logger, notificationStore *notify.Store, hist *history.History) {
+func (h *Heartbeat) StartGrace(ctx context.Context, log logger.Logger, notificationStore *notify.Store, hi *history.History) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	h.Status = StatusGrace.String() // only update status
-	h.log(log, logger.InfoLevel, hist, EventGrace, fmt.Sprintf("start grace timer %s", h.Grace.Interval))
+	h.log(log, logger.InfoLevel, hi, EventGrace, fmt.Sprintf("start grace timer %s", h.Grace.Interval))
 
 	h.StopTimers()
 
 	h.Grace.RunTimer(ctx, func() {
 		h.Status = StatusNOK.String() // only update status
-		h.log(log, logger.DebugLevel, hist, EventGrace, fmt.Sprintf("grace timer %s elapsed", h.Grace.Interval))
+		h.log(log, logger.DebugLevel, hi, EventGrace, fmt.Sprintf("grace timer %s elapsed", h.Grace.Interval))
 
-		h.SendNotifications(ctx, log, notificationStore, hist, false)
+		h.SendNotifications(ctx, log, notificationStore, hi, false)
 
 		metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(metrics.DOWN)
 	})
@@ -135,7 +142,7 @@ func (h *Heartbeat) StopTimers() {
 }
 
 // SendNotifications sends notifications based on the current status of the heartbeat.
-func (h *Heartbeat) SendNotifications(ctx context.Context, log logger.Logger, notificationStore *notify.Store, history *history.History, isResolved bool) {
+func (h *Heartbeat) SendNotifications(ctx context.Context, log logger.Logger, notificationStore *notify.Store, hi *history.History, isResolved bool) {
 	for _, n := range h.Notifications {
 		notification := notificationStore.Get(n)
 		if notification == nil {
@@ -149,28 +156,28 @@ func (h *Heartbeat) SendNotifications(ctx context.Context, log logger.Logger, no
 		}
 
 		if err := notification.Send(ctx, h, isResolved, notify.DefaultFormatter); err != nil {
-			h.log(log, logger.ErrorLevel, history, EventSend, fmt.Sprintf("%s error sending notification '%s' (%s). %v", h.Name, notification.Name, notification.Type, err))
+			h.log(log, logger.ErrorLevel, hi, EventSend, fmt.Sprintf("%s error sending notification '%s' (%s). %v", h.Name, notification.Name, notification.Type, err))
 			continue
 		}
-		h.log(log, logger.InfoLevel, history, EventSend, fmt.Sprintf("successfully send notification to %s (%s)", notification.Name, notification.Type))
+		h.log(log, logger.InfoLevel, hi, EventSend, fmt.Sprintf("successfully send notification to %s (%s)", notification.Name, notification.Type))
 	}
 }
 
-// updateStatus updates the heartbeat's status and triggers notifications if needed.
-func (h *Heartbeat) updateStatus(ctx context.Context, log logger.Logger, newStatus Status, notificationStore *notify.Store, hist *history.History) {
+// UpdateStatus updates the heartbeat's status and triggers notifications if needed.
+func (h *Heartbeat) updateStatus(ctx context.Context, log logger.Logger, newStatus Status, notificationStore *notify.Store, hi *history.History) {
 	currentStatus := h.Status
 	h.Status = newStatus.String()
 	h.LastPing = time.Now()
 
 	if currentStatus == StatusNOK.String() && newStatus == StatusOK && (h.SendResolve == nil || *h.SendResolve) {
 		log.Debugf("%s switched status from 'nok' to 'ok'", h.Name)
-		h.SendNotifications(ctx, log, notificationStore, hist, true)
+		h.SendNotifications(ctx, log, notificationStore, hi, true)
 	}
 }
 
 // log writes a message to the log and history.
-func (h *Heartbeat) log(logger logger.Logger, level logger.Level, he *history.History, eventType Event, msg string) {
+func (h *Heartbeat) log(logger logger.Logger, level logger.Level, hi *history.History, eventType Event, msg string) {
 	logMsg := fmt.Sprintf("%s %s", h.Name, msg)
 	logger.Write(level, logMsg)
-	he.AddEntry(history.Event(eventType), msg, nil)
+	hi.AddEntry(history.Event(eventType), msg, nil)
 }
