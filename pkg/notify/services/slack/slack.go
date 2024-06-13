@@ -8,6 +8,8 @@ import (
 	"net/http"
 )
 
+const SLACK_WEBHOOK_URL = "https://slack.com/api/chat.postMessage"
+
 // Slack represents the structure of a Slack message.
 type Slack struct {
 	Channel     string       `json:"channel"`
@@ -56,14 +58,12 @@ func New(headers map[string]string, skipTLS bool) *Client {
 //   - *Response: The response from the Slack API.
 //   - error: An error if sending the message fails.
 func (c *Client) Send(ctx context.Context, slackMessage Slack) (*Response, error) {
-	webhookURL := "https://slack.com/api/chat.postMessage"
-
 	data, err := json.Marshal(slackMessage)
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling Slack message. %w", err)
 	}
 
-	resp, err := c.HttpClient.DoRequest(ctx, "POST", webhookURL, data)
+	resp, err := c.HttpClient.DoRequest(ctx, "POST", SLACK_WEBHOOK_URL, data)
 	if err != nil {
 		return nil, fmt.Errorf("error sending HTTP request. %w", err)
 	}
