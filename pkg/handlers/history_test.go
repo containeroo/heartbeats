@@ -1,11 +1,9 @@
 package handlers
 
 import (
-	"heartbeats/pkg/config"
 	"heartbeats/pkg/heartbeat"
 	"heartbeats/pkg/history"
 	"heartbeats/pkg/logger"
-	"heartbeats/pkg/notify"
 	"heartbeats/pkg/timer"
 	"io/fs"
 	"net/http"
@@ -59,9 +57,8 @@ func aferoToCustomAferoFS(afs afero.Fs) fs.FS {
 
 func TestHistoryHandler(t *testing.T) {
 	log := logger.NewLogger(true)
-	config.App.HeartbeatStore = heartbeat.NewStore()
-	config.App.NotificationStore = notify.NewStore()
-	config.HistoryStore = history.NewStore()
+	heartbeatStore := heartbeat.NewStore()
+	historyStore := history.NewStore()
 
 	h := &heartbeat.Heartbeat{
 		Name:     "test",
@@ -73,21 +70,20 @@ func TestHistoryHandler(t *testing.T) {
 	*h.Interval.Interval = time.Minute
 	*h.Grace.Interval = time.Minute
 
-	err := config.App.HeartbeatStore.Add("test", h)
+	err := heartbeatStore.Add("test", h)
 	assert.NoError(t, err)
 
 	hist, err := history.NewHistory(10, 2)
 	assert.NoError(t, err)
 
-	err = config.HistoryStore.Add("test", hist)
+	err = historyStore.Add("test", hist)
 	assert.NoError(t, err)
 
-	ns := notify.NewStore()
-	config.App.NotificationStore = ns
+	version := "1.0.0"
 
 	mux := http.NewServeMux()
 	aferoFS := setupAferoFSForHistory()
-	mux.Handle("GET /history/{id}", History(log, aferoToCustomAferoFS(aferoFS)))
+	mux.Handle("GET /history/{id}", History(log, aferoToCustomAferoFS(aferoFS), version, heartbeatStore, historyStore))
 
 	t.Run("Heartbeat not found", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/history/nonexistent", nil)
@@ -113,7 +109,7 @@ func TestHistoryHandler(t *testing.T) {
 	t.Run("Template parsing error", func(t *testing.T) {
 		invalidFS := afero.NewMemMapFs() // Empty FS to simulate missing templates
 		mux := http.NewServeMux()
-		mux.Handle("GET /history/{id}", History(log, aferoToCustomAferoFS(invalidFS)))
+		mux.Handle("GET /history/{id}", History(log, aferoToCustomAferoFS(invalidFS), version, heartbeatStore, historyStore))
 
 		req := httptest.NewRequest("GET", "/history/test", nil)
 		rec := httptest.NewRecorder()

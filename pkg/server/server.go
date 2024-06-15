@@ -3,15 +3,18 @@ package server
 import (
 	"context"
 	"embed"
+	"heartbeats/pkg/heartbeat"
+	"heartbeats/pkg/history"
 	"heartbeats/pkg/logger"
+	"heartbeats/pkg/notify"
 	"net/http"
 	"sync"
 	"time"
 )
 
 // Run starts the HTTP server and handles shutdown on context cancellation.
-func Run(ctx context.Context, listenAddress string, templates embed.FS, logger logger.Logger) error {
-	router := newRouter(logger, templates)
+func Run(ctx context.Context, listenAddress, version, siteRoot string, templates embed.FS, logger logger.Logger, heartbeatStore *heartbeat.Store, notificationStore *notify.Store, historyStore *history.Store) error {
+	router := newRouter(logger, templates, version, siteRoot, heartbeatStore, notificationStore, historyStore)
 
 	server := &http.Server{
 		Addr:         listenAddress,

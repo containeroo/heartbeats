@@ -8,14 +8,14 @@ If a "ping" does not arrive in the given interval & grace period, Heartbeats wil
 ## Flags
 
 ```yaml
--c, --config string           Path to the configuration file (default "./deploy/config.yaml")
--l, --listen-address string   Address to listen on (default "localhost:8080")
+-c, --config string            Path to the configuration file (default "./deploy/config.yaml")
+-l, --listen-address string    Address to listen on (default "localhost:8080")
 -s, --site-root string         Site root for the heartbeat service (default "http://<listenAddress>")
--m, --max-size int             Maximum size of the cache (default 100)
--r, --reduce int              Amount to reduce when max size is exceeded (default 10)
--v, --verbose                 Enable verbose logging
---version                     Show version and exit
--h, --help                    Show help and exit
+-m, --max-size int             Maximum size of the cache (default 1000)
+-r, --reduce int               Percentage to reduce when max size is exceeded (default 25)
+-v, --verbose                  Enable verbose logging
+--version                      Show version and exit
+-h, --help                     Show help and exit
 ```
 
 ## Environment Variables

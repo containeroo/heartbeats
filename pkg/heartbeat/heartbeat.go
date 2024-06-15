@@ -179,5 +179,6 @@ func (h *Heartbeat) updateStatus(ctx context.Context, log logger.Logger, newStat
 func (h *Heartbeat) log(logger logger.Logger, level logger.Level, hi *history.History, eventType Event, msg string) {
 	logMsg := fmt.Sprintf("%s %s", h.Name, msg)
 	logger.Write(level, logMsg)
-	hi.AddEntry(history.Event(eventType), msg, nil)
+
+	hi.Add(history.Event(eventType), msg, nil)
 }

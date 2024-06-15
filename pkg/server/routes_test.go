@@ -1,7 +1,6 @@
 package server
 
 import (
-	"heartbeats/pkg/config"
 	"heartbeats/pkg/heartbeat"
 	"heartbeats/pkg/history"
 	"heartbeats/pkg/logger"
@@ -61,9 +60,12 @@ func setupAferoFSForRoutes() afero.Fs {
 
 func TestNewRouter(t *testing.T) {
 	log := logger.NewLogger(true)
-	config.App.HeartbeatStore = heartbeat.NewStore()
-	config.App.NotificationStore = notify.NewStore()
-	config.HistoryStore = history.NewStore()
+
+	heartbeatStore := heartbeat.NewStore()
+	notificationStore := notify.NewStore()
+	historyStore := history.NewStore()
+	version := "1.0.0"
+	siteRoot := "localhost:8080"
 
 	h := &heartbeat.Heartbeat{
 		Name:     "test",
@@ -75,19 +77,19 @@ func TestNewRouter(t *testing.T) {
 	*h.Interval.Interval = time.Minute
 	*h.Grace.Interval = time.Minute
 
-	err := config.App.HeartbeatStore.Add("test", h)
+	err := heartbeatStore.Add("test", h)
 	assert.NoError(t, err)
 
 	hist, err := history.NewHistory(10, 2)
 	assert.NoError(t, err)
 
-	err = config.HistoryStore.Add("test", hist)
+	err = historyStore.Add("test", hist)
 	assert.NoError(t, err)
 
 	aferoFS := setupAferoFSForRoutes()
 	customFS := aferoToCustomAferoFS(aferoFS)
 
-	mux := newRouter(log, customFS)
+	mux := newRouter(log, customFS, version, siteRoot, heartbeatStore, notificationStore, historyStore)
 
 	t.Run("GET /", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)

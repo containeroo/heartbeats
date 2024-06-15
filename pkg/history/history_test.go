@@ -12,21 +12,21 @@ func TestHistory_NewHistory(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestHistory_AddEntry(t *testing.T) {
+func TestHistory_Add(t *testing.T) {
 	t.Run("Add Entries", func(t *testing.T) {
 		h, err := NewHistory(5, 20)
 		assert.NoError(t, err)
 
-		h.AddEntry(Beat, "Beat message", nil)
+		h.Add(Beat, "Beat message", nil)
 		assert.Equal(t, 1, len(h.GetAllEntries()))
 
-		h.AddEntry(Interval, "Interval message", nil)
-		h.AddEntry(Grace, "Grace message", nil)
-		h.AddEntry(Expired, "Expired message", nil)
-		h.AddEntry(Send, "Send message", nil)
+		h.Add(Interval, "Interval message", nil)
+		h.Add(Grace, "Grace message", nil)
+		h.Add(Expired, "Expired message", nil)
+		h.Add(Send, "Send message", nil)
 		assert.Equal(t, 5, len(h.GetAllEntries()))
 
-		h.AddEntry(Beat, "New Beat message", nil)
+		h.Add(Beat, "New Beat message", nil)
 		assert.Equal(t, 4, len(h.GetAllEntries())) // Reduced by 20% (5 * 0.8 = 4)
 	})
 
@@ -34,16 +34,16 @@ func TestHistory_AddEntry(t *testing.T) {
 		h, err := NewHistory(5, 25)
 		assert.NoError(t, err)
 
-		h.AddEntry(Beat, "Beat message", nil)
+		h.Add(Beat, "Beat message", nil)
 		assert.Equal(t, 1, len(h.GetAllEntries()))
 
-		h.AddEntry(Interval, "Interval message", nil)
-		h.AddEntry(Grace, "Grace message", nil)
-		h.AddEntry(Expired, "Expired message", nil)
-		h.AddEntry(Send, "Send message", nil)
+		h.Add(Interval, "Interval message", nil)
+		h.Add(Grace, "Grace message", nil)
+		h.Add(Expired, "Expired message", nil)
+		h.Add(Send, "Send message", nil)
 		assert.Equal(t, 5, len(h.GetAllEntries()))
 
-		h.AddEntry(Beat, "New Beat message", nil)
+		h.Add(Beat, "New Beat message", nil)
 		assert.Equal(t, 4, len(h.GetAllEntries())) // Reduced by 25% (5 * 0.75 ~= 4)
 	})
 }
@@ -53,8 +53,8 @@ func TestHistory_GetAllEntries(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("AddEntries", func(t *testing.T) {
-		h.AddEntry(Beat, "Beat message", nil)
-		h.AddEntry(Interval, "Interval message", nil)
+		h.Add(Beat, "Beat message", nil)
+		h.Add(Interval, "Interval message", nil)
 	})
 
 	t.Run("VerifyEntries", func(t *testing.T) {

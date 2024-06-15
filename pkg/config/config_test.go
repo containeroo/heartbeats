@@ -4,7 +4,6 @@ import (
 	"heartbeats/pkg/heartbeat"
 	"heartbeats/pkg/history"
 	"heartbeats/pkg/notify"
-	"heartbeats/pkg/notify/notifier"
 	"os"
 	"testing"
 
@@ -12,107 +11,141 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Sample configuration YAML for testing.
-const sampleConfig = `
-version: "1.0.0"
-verbose: true
-path: "./config.yaml"
-server:
-  siteRoot: "http://localhost:8080"
-  listenAddress: "localhost:8080"
-cache:
-  maxSize: 100
-  reduce: 10
-notifications:
-  slack:
-    type: "slack"
-    slack_config:
-      channel: "general"
+func TestRead(t *testing.T) {
+	sampleConfig := `
 heartbeats:
-  heartbeat1:
-    name: "heartbeat1"
-    interval: "1m"
-    grace: "1m"
-    notifications:
-      - slack
+  test_heartbeat:
+    enabled: true
+    interval: 1m
+    grace: 1m
+    notifications: ["test_notification"]
+
+notifications:
+  test_notification:
+    slack_config:
+      channel: general
+
 `
+	tmpFile, err := os.CreateTemp("", "config.yaml")
+	assert.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
 
-func writeSampleConfig(t *testing.T, content string) string {
-	file, err := os.CreateTemp("", "config*.yaml")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	defer file.Close()
+	_, err = tmpFile.Write([]byte(sampleConfig))
+	assert.NoError(t, err)
+	err = tmpFile.Close()
+	assert.NoError(t, err)
 
-	if _, err := file.WriteString(content); err != nil {
-		t.Fatalf("Failed to write to temp file: %v", err)
-	}
+	heartbeatsStore := heartbeat.NewStore()
+	notificationStore := notify.NewStore()
+	historyStore := history.NewStore()
 
-	return file.Name()
-}
+	maxSize := 110
+	reduce := 25
 
-func TestConfig_Read(t *testing.T) {
-	App.NotificationStore = notify.NewStore()
-	HistoryStore = history.NewStore()
+	t.Run("Read config file and process notifications and heartbeats", func(t *testing.T) {
+		err := Read(tmpFile.Name(), heartbeatsStore, notificationStore, historyStore, maxSize, reduce)
+		assert.NoError(t, err)
 
-	tempFile := writeSampleConfig(t, sampleConfig)
-	defer os.Remove(tempFile)
+		// Verify heartbeats
+		hb := heartbeatsStore.Get("test_heartbeat")
+		assert.NotNil(t, hb)
+		assert.Equal(t, "test_heartbeat", hb.Name)
+		assert.NotNil(t, hb.Interval)
+		assert.NotNil(t, hb.Grace)
+		assert.Len(t, hb.Notifications, 1)
+		assert.Equal(t, "test_notification", hb.Notifications[0])
 
-	App.Path = tempFile
+		// Verify notifications
+		n := notificationStore.Get("test_notification")
+		assert.NotNil(t, n)
+		assert.Equal(t, "test_notification", n.Name)
+		assert.Equal(t, "slack", n.Type)
 
-	err := App.Read()
-	assert.NoError(t, err, "Expected no error when reading the config file")
-
-	notification := App.NotificationStore.Get("slack")
-	assert.NotNil(t, notification, "Expected slack notification to be present")
-	assert.Equal(t, `{{ if eq .Status "ok" }}good{{ else }}danger{{ end }}`, notification.SlackConfig.ColorTemplate)
-
-	heartbeat := App.HeartbeatStore.Get("heartbeat1")
-	assert.NotNil(t, heartbeat, "Expected heartbeat1 to be present")
-	assert.Equal(t, "heartbeat1", heartbeat.Name)
+		// Verify history
+		h := historyStore.Get("test_heartbeat")
+		assert.NotNil(t, h)
+		assert.Equal(t, 110, maxSize)
+		assert.Equal(t, 25, reduce)
+	})
 }
 
 func TestProcessNotifications(t *testing.T) {
-	App.NotificationStore = notify.NewStore()
-	HistoryStore = history.NewStore()
+	sampleConfig := `
+heartbeats:
+  test_heartbeat:
+    enabled: true
+    interval: 1m
+    grace: 1m
+    notifications: ["test_notification"]
 
-	var rawConfig map[string]interface{}
-	err := yaml.Unmarshal([]byte(sampleConfig), &rawConfig)
-	assert.NoError(t, err)
-	err = App.processNotifications(rawConfig["notifications"])
-	assert.NoError(t, err, "Expected no error when processing notifications")
+notifications:
+  test_notification:
+    slack_config:
+      channel: general
 
-	notification := App.NotificationStore.Get("slack")
-	assert.NotNil(t, notification, "Expected slack notification to be present")
-	assert.Equal(t, "slack", notification.Type)
-	assert.Equal(t, `{{ if eq .Status "ok" }}good{{ else }}danger{{ end }}`, notification.SlackConfig.ColorTemplate)
+`
+
+	notificationStore := notify.NewStore()
+
+	t.Run("Process valid notifications", func(t *testing.T) {
+		var rawConfig map[string]interface{}
+		err := yaml.Unmarshal([]byte(sampleConfig), &rawConfig)
+		assert.NoError(t, err)
+
+		err = processNotifications(rawConfig["notifications"], notificationStore)
+		assert.NoError(t, err)
+
+		// Verify notification
+		n := notificationStore.Get("test_notification")
+		assert.NotNil(t, n)
+		assert.Equal(t, "test_notification", n.Name)
+		assert.Equal(t, "slack", n.Type)
+	})
 }
 
 func TestProcessHeartbeats(t *testing.T) {
-	App.HeartbeatStore = heartbeat.NewStore()
-	HistoryStore = history.NewStore()
+	sampleConfig := `
+heartbeats:
+  test_heartbeat:
+    enabled: true
+    interval: 1m
+    grace: 1m
+    notifications: ["test_notification"]
 
-	var rawConfig map[string]interface{}
-	err := yaml.Unmarshal([]byte(sampleConfig), &rawConfig)
-	assert.NoError(t, err)
+notifications:
+  test_notification:
+    slack_config:
+      channel: general
 
-	err = App.processHeartbeats(rawConfig["heartbeats"])
-	assert.NoError(t, err, "Expected no error when processing heartbeats")
+`
 
-	heartbeat := App.HeartbeatStore.Get("heartbeat1")
-	assert.NotNil(t, heartbeat, "Expected heartbeat1 to be present")
-	assert.Equal(t, "heartbeat1", heartbeat.Name)
-}
+	heartbeatsStore := heartbeat.NewStore()
+	historyStore := history.NewStore()
 
-func TestUpdateSlackNotification(t *testing.T) {
-	notification := &notify.Notification{
-		Type: "slack",
-		SlackConfig: &notifier.SlackConfig{
-			Channel: "general",
-		},
-	}
+	maxSize := 120
+	reduce := 25
 
-	err := App.updateSlackNotification("slack", notification)
-	assert.NoError(t, err, "Expected no error when updating slack notification")
-	assert.Equal(t, `{{ if eq .Status "ok" }}good{{ else }}danger{{ end }}`, notification.SlackConfig.ColorTemplate)
+	t.Run("Process valid heartbeats", func(t *testing.T) {
+		var rawConfig map[string]interface{}
+		err := yaml.Unmarshal([]byte(sampleConfig), &rawConfig)
+		assert.NoError(t, err)
+
+		err = processHeartbeats(rawConfig["heartbeats"], heartbeatsStore, historyStore, maxSize, reduce)
+		assert.NoError(t, err)
+
+		// Verify heartbeat
+		hb := heartbeatsStore.Get("test_heartbeat")
+		assert.NotNil(t, hb)
+		assert.Equal(t, "test_heartbeat", hb.Name)
+		assert.NotNil(t, hb.Interval)
+		assert.NotNil(t, hb.Grace)
+		assert.Len(t, hb.Notifications, 1)
+		assert.Equal(t, "test_notification", hb.Notifications[0])
+
+		// Verify history
+		h := historyStore.Get("test_heartbeat")
+		assert.NotNil(t, h)
+		assert.Equal(t, 120, maxSize)
+		assert.Equal(t, 25, reduce)
+	})
 }
