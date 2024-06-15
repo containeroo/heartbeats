@@ -30,7 +30,6 @@ var (
 )
 
 func run(ctx context.Context, verbose bool) error {
-	kingpin.UsageTemplate(CompactUsageTemplate)
 	kingpin.Version(version)
 	kingpin.Parse()
 
@@ -71,54 +70,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-
-var CompactUsageTemplate = `{{define "FormatCommand" -}}
-{{if .FlagSummary}} {{.FlagSummary}}{{end -}}
-{{range .Args}}{{if not .Hidden}} {{if not .Required}}[{{end}}{{if .PlaceHolder}}{{.PlaceHolder}}{{else}}<{{.Name}}>{{end}}{{if .Value|IsCumulative}}...{{end}}{{if not .Required}}]{{end}}{{end}}{{end -}}
-{{end -}}
-
-{{define "FormatCommandList" -}}
-{{range . -}}
-{{if not .Hidden -}}
-{{.Depth|Indent}}{{.Name}}{{if .Default}}*{{end}}{{template "FormatCommand" .}}
-{{end -}}
-{{template "FormatCommandList" .Commands -}}
-{{end -}}
-{{end -}}
-
-{{define "FormatUsage" -}}
-{{template "FormatCommand" .}}{{if .Commands}} <command> [<args> ...]{{end}}
-{{if .Help}}
-{{.Help|Wrap 0 -}}
-{{end -}}
-
-{{end -}}
-
-{{if .Context.SelectedCommand -}}
-usage: {{.App.Name}} {{.Context.SelectedCommand}}{{template "FormatUsage" .Context.SelectedCommand}}
-{{else -}}
-usage: {{.App.Name}}{{template "FormatUsage" .App}}
-{{end -}}
-{{if .Context.Flags -}}
-Flags:
-{{range .Context.Flags -}}
-  {{if .Short}}-{{.Short}}, {{end}}--{{.Name}} {{.Help}} {{if .Default}}(default: {{.Default}}){{end}} {{if .Envar}}[env: {{.Envar}}]{{end}}
-{{end -}}
-{{end -}}
-{{if .Context.Args -}}
-Args:
-{{range .Context.Args -}}
-  --{{.Name}} {{.Help}}
-{{end -}}
-{{end -}}
-{{if .Context.SelectedCommand -}}
-{{if .Context.SelectedCommand.Commands -}}
-Commands:
-  {{.Context.SelectedCommand}}
-{{template "FormatCommandList" .Context.SelectedCommand.Commands}}
-{{end -}}
-{{else if .App.Commands -}}
-Commands:
-{{template "FormatCommandList" .App.Commands}}
-{{end -}}
-`
