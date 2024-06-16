@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+type Config struct {
+	MaxSize int
+	Reduce  int
+}
+
 // Store manages histories for multiple heartbeats.
 type Store struct {
 	mu        sync.RWMutex

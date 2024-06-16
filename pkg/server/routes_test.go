@@ -59,12 +59,14 @@ func setupAferoFSForRoutes() afero.Fs {
 }
 
 func TestNewRouter(t *testing.T) {
+	version := "1.0.0"
+
 	log := logger.NewLogger(true)
 
 	heartbeatStore := heartbeat.NewStore()
 	notificationStore := notify.NewStore()
 	historyStore := history.NewStore()
-	version := "1.0.0"
+
 	siteRoot := "localhost:8080"
 
 	h := &heartbeat.Heartbeat{

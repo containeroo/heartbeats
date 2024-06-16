@@ -14,14 +14,18 @@ import (
 )
 
 func TestRun(t *testing.T) {
+	version := "1.0.0"
+
 	log := logger.NewLogger(true)
 
 	heartbeatStore := heartbeat.NewStore()
 	notificationStore := notify.NewStore()
 	historyStore := history.NewStore()
-	version := "1.0.0"
-	listenAdderss := "localhost:8080"
-	siteRoot := "http://localhost:8080"
+
+	config := Config{
+		ListenAddress: "localhost:8080",
+		SiteRoot:      "http://localhost:8080",
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -32,6 +36,15 @@ func TestRun(t *testing.T) {
 	}()
 
 	var templates embed.FS
-	err := Run(ctx, listenAdderss, version, siteRoot, templates, log, heartbeatStore, notificationStore, historyStore)
+	err := Run(
+		ctx,
+		log,
+		version,
+		config,
+		templates,
+		heartbeatStore,
+		notificationStore,
+		historyStore,
+	)
 	assert.NoError(t, err)
 }

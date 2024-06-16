@@ -11,7 +11,15 @@ import (
 )
 
 // newRouter creates a new Server mux and appends Handlers
-func newRouter(logger logger.Logger, staticFS fs.FS, version, siteRoot string, heartbeatStore *heartbeat.Store, notificationStore *notify.Store, historyStore *history.Store) http.Handler {
+func newRouter(
+	logger logger.Logger,
+	staticFS fs.FS,
+	version string,
+	siteRoot string,
+	heartbeatStore *heartbeat.Store,
+	notificationStore *notify.Store,
+	historyStore *history.Store,
+) http.Handler {
 	mux := http.NewServeMux()
 
 	// Handler for embedded static files

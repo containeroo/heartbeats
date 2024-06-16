@@ -12,12 +12,34 @@ import (
 	"time"
 )
 
+type Config struct {
+	ListenAddress string
+	SiteRoot      string
+}
+
 // Run starts the HTTP server and handles shutdown on context cancellation.
-func Run(ctx context.Context, listenAddress, version, siteRoot string, templates embed.FS, logger logger.Logger, heartbeatStore *heartbeat.Store, notificationStore *notify.Store, historyStore *history.Store) error {
-	router := newRouter(logger, templates, version, siteRoot, heartbeatStore, notificationStore, historyStore)
+func Run(
+	ctx context.Context,
+	logger logger.Logger,
+	version string,
+	config Config,
+	templates embed.FS,
+	heartbeatStore *heartbeat.Store,
+	notificationStore *notify.Store,
+	historyStore *history.Store,
+) error {
+	router := newRouter(
+		logger,
+		templates,
+		version,
+		config.SiteRoot,
+		heartbeatStore,
+		notificationStore,
+		historyStore,
+	)
 
 	server := &http.Server{
-		Addr:         listenAddress,
+		Addr:         config.ListenAddress,
 		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -26,7 +48,7 @@ func Run(ctx context.Context, listenAddress, version, siteRoot string, templates
 
 	// Start server in a goroutine
 	go func() {
-		logger.Infof("Listening on %s", listenAddress)
+		logger.Infof("Listening on %s", config.ListenAddress)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Errorf("Error listening and serving. %s", err)
 		}

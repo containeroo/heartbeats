@@ -39,11 +39,13 @@ notifications:
 	notificationStore := notify.NewStore()
 	historyStore := history.NewStore()
 
-	maxSize := 110
-	reduce := 25
+	historyConfig := history.Config{
+		MaxSize: 110,
+		Reduce:  25,
+	}
 
 	t.Run("Read config file and process notifications and heartbeats", func(t *testing.T) {
-		err := Read(tmpFile.Name(), heartbeatsStore, notificationStore, historyStore, maxSize, reduce)
+		err := Read(tmpFile.Name(), historyConfig, heartbeatsStore, notificationStore, historyStore)
 		assert.NoError(t, err)
 
 		// Verify heartbeats
@@ -64,20 +66,13 @@ notifications:
 		// Verify history
 		h := historyStore.Get("test_heartbeat")
 		assert.NotNil(t, h)
-		assert.Equal(t, 110, maxSize)
-		assert.Equal(t, 25, reduce)
+		assert.Equal(t, 110, historyConfig.MaxSize)
+		assert.Equal(t, 25, historyConfig.Reduce)
 	})
 }
 
 func TestProcessNotifications(t *testing.T) {
 	sampleConfig := `
-heartbeats:
-  test_heartbeat:
-    enabled: true
-    interval: 1m
-    grace: 1m
-    notifications: ["test_notification"]
-
 notifications:
   test_notification:
     slack_config:
@@ -147,5 +142,72 @@ notifications:
 		assert.NotNil(t, h)
 		assert.Equal(t, 120, maxSize)
 		assert.Equal(t, 25, reduce)
+	})
+}
+
+func TestValidateNotifications(t *testing.T) {
+	sampleConfig := `
+notifications:
+  valid_notification:
+    type: slack
+    slack_config:
+      channel: general
+      text: "{{ .Name }} is {{ .Status }}"
+
+  invalid_notification:
+    type: slack
+    slack_config:
+      channel: general
+      text: "{{ .InvalidField }} is {{ .Status }}"
+`
+
+	t.Run("Validate valid and invalid notifications", func(t *testing.T) {
+		var rawConfig map[string]interface{}
+		err := yaml.Unmarshal([]byte(sampleConfig), &rawConfig)
+		assert.NoError(t, err)
+
+		err = validateNotifications(rawConfig["notifications"])
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid text template for slack notification 'invalid_notification'")
+	})
+}
+
+func TestValidateHeartbeats(t *testing.T) {
+	t.Run("Validate valid and invalid interval heartbeats", func(t *testing.T) {
+		sampleConfig := `
+heartbeats:
+  valid_heartbeat:
+    interval: 1m
+    grace: 1m
+
+  invalid_heartbeat:
+    grace: 1m
+    `
+		var rawConfig map[string]interface{}
+		err := yaml.Unmarshal([]byte(sampleConfig), &rawConfig)
+		assert.NoError(t, err)
+
+		err = validateHeartbeats(rawConfig["heartbeats"])
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "interval timer is required for heartbeat 'invalid_heartbeat'")
+	})
+
+	t.Run("Validate valid and invalid grace heartbeats", func(t *testing.T) {
+		sampleConfig := `
+heartbeats:
+  valid_heartbeat:
+    interval: 1m
+    grace: 1m
+
+  invalid_heartbeat:
+    interval: 1m
+  `
+		var rawConfig map[string]interface{}
+		err := yaml.Unmarshal([]byte(sampleConfig), &rawConfig)
+		assert.NoError(t, err)
+
+		err = validateHeartbeats(rawConfig["heartbeats"])
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "grace timer is required for heartbeat 'invalid_heartbeat'")
 	})
 }

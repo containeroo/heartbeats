@@ -15,20 +15,22 @@ import (
 	"github.com/alecthomas/kingpin/v2"
 )
 
-const version = "0.6.8"
+const version = "0.6.10"
 
 //go:embed web
 var templates embed.FS
 
 var (
-	configPath    = kingpin.Flag("config", "Path to the configuration file").Short('c').Envar("HEARTBEATS_CONFIG").Default("./deploy/config.yaml").String()
-	listenAddress = kingpin.Flag("listen-address", "Address to listen on").Short('l').Envar("HEARTBEATS_LISTEN_ADDRESS").Default("localhost:8080").String()
-	siteRoot      = kingpin.Flag("site-root", "Site root for the heartbeat service").Short('s').Envar("HEARTBEATS_SITE_ROOT").Default("http://<listenaddress>").String()
-	maxSize       = kingpin.Flag("max-size", "Maximum size of the cache").Short('m').Envar("HEARTBEATS_MAX_SIZE").Default("1000").Int()
-	reduce        = kingpin.Flag("reduce", "Percentage to reduce when max size is exceeded").Short('r').Envar("HEARTBEATS_REDUCE").Default("25").Int()
-	verbose       = kingpin.Flag("verbose", "Enable verbose logging").Short('v').Envar("HEARTBEATS_VERBOSE").Bool()
+	configPath     = kingpin.Flag("config", "Path to the configuration file").Short('c').Envar("HEARTBEATS_CONFIG").Default("./deploy/config.yaml").String()
+	listenAddress  = kingpin.Flag("listen-address", "Address to listen on").Short('l').Envar("HEARTBEATS_LISTEN_ADDRESS").Default("localhost:8080").String()
+	siteRoot       = kingpin.Flag("site-root", "Site root for the heartbeat service").Short('s').Envar("HEARTBEATS_SITE_ROOT").Default("http://<listenaddress>").String()
+	maxSize        = kingpin.Flag("max-size", "Maximum size of the cache").Short('m').Envar("HEARTBEATS_MAX_SIZE").Default("1000").Int()
+	reduce         = kingpin.Flag("reduce", "Percentage to reduce when max size is exceeded").Short('r').Envar("HEARTBEATS_REDUCE").Default("25").Int()
+	validateConfig = kingpin.Flag("validate-config", "Validate config").Envar("HEARTBEATS_VALIDATE_CONFIG").Bool()
+	verbose        = kingpin.Flag("verbose", "Enable verbose logging").Short('v').Envar("HEARTBEATS_VERBOSE").Bool()
 )
 
+// run initializes and runs the server with the provided context and verbosity settings.
 func run(ctx context.Context, verbose bool) error {
 	kingpin.Version(version)
 	kingpin.Parse()
@@ -41,22 +43,32 @@ func run(ctx context.Context, verbose bool) error {
 
 	if err := config.Read(
 		*configPath,
+		history.Config{
+			MaxSize: *maxSize,
+			Reduce:  *reduce,
+		},
 		heartbeatsStore,
 		notificationStore,
 		historyStore,
-		*maxSize,
-		*reduce,
 	); err != nil {
 		return fmt.Errorf("error reading config file: %v", err)
 	}
 
+	if validateConfig != nil && *validateConfig {
+		if err := config.Validate(*configPath); err != nil {
+			return fmt.Errorf("Error validating config file: %v", err)
+		}
+	}
+
 	return server.Run(
 		ctx,
-		*listenAddress,
-		version,
-		*siteRoot,
-		templates,
 		log,
+		version,
+		server.Config{
+			ListenAddress: *listenAddress,
+			SiteRoot:      *siteRoot,
+		},
+		templates,
 		heartbeatsStore,
 		notificationStore,
 		historyStore,
