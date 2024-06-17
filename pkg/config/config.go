@@ -34,22 +34,12 @@ func Read(path string, historyConfig history.Config, heartbeatsStore *heartbeat.
 }
 
 // Validate validates the configuration file.
-func Validate(path string) error {
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return fmt.Errorf("failed to read config file. %w", err)
-	}
-
-	var rawConfig map[string]interface{}
-	if err := yaml.Unmarshal(content, &rawConfig); err != nil {
-		return fmt.Errorf("failed to unmarshal raw config. %w", err)
-	}
-
-	if err := validateNotifications(rawConfig["notifications"]); err != nil {
+func Validate(heartbeatStore *heartbeat.Store, notificationStore *notify.Store) error {
+	if err := validateNotifications(notificationStore); err != nil {
 		return err
 	}
 
-	if err := validateHeartbeats(rawConfig["heartbeats"]); err != nil {
+	if err := validateHeartbeats(heartbeatStore, notificationStore); err != nil {
 		return err
 	}
 
@@ -132,30 +122,15 @@ func processHeartbeats(rawHeartbeats interface{}, heartbeatStore *heartbeat.Stor
 }
 
 // validateNotifications validates the notification configurations.
-func validateNotifications(rawNotifications interface{}) error {
-	notifications, ok := rawNotifications.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("failed to unmarshal notifications")
-	}
-
-	for name, rawNotification := range notifications {
-		notificationBytes, err := yaml.Marshal(rawNotification)
-		if err != nil {
-			return fmt.Errorf("failed to marshal notification '%s'. %w", name, err)
+func validateNotifications(notificationStore *notify.Store) error {
+	var hbDummy heartbeat.Heartbeat
+	for _, notification := range notificationStore.GetAll() {
+		if notification.Enabled != nil && !*notification.Enabled {
+			continue
 		}
 
-		var notification notify.Notification
-		if err := yaml.Unmarshal(notificationBytes, &notification); err != nil {
-			return fmt.Errorf("failed to unmarshal notification '%s'. %w", name, err)
-		}
-
-		if notification.Type == "slack" {
-			if notification.SlackConfig == nil {
-				return fmt.Errorf("slack configuration for '%s' is missing", name)
-			}
-			if _, err := notify.DefaultFormatter(notification.SlackConfig.Text, &heartbeat.Heartbeat{}, false); err != nil {
-				return fmt.Errorf("invalid text template for slack notification '%s'. %w", name, err)
-			}
+		if err := notification.ValidateTemplate(&hbDummy); err != nil {
+			return fmt.Errorf("cannot validate templates. %s", err)
 		}
 	}
 
@@ -163,29 +138,12 @@ func validateNotifications(rawNotifications interface{}) error {
 }
 
 // validateHeartbeats validates the heartbeat configurations.
-func validateHeartbeats(rawHeartbeats interface{}) error {
-	heartbeats, ok := rawHeartbeats.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("failed to unmarshal heartbeats")
-	}
-
-	for name, rawHeartbeat := range heartbeats {
-		heartbeatBytes, err := yaml.Marshal(rawHeartbeat)
-		if err != nil {
-			return fmt.Errorf("failed to marshal heartbeat '%s'. %w", name, err)
-		}
-
-		var hb heartbeat.Heartbeat
-		if err := yaml.Unmarshal(heartbeatBytes, &hb); err != nil {
-			return fmt.Errorf("failed to unmarshal heartbeat '%s'. %w", name, err)
-		}
-
-		if hb.Interval == nil {
-			return fmt.Errorf("interval timer is required for heartbeat '%s'", name)
-		}
-
-		if hb.Grace == nil {
-			return fmt.Errorf("grace timer is required for heartbeat '%s'", name)
+func validateHeartbeats(heartbeatStore *heartbeat.Store, notificationStore *notify.Store) error {
+	for name, heartbeat := range heartbeatStore.GetAll() {
+		for _, notification := range heartbeat.Notifications {
+			if exists := notificationStore.Get(notification); exists == nil {
+				return fmt.Errorf("notification '%s' not found for heartbeat '%s'.", notification, name)
+			}
 		}
 	}
 

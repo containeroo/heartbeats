@@ -4,8 +4,11 @@ import (
 	"heartbeats/pkg/heartbeat"
 	"heartbeats/pkg/history"
 	"heartbeats/pkg/notify"
+	"heartbeats/pkg/notify/notifier"
+	"heartbeats/pkg/timer"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
@@ -146,68 +149,117 @@ notifications:
 }
 
 func TestValidateNotifications(t *testing.T) {
-	sampleConfig := `
-notifications:
-  valid_notification:
-    type: slack
-    slack_config:
-      channel: general
-      text: "{{ .Name }} is {{ .Status }}"
-
-  invalid_notification:
-    type: slack
-    slack_config:
-      channel: general
-      text: "{{ .InvalidField }} is {{ .Status }}"
-`
-
-	t.Run("Validate valid and invalid notifications", func(t *testing.T) {
-		var rawConfig map[string]interface{}
-		err := yaml.Unmarshal([]byte(sampleConfig), &rawConfig)
+	t.Run("Validate valid notification", func(t *testing.T) {
+		ns := notify.NewStore()
+		err := ns.Add("valid_notification", &notify.Notification{
+			Type: "slack",
+			SlackConfig: &notifier.SlackConfig{
+				Channel: "general",
+				Title:   "title",
+				Text:    "{{ .Name }} is {{ .Status }}",
+			},
+		})
 		assert.NoError(t, err)
 
-		err = validateNotifications(rawConfig["notifications"])
+		err = validateNotifications(ns)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Validate valid and invalid notifications", func(t *testing.T) {
+		ns := notify.NewStore()
+		err := ns.Add("valid_notification", &notify.Notification{
+			Type: "slack",
+			SlackConfig: &notifier.SlackConfig{
+				Channel: "general",
+				Title:   "title",
+				Text:    "{{ .Name }} is {{ .Status }}",
+			},
+		})
+		assert.NoError(t, err)
+
+		err = ns.Add("invalid_notification", &notify.Notification{
+			Type: "slack",
+			SlackConfig: &notifier.SlackConfig{
+				Channel: "general",
+				Title:   "title",
+				Text:    "{{ .InvalidField }} is {{ .Status }}",
+			},
+		})
+		assert.NoError(t, err)
+
+		err = validateNotifications(ns)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid text template for slack notification 'invalid_notification'")
+		assert.Contains(t, err.Error(), "cannot validate templates. cannot validate Slack text template. error executing template. template: text:1:3: executing \"text\" at <.InvalidField>: can't evaluate field InvalidField in type *heartbeat.Heartbeat")
 	})
 }
 
 func TestValidateHeartbeats(t *testing.T) {
-	t.Run("Validate valid and invalid interval heartbeats", func(t *testing.T) {
-		sampleConfig := `
-heartbeats:
-  valid_heartbeat:
-    interval: 1m
-    grace: 1m
+	ns := notify.NewStore()
+	err := ns.Add("valid_notification", &notify.Notification{
+		Type: "slack",
+		SlackConfig: &notifier.SlackConfig{
+			Channel: "general",
+			Text:    "{{ .Name }} is {{ .Status }}",
+		},
+	})
+	assert.NoError(t, err)
 
-  invalid_heartbeat:
-    grace: 1m
-    `
-		var rawConfig map[string]interface{}
-		err := yaml.Unmarshal([]byte(sampleConfig), &rawConfig)
+	i, err := time.ParseDuration("1m")
+	assert.NoError(t, err)
+
+	timerDummy := timer.Timer{
+		Interval: &i,
+	}
+
+	t.Run("Validate valid heartbeats", func(t *testing.T) {
+		hs := heartbeat.NewStore()
+		err := hs.Add("valid_heartbeat", &heartbeat.Heartbeat{
+			Name:          "valid_heartbeat",
+			Interval:      &timerDummy,
+			Grace:         &timerDummy,
+			Notifications: []string{"valid_notification"},
+		})
 		assert.NoError(t, err)
 
-		err = validateHeartbeats(rawConfig["heartbeats"])
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "interval timer is required for heartbeat 'invalid_heartbeat'")
+		err = validateHeartbeats(hs, ns)
+		assert.NoError(t, err)
 	})
 
-	t.Run("Validate valid and invalid grace heartbeats", func(t *testing.T) {
-		sampleConfig := `
-heartbeats:
-  valid_heartbeat:
-    interval: 1m
-    grace: 1m
-
-  invalid_heartbeat:
-    interval: 1m
-  `
-		var rawConfig map[string]interface{}
-		err := yaml.Unmarshal([]byte(sampleConfig), &rawConfig)
+	t.Run("Validate valid and invalid interval heartbeats", func(t *testing.T) {
+		hs := heartbeat.NewStore()
+		err := hs.Add("valid_heartbeat", &heartbeat.Heartbeat{
+			Name:          "valid_heartbeat",
+			Interval:      &timerDummy,
+			Grace:         &timerDummy,
+			Notifications: []string{"valid_notification"},
+		})
 		assert.NoError(t, err)
 
-		err = validateHeartbeats(rawConfig["heartbeats"])
+		err = hs.Add("invalid_heartbeat", &heartbeat.Heartbeat{
+			Name:          "invalid_heartbeat",
+			Interval:      &timerDummy,
+			Grace:         &timerDummy,
+			Notifications: []string{"invalid_notification"},
+		})
+		assert.NoError(t, err)
+
+		err = validateHeartbeats(hs, ns)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "grace timer is required for heartbeat 'invalid_heartbeat'")
+		assert.Contains(t, err.Error(), "notification 'invalid_notification' not found for heartbeat 'invalid_heartbeat'.")
+	})
+
+	t.Run("Validate invalid notification", func(t *testing.T) {
+		hs := heartbeat.NewStore()
+		err := hs.Add("valid_heartbeat", &heartbeat.Heartbeat{
+			Name:          "valid_heartbeat",
+			Interval:      &timerDummy,
+			Grace:         &timerDummy,
+			Notifications: []string{"invalid_notification"},
+		})
+		assert.NoError(t, err)
+
+		err = validateHeartbeats(hs, ns)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "notification 'invalid_notification' not found for heartbeat 'valid_heartbeat'.")
 	})
 }
