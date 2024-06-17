@@ -80,7 +80,7 @@ hartbeats:
 Each notification can only have one config. If you want to send multiple notifications, you must create multiple notifications entries.
 
 You can use all properties from heartbeats in `title`, `text`, `subject` or `body`. The variables must start with a dot, a capital letter and be surrounded by double curly brackets. Example: `{{ .Status }}`.
-The project includes [masterminds/sprig](https://github.com/Masterminds/sprig) for additional template functions, and also introduces two functions, `isTrue` and `isFalse`. These functions are particularly useful for `SendResolve` and `Enabled`, as these fields default to `true` if not explicitly set.
+The project includes [masterminds/sprig](https://github.com/Masterminds/sprig) for additional template functions, and also introduces two functions, `isTrue` and `isFalse`. These functions are particularly useful for `SendResolve` and `Enabled`, as these fields default to `true` if not explicitly set. Additionally, a new function `isRecent` has been added to check if a given time is within a second, useful for `LastPing`.
 
 ### Resolving variables
 

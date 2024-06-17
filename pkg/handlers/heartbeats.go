@@ -5,6 +5,7 @@ import (
 	"heartbeats/pkg/logger"
 	"heartbeats/pkg/notify"
 	"heartbeats/pkg/timer"
+	"heartbeats/pkg/utils"
 	"html/template"
 	"io/fs"
 	"net/http"
@@ -41,9 +42,9 @@ type NotificationState struct {
 func Heartbeats(logger logger.Logger, staticFS fs.FS, version, siteRoot string, heartbeatStore *heartbeat.Store, notificationStore *notify.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmap := sprig.TxtFuncMap()
-		fmap["isTrue"] = isTrue
-		fmap["isFalse"] = isFalse
-		fmap["formatTime"] = formatTime
+		fmap["isTrue"] = utils.IsTrue
+		fmap["isFalse"] = utils.IsFalse
+		fmap["formatTime"] = utils.FormatTime
 
 		tmpl, err := template.New("heartbeat").
 			Funcs(fmap).

@@ -15,7 +15,7 @@ import (
 	"github.com/alecthomas/kingpin/v2"
 )
 
-const version = "0.6.10"
+const version = "0.6.11"
 
 //go:embed web
 var templates embed.FS

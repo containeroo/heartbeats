@@ -5,6 +5,7 @@ import (
 	"heartbeats/pkg/heartbeat"
 	"heartbeats/pkg/history"
 	"heartbeats/pkg/logger"
+	"heartbeats/pkg/utils"
 	"html/template"
 	"io/fs"
 	"net/http"
@@ -35,7 +36,7 @@ func History(logger logger.Logger, staticFS fs.FS, version string, heartbeatStor
 		}
 
 		fmap := template.FuncMap{
-			"formatTime": formatTime,
+			"formatTime": utils.FormatTime,
 		}
 
 		tmpl, err := template.New("history").

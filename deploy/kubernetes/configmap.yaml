@@ -43,7 +43,7 @@ data:
           text: |
             *Description:*
             {{ .Description }}.
-            Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
+            Last ping: {{ if isRecent .LastPing }}now{{ else }}{{ ago .LastPing }}{{ end }}
       int-slack:
         enabled: true
         slack_config:
@@ -53,7 +53,7 @@ data:
           text: |
             *Description:*
             {{ .Description }}.
-            Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
+            Last ping: {{ if isRecent .LastPing }}now{{ else }}{{ ago .LastPing }}{{ end }}
       gmail:
         enabled: false
         mail_config:
@@ -82,5 +82,5 @@ data:
           text: |
             *Description:*
             {{ .Description }}.
-            Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
+            Last ping: {{ if isRecent .LastPing }}now{{ else }}{{ ago .LastPing }}{{ end }}
           webhook_url: file:/secrets/teams/webhooks//int-teams
