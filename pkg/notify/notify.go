@@ -71,6 +71,17 @@ func (n *Notification) CheckResolveVariables() error {
 	return n.Notifier.CheckResolveVariables()
 }
 
+// ValidateTemplate validates the notification templates against the provided data.
+//
+// Parameters:
+//   - data: The data to be injected into the templates for validation.
+//
+// Returns:
+//   - error: An error if the notification template cannot be validated.
+func (n *Notification) ValidateTemplate(data interface{}) error {
+	return n.Notifier.ValidateTemplate(data)
+}
+
 // GetAll retrieves a copy of all notifications in the store.
 //
 // Returns:
@@ -154,6 +165,7 @@ func (s *Store) Update(name string, notification *Notification) error {
 
 	notification.Notifier = instance
 	s.notifications[name] = notification
+
 	return nil
 }
 

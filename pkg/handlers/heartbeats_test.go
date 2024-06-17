@@ -1,9 +1,7 @@
 package handlers
 
 import (
-	"heartbeats/pkg/config"
 	"heartbeats/pkg/heartbeat"
-	"heartbeats/pkg/history"
 	"heartbeats/pkg/logger"
 	"heartbeats/pkg/notify"
 	"heartbeats/pkg/notify/notifier"
@@ -44,9 +42,11 @@ func setupAferoFSForHeartbeats() afero.Fs {
 
 func TestHeartbeatsHandler(t *testing.T) {
 	log := logger.NewLogger(true)
-	config.App.HeartbeatStore = heartbeat.NewStore()
-	config.App.NotificationStore = notify.NewStore()
-	config.HistoryStore = history.NewStore()
+
+	heartbeatStore := heartbeat.NewStore()
+	notificationStore := notify.NewStore()
+	version := "1.0.0"
+	siteRoot := "http://localhost:8080"
 
 	h := &heartbeat.Heartbeat{
 		Name:          "test",
@@ -59,7 +59,7 @@ func TestHeartbeatsHandler(t *testing.T) {
 	*h.Interval.Interval = time.Minute
 	*h.Grace.Interval = time.Minute
 
-	err := config.App.HeartbeatStore.Add("test", h)
+	err := heartbeatStore.Add("test", h)
 	assert.NoError(t, err)
 
 	ns := &notify.Notification{
@@ -70,13 +70,13 @@ func TestHeartbeatsHandler(t *testing.T) {
 	}
 	*ns.Enabled = false
 
-	err = config.App.NotificationStore.Add("test", ns)
+	err = notificationStore.Add("test", ns)
 	assert.NoError(t, err)
 
 	aferoFS := setupAferoFSForHeartbeats()
 
 	mux := http.NewServeMux()
-	mux.Handle("/", Heartbeats(log, aferoToCustomAferoFS(aferoFS)))
+	mux.Handle("/", Heartbeats(log, aferoToCustomAferoFS(aferoFS), version, siteRoot, heartbeatStore, notificationStore))
 
 	t.Run("Heartbeat page renders correctly", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
@@ -93,8 +93,7 @@ func TestHeartbeatsHandler(t *testing.T) {
 	t.Run("Template parsing error", func(t *testing.T) {
 		invalidFS := afero.NewMemMapFs() // Empty FS to simulate missing templates
 		mux := http.NewServeMux()
-		mux.Handle("/", Heartbeats(log, aferoToCustomAferoFS(invalidFS)))
-
+		mux.Handle("/", Heartbeats(log, aferoToCustomAferoFS(invalidFS), version, siteRoot, heartbeatStore, notificationStore))
 		req := httptest.NewRequest("GET", "/", nil)
 		rec := httptest.NewRecorder()
 

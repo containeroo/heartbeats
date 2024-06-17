@@ -35,7 +35,7 @@ type SlackNotifier struct {
 //
 // Returns:
 //   - error: An error if sending the notification fails.
-func (s SlackNotifier) Send(ctx context.Context, data interface{}, isResolved bool, formatter Formatter) error {
+func (s *SlackNotifier) Send(ctx context.Context, data interface{}, isResolved bool, formatter Formatter) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -84,11 +84,30 @@ func (s SlackNotifier) Send(ctx context.Context, data interface{}, isResolved bo
 	return nil
 }
 
+// ValidateTemplate validates the notification templates against the provided data.
+//
+// Parameters:
+//   - data: The data to be injected into the templates for validation.
+//
+// Returns:
+//   - error: An error if the notification template cannot be validated.
+func (s *SlackNotifier) ValidateTemplate(data interface{}) error {
+	if _, err := utils.FormatTemplate("title", s.Config.Title, data); err != nil {
+		return fmt.Errorf("cannot validate Slack title template. %s", err)
+	}
+
+	if _, err := utils.FormatTemplate("text", s.Config.Text, data); err != nil {
+		return fmt.Errorf("cannot validate Slack text template. %s", err)
+	}
+
+	return nil
+}
+
 // CheckResolveVariables checks if the configuration fields are resolvable.
 //
 // Returns:
 //   - error: An error if any of the configuration fields cannot be resolved.
-func (e SlackNotifier) CheckResolveVariables() error {
+func (e *SlackNotifier) CheckResolveVariables() error {
 	if _, err := resolveSlackConfig(e.Config); err != nil {
 		return err
 	}
@@ -103,7 +122,6 @@ func (e SlackNotifier) CheckResolveVariables() error {
 //
 // Returns:
 //   - SlackConfig: The resolved SlackConfig.
-//   - error: An error if any of the configuration values cannot be resolved.
 func resolveSlackConfig(config SlackConfig) (SlackConfig, error) {
 	token, err := resolver.ResolveVariable(config.Token)
 	if err != nil {
@@ -140,7 +158,7 @@ func resolveSlackConfig(config SlackConfig) (SlackConfig, error) {
 }
 
 // String returns the type of the notifier.
-func (s SlackNotifier) String() string {
+func (s *SlackNotifier) String() string {
 	return SlackType
 }
 

@@ -6,69 +6,9 @@ import (
 	"time"
 )
 
-// HistoryEntry represents a single entry in the history log.
-type HistoryEntry struct {
-	Time    time.Time
-	Event   Event
-	Message string
-	Details map[string]string
-}
-
-// History maintains a history of events with a maximum size.
-type History struct {
-	mu          sync.Mutex
-	entries     []HistoryEntry
-	maxSize     int
-	reduceRatio int // percentage reduction, e.g., 20 for 20%
-}
-
-// NewHistory creates a new History instance.
-func NewHistory(maxSize, reduceRatio int) (*History, error) {
-	if reduceRatio > 100 {
-		return nil, fmt.Errorf("reduce is a percentage and cannot be more 100.")
-	}
-
-	return &History{
-		entries:     make([]HistoryEntry, 0, maxSize),
-		maxSize:     maxSize,
-		reduceRatio: reduceRatio,
-	}, nil
-}
-
-// AddEntry adds a new entry to the history.
-func (h *History) AddEntry(event Event, message string, details map[string]string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	h.entries = append(h.entries, HistoryEntry{
-		Time:    time.Now(),
-		Event:   event,
-		Message: message,
-		Details: details,
-	})
-
-	if len(h.entries) > h.maxSize {
-		h.reduceSize()
-	}
-}
-
-// reduceSize reduces the number of entries in the history by the specified percentage.
-func (h *History) reduceSize() {
-	reduceTo := h.maxSize - (h.maxSize * h.reduceRatio / 100)
-	if reduceTo < 0 {
-		reduceTo = 0
-	}
-	if len(h.entries) > reduceTo {
-		h.entries = h.entries[len(h.entries)-reduceTo:]
-	}
-}
-
-// GetAllEntries returns all history entries.
-func (h *History) GetAllEntries() []HistoryEntry {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	return h.entries
+type Config struct {
+	MaxSize int
+	Reduce  int
 }
 
 // Store manages histories for multiple heartbeats.
@@ -120,4 +60,69 @@ func (s *Store) Delete(name string) {
 	defer s.mu.Unlock()
 
 	delete(s.histories, name)
+}
+
+// HistoryEntry represents a single entry in the history log.
+type HistoryEntry struct {
+	Time    time.Time
+	Event   Event
+	Message string
+	Details map[string]string
+}
+
+// History maintains a history of events with a maximum size.
+type History struct {
+	mu          sync.Mutex
+	entries     []HistoryEntry
+	maxSize     int
+	reduceRatio int // percentage reduction, e.g., 20 for 20%
+}
+
+// NewHistory creates a new History instance.
+func NewHistory(maxSize, reduceRatio int) (*History, error) {
+	if reduceRatio > 100 {
+		return nil, fmt.Errorf("reduce is a percentage and cannot be more 100.")
+	}
+
+	return &History{
+		entries:     make([]HistoryEntry, 0, maxSize),
+		maxSize:     maxSize,
+		reduceRatio: reduceRatio,
+	}, nil
+}
+
+// Add adds a new entry to the history.
+func (h *History) Add(event Event, message string, details map[string]string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	h.entries = append(h.entries, HistoryEntry{
+		Time:    time.Now(),
+		Event:   event,
+		Message: message,
+		Details: details,
+	})
+
+	if len(h.entries) > h.maxSize {
+		h.reduceSize()
+	}
+}
+
+// reduceSize reduces the number of entries in the history by the specified percentage.
+func (h *History) reduceSize() {
+	reduceTo := h.maxSize - (h.maxSize * h.reduceRatio / 100)
+	if reduceTo < 0 {
+		reduceTo = 0
+	}
+	if len(h.entries) > reduceTo {
+		h.entries = h.entries[len(h.entries)-reduceTo:]
+	}
+}
+
+// GetAllEntries returns all history entries.
+func (h *History) GetAllEntries() []HistoryEntry {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	return h.entries
 }

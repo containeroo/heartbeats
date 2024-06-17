@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"heartbeats/pkg/notify/resolver"
 	"heartbeats/pkg/notify/services/email"
+	"heartbeats/pkg/notify/utils"
 	"time"
 )
 
@@ -31,7 +32,7 @@ type EmailNotifier struct {
 //
 // Returns:
 //   - error: An error if sending the notification fails.
-func (e EmailNotifier) Send(ctx context.Context, data interface{}, isResolved bool, formatter Formatter) error {
+func (e *EmailNotifier) Send(ctx context.Context, data interface{}, isResolved bool, formatter Formatter) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -62,11 +63,30 @@ func (e EmailNotifier) Send(ctx context.Context, data interface{}, isResolved bo
 	return nil
 }
 
+// ValidateTemplate validates the notification templates against the provided data.
+//
+// Parameters:
+//   - data: The data to be injected into the templates for validation.
+//
+// Returns:
+//   - error: An error if the notification template cannot be validated.
+func (e *EmailNotifier) ValidateTemplate(data interface{}) error {
+	if _, err := utils.FormatTemplate("title", e.Config.Email.Subject, data); err != nil {
+		return fmt.Errorf("cannot validate email subject template. %s", err)
+	}
+
+	if _, err := utils.FormatTemplate("text", e.Config.Email.Body, data); err != nil {
+		return fmt.Errorf("cannot validate email body template. %s", err)
+	}
+
+	return nil
+}
+
 // CheckResolveVariables checks if the configuration fields are resolvable.
 //
 // Returns:
 //   - error: An error if the configuration fields are not resolvable.
-func (e EmailNotifier) CheckResolveVariables() error {
+func (e *EmailNotifier) CheckResolveVariables() error {
 	if _, err := resolveSMTPConfig(e.Config.SMTP); err != nil {
 		return fmt.Errorf("cannot resolve SMTP config. %w", err)
 	}
@@ -153,6 +173,6 @@ func resolveEmailConfig(config email.Email) (email.Email, error) {
 }
 
 // String returns the type of the notifier.
-func (e EmailNotifier) String() string {
+func (e *EmailNotifier) String() string {
 	return EmailType
 }

@@ -3,7 +3,10 @@ package server
 import (
 	"context"
 	"embed"
+	"heartbeats/pkg/heartbeat"
+	"heartbeats/pkg/history"
 	"heartbeats/pkg/logger"
+	"heartbeats/pkg/notify"
 	"testing"
 	"time"
 
@@ -11,7 +14,19 @@ import (
 )
 
 func TestRun(t *testing.T) {
+	version := "1.0.0"
+
 	log := logger.NewLogger(true)
+
+	heartbeatStore := heartbeat.NewStore()
+	notificationStore := notify.NewStore()
+	historyStore := history.NewStore()
+
+	config := Config{
+		ListenAddress: "localhost:8080",
+		SiteRoot:      "http://localhost:8080",
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -20,7 +35,16 @@ func TestRun(t *testing.T) {
 		cancel()
 	}()
 
-	var staticFS embed.FS
-	err := Run(ctx, "localhost:8080", staticFS, log)
+	var templates embed.FS
+	err := Run(
+		ctx,
+		log,
+		version,
+		config,
+		templates,
+		heartbeatStore,
+		notificationStore,
+		historyStore,
+	)
 	assert.NoError(t, err)
 }

@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	"heartbeats/pkg/config"
+	"heartbeats/pkg/heartbeat"
 	"heartbeats/pkg/logger"
+	"heartbeats/pkg/notify"
 	"heartbeats/pkg/timer"
 	"html/template"
 	"io/fs"
@@ -37,7 +38,7 @@ type NotificationState struct {
 }
 
 // Heartbeats handles the / endpoint
-func Heartbeats(logger logger.Logger, staticFS fs.FS) http.HandlerFunc {
+func Heartbeats(logger logger.Logger, staticFS fs.FS, version, siteRoot string, heartbeatStore *heartbeat.Store, notificationStore *notify.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmap := sprig.TxtFuncMap()
 		fmap["isTrue"] = isTrue
@@ -56,9 +57,6 @@ func Heartbeats(logger logger.Logger, staticFS fs.FS) http.HandlerFunc {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-
-		heartbeatStore := config.App.HeartbeatStore
-		notificationStore := config.App.NotificationStore
 
 		var heartbeatDataList []*HeartbeatData
 		for _, h := range heartbeatStore.GetAll() {
@@ -84,8 +82,8 @@ func Heartbeats(logger logger.Logger, staticFS fs.FS) http.HandlerFunc {
 		}
 
 		data := HeartbeatPageData{
-			Version:    config.App.Version,
-			SiteRoot:   config.App.Server.SiteRoot,
+			Version:    version,
+			SiteRoot:   siteRoot,
 			Heartbeats: heartbeatDataList,
 		}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"heartbeats/pkg/notify/resolver"
 	"heartbeats/pkg/notify/services/msteams"
+	"heartbeats/pkg/notify/utils"
 	"time"
 )
 
@@ -32,13 +33,13 @@ type MSTeamsNotifier struct {
 //
 // Returns:
 //   - error: An error if sending the notification fails.
-func (s MSTeamsNotifier) Send(ctx context.Context, data interface{}, isResolved bool, formatter Formatter) error {
+func (m *MSTeamsNotifier) Send(ctx context.Context, data interface{}, isResolved bool, formatter Formatter) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	msteamsClient := msteams.New(nil, true)
 
-	msteamsConfig, err := resolveMSTeamsConfig(s.Config)
+	msteamsConfig, err := resolveMSTeamsConfig(m.Config)
 	if err != nil {
 		return fmt.Errorf("cannot resolve MS Teams config. %w", err)
 	}
@@ -65,12 +66,31 @@ func (s MSTeamsNotifier) Send(ctx context.Context, data interface{}, isResolved 
 	return nil
 }
 
+// ValidateTemplate validates the notification templates against the provided data.
+//
+// Parameters:
+//   - data: The data to be injected into the templates for validation.
+//
+// Returns:
+//   - error: An error if the notification template cannot be validated.
+func (m *MSTeamsNotifier) ValidateTemplate(data interface{}) error {
+	if _, err := utils.FormatTemplate("title", m.Config.Title, data); err != nil {
+		return fmt.Errorf("cannot validate MS Teams title template. %s", err)
+	}
+
+	if _, err := utils.FormatTemplate("text", m.Config.Text, data); err != nil {
+		return fmt.Errorf("cannot validate MS Teams text template. %s", err)
+	}
+
+	return nil
+}
+
 // CheckResolveVariables checks if the configuration fields are resolvable.
 //
 // Returns:
 //   - error: An error if the configuration fields are not resolvable.
-func (e MSTeamsNotifier) CheckResolveVariables() error {
-	if _, err := resolveMSTeamsConfig(e.Config); err != nil {
+func (m *MSTeamsNotifier) CheckResolveVariables() error {
+	if _, err := resolveMSTeamsConfig(m.Config); err != nil {
 		return err
 	}
 
@@ -109,6 +129,6 @@ func resolveMSTeamsConfig(config MSTeamsConfig) (MSTeamsConfig, error) {
 }
 
 // String returns the type of the notifier.
-func (m MSTeamsNotifier) String() string {
+func (m *MSTeamsNotifier) String() string {
 	return MSTeamsType
 }

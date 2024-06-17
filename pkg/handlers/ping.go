@@ -3,14 +3,15 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"heartbeats/pkg/config"
+	"heartbeats/pkg/heartbeat"
 	"heartbeats/pkg/history"
 	"heartbeats/pkg/logger"
+	"heartbeats/pkg/notify"
 	"net/http"
 )
 
 // Ping handles the /ping/{id} endpoint
-func Ping(logger logger.Logger) http.Handler {
+func Ping(logger logger.Logger, heartbeatStore *heartbeat.Store, notificationStore *notify.Store, historyStore *history.Store) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			// Use context.Background() to ensure the timers are not tied to the HTTP request context.
@@ -21,7 +22,7 @@ func Ping(logger logger.Logger) http.Handler {
 			clientIP := getClientIP(r)
 			logger.Debugf("%s /ping/%s %s %s", r.Method, heartbeatName, clientIP, r.UserAgent())
 
-			h := config.App.HeartbeatStore.Get(heartbeatName)
+			h := heartbeatStore.Get(heartbeatName)
 			if h == nil {
 				errMsg := fmt.Sprintf("Heartbeat '%s' not found", heartbeatName)
 				logger.Warn(errMsg)
@@ -39,16 +40,15 @@ func Ping(logger logger.Logger) http.Handler {
 			msg := "got ping"
 			logger.Infof("%s %s", heartbeatName, msg)
 
-			hs := config.HistoryStore.Get(heartbeatName)
-			hs.AddEntry(history.Beat, msg, details)
+			hs := historyStore.Get(heartbeatName)
+			hs.Add(history.Beat, msg, details)
 
 			if h.Enabled != nil && !*h.Enabled {
 				http.Error(w, fmt.Sprintf("Heartbeat '%s' not enabled", heartbeatName), http.StatusServiceUnavailable)
 				return
 			}
 
-			ns := config.App.NotificationStore
-			h.StartInterval(ctx, logger, ns, hs)
+			h.StartInterval(ctx, logger, notificationStore, hs)
 
 			w.WriteHeader(http.StatusOK)
 			if _, err := w.Write([]byte("ok")); err != nil {

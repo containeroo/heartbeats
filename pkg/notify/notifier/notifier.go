@@ -21,9 +21,18 @@ type Notifier interface {
 	//   - error: An error if sending the notification fails.
 	Send(ctx context.Context, data interface{}, isResolved bool, formatter Formatter) error
 
-	// CheckResolveVariables checks if the notifier configuration is valid.
+	// CheckResolveVariables checks if the configuration fields are resolvable.
 	//
 	// Returns:
-	//   - error: An error if the configuration is invalid.
+	//   - error: An error if any of the configuration fields cannot be resolved.
 	CheckResolveVariables() error
+
+	// ValidateTemplate validates the notification templates against the provided data.
+	//
+	// Parameters:
+	//   - data: The data to be injected into the templates for validation.
+	//
+	// Returns:
+	//   - error: An error if the notification template cannot be validated.
+	ValidateTemplate(data interface{}) error
 }

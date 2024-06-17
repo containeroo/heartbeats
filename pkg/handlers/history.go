@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"fmt"
-	"heartbeats/pkg/config"
+	"heartbeats/pkg/heartbeat"
 	"heartbeats/pkg/history"
 	"heartbeats/pkg/logger"
 	"html/template"
@@ -11,14 +11,24 @@ import (
 )
 
 // History handles the /history/{id} endpoint
-func History(logger logger.Logger, staticFS fs.FS) http.Handler {
+func History(logger logger.Logger, staticFS fs.FS, version string, heartbeatStore *heartbeat.Store, historyStore *history.Store) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		heartbeatName := r.PathValue("id")
-		logger.Debugf("%s /history/%s %s %s", r.Method, heartbeatName, r.RemoteAddr, r.UserAgent())
 
-		h := config.App.HeartbeatStore.Get(heartbeatName)
+		clientIP := getClientIP(r)
+		logger.Debugf("%s /history/%s %s %s", r.Method, heartbeatName, clientIP, r.UserAgent())
+
+		h := heartbeatStore.Get(heartbeatName)
 		if h == nil {
 			errMsg := fmt.Sprintf("Heartbeat '%s' not found", heartbeatName)
+			logger.Warn(errMsg)
+			http.Error(w, errMsg, http.StatusNotFound)
+			return
+		}
+
+		hi := historyStore.Get(heartbeatName)
+		if hi == nil {
+			errMsg := fmt.Sprintf("No history found for heartbeat '%s'", heartbeatName)
 			logger.Warn(errMsg)
 			http.Error(w, errMsg, http.StatusNotFound)
 			return
@@ -46,9 +56,9 @@ func History(logger logger.Logger, staticFS fs.FS) http.Handler {
 			Name    string
 			Entries []history.HistoryEntry
 		}{
-			Version: config.App.Version,
+			Version: version,
 			Name:    heartbeatName,
-			Entries: config.HistoryStore.Get(heartbeatName).GetAllEntries(),
+			Entries: hi.GetAllEntries(),
 		}
 
 		if err := tmpl.ExecuteTemplate(w, "history", data); err != nil {

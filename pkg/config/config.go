@@ -10,41 +10,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// App is the global configuration instance.
-var App = &Config{
-	HeartbeatStore:    heartbeat.NewStore(),
-	NotificationStore: notify.NewStore(),
-}
-
-// HistoryStore is the global HistoryStore.
-var HistoryStore = history.NewStore()
-
-// Cache configuration structure.
-type Cache struct {
-	MaxSize int `yaml:"maxSize"` // Maximum size of the cache
-	Reduce  int `yaml:"reduce"`  // Amount to reduce when max size is exceeded
-}
-
-// Server configuration structure.
-type Server struct {
-	SiteRoot      string `yaml:"siteRoot"`      // Site root
-	ListenAddress string `yaml:"listenAddress"` // Address on which the application listens
-}
-
-// Config holds the entire application configuration.
-type Config struct {
-	Version           string           `yaml:"version"`
-	Verbose           bool             `yaml:"verbose"`
-	Path              string           `yaml:"path"`
-	Server            Server           `yaml:"server"`
-	Cache             Cache            `yaml:"cache"`
-	HeartbeatStore    *heartbeat.Store `yaml:"heartbeats"`
-	NotificationStore *notify.Store    `yaml:"notifications"`
-}
-
-// Read reads the configuration from the file specified in the Config struct.
-func (c *Config) Read() error {
-	content, err := os.ReadFile(c.Path)
+// Read reads the configuration from a specified file and processes it.
+func Read(path string, historyConfig history.Config, heartbeatsStore *heartbeat.Store, notificationStore *notify.Store, historyStore *history.Store) error {
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read config file. %w", err)
 	}
@@ -54,19 +22,32 @@ func (c *Config) Read() error {
 		return fmt.Errorf("failed to unmarshal raw config. %w", err)
 	}
 
-	if err := c.processNotifications(rawConfig["notifications"]); err != nil {
+	if err := processNotifications(rawConfig["notifications"], notificationStore); err != nil {
 		return err
 	}
 
-	if err := c.processHeartbeats(rawConfig["heartbeats"]); err != nil {
+	if err := processHeartbeats(rawConfig["heartbeats"], heartbeatsStore, historyStore, historyConfig.MaxSize, historyConfig.Reduce); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// processNotifications handles the unmarshaling and processing of notification configurations.
-func (c *Config) processNotifications(rawNotifications interface{}) error {
+// Validate validates the configuration file.
+func Validate(heartbeatStore *heartbeat.Store, notificationStore *notify.Store) error {
+	if err := validateNotifications(notificationStore); err != nil {
+		return err
+	}
+
+	if err := validateHeartbeats(heartbeatStore, notificationStore); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// processNotifications processes the raw notification configurations and updates the notification store.
+func processNotifications(rawNotifications interface{}, notificationStore *notify.Store) error {
 	notifications, ok := rawNotifications.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("failed to unmarshal notifications")
@@ -83,11 +64,11 @@ func (c *Config) processNotifications(rawNotifications interface{}) error {
 			return fmt.Errorf("failed to unmarshal notification '%s'. %w", name, err)
 		}
 
-		if err := c.NotificationStore.Add(name, &notification); err != nil {
+		if err := notificationStore.Add(name, &notification); err != nil {
 			return fmt.Errorf("failed to add notification '%s'. %w", name, err)
 		}
 
-		if err := c.updateSlackNotification(name, &notification); err != nil {
+		if err := updateSlackNotification(name, &notification, notificationStore); err != nil {
 			return err
 		}
 	}
@@ -95,24 +76,23 @@ func (c *Config) processNotifications(rawNotifications interface{}) error {
 	return nil
 }
 
-// updateSlackNotification updates the Slack notification with a default color template if not set.
-func (c *Config) updateSlackNotification(name string, notification *notify.Notification) error {
+// updateSlackNotification sets a default color template for Slack notifications if not provided and updates the notification store.
+func updateSlackNotification(name string, notification *notify.Notification, notificationStore *notify.Store) error {
 	if notification.Type == "slack" && notification.SlackConfig.ColorTemplate == "" {
 		notification.SlackConfig.ColorTemplate = `{{ if eq .Status "ok" }}good{{ else }}danger{{ end }}`
-		if err := c.NotificationStore.Update(name, notification); err != nil {
+		if err := notificationStore.Update(name, notification); err != nil {
 			return fmt.Errorf("failed to update notification '%s'. %w", notification.Name, err)
 		}
 	}
 	return nil
 }
 
-// processHeartbeats handles the unmarshaling and processing of heartbeat configurations.
-func (c *Config) processHeartbeats(rawHeartbeats interface{}) error {
+// processHeartbeats processes and adds heartbeats to the store, creating their respective histories.
+func processHeartbeats(rawHeartbeats interface{}, heartbeatStore *heartbeat.Store, historyStore *history.Store, maxSize, reduce int) error {
 	heartbeats, ok := rawHeartbeats.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("failed to unmarshal heartbeats")
 	}
-
 	for name, rawHeartbeat := range heartbeats {
 		heartbeatBytes, err := yaml.Marshal(rawHeartbeat)
 		if err != nil {
@@ -124,17 +104,46 @@ func (c *Config) processHeartbeats(rawHeartbeats interface{}) error {
 			return fmt.Errorf("failed to unmarshal heartbeat '%s'. %w", name, err)
 		}
 
-		if err := c.HeartbeatStore.Add(name, &hb); err != nil {
+		if err := heartbeatStore.Add(name, &hb); err != nil {
 			return fmt.Errorf("failed to add heartbeat '%s'. %w", hb.Name, err)
 		}
 
-		historyInstance, err := history.NewHistory(c.Cache.MaxSize, c.Cache.Reduce)
+		historyInstance, err := history.NewHistory(maxSize, reduce)
 		if err != nil {
-			return fmt.Errorf("failed to add heartbeat '%s'. %w", hb.Name, err)
+			return fmt.Errorf("failed to create history for heartbeat '%s'. %w", name, err)
 		}
 
-		if err := HistoryStore.Add(name, historyInstance); err != nil {
+		if err := historyStore.Add(name, historyInstance); err != nil {
 			return fmt.Errorf("failed to create heartbeat history for '%s'. %w", name, err)
+		}
+	}
+
+	return nil
+}
+
+// validateNotifications validates the notification configurations.
+func validateNotifications(notificationStore *notify.Store) error {
+	var hbDummy heartbeat.Heartbeat
+	for _, notification := range notificationStore.GetAll() {
+		if notification.Enabled != nil && !*notification.Enabled {
+			continue
+		}
+
+		if err := notification.ValidateTemplate(&hbDummy); err != nil {
+			return fmt.Errorf("cannot validate templates. %s", err)
+		}
+	}
+
+	return nil
+}
+
+// validateHeartbeats validates the heartbeat configurations.
+func validateHeartbeats(heartbeatStore *heartbeat.Store, notificationStore *notify.Store) error {
+	for name, heartbeat := range heartbeatStore.GetAll() {
+		for _, notification := range heartbeat.Notifications {
+			if exists := notificationStore.Get(notification); exists == nil {
+				return fmt.Errorf("notification '%s' not found for heartbeat '%s'.", notification, name)
+			}
 		}
 	}
 

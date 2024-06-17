@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"heartbeats/pkg/config"
 	"heartbeats/pkg/heartbeat"
 	"heartbeats/pkg/history"
 	"heartbeats/pkg/logger"
@@ -17,9 +16,9 @@ import (
 
 func TestPingHandler(t *testing.T) {
 	log := logger.NewLogger(true)
-	config.App.HeartbeatStore = heartbeat.NewStore()
-	config.App.NotificationStore = notify.NewStore()
-	config.HistoryStore = history.NewStore()
+	heartbeatStore := heartbeat.NewStore()
+	notificationStore := notify.NewStore()
+	historyStore := history.NewStore()
 
 	h := &heartbeat.Heartbeat{
 		Name:     "test",
@@ -31,20 +30,20 @@ func TestPingHandler(t *testing.T) {
 	*h.Interval.Interval = time.Minute
 	*h.Grace.Interval = time.Minute
 
-	err := config.App.HeartbeatStore.Add("test", h)
+	err := heartbeatStore.Add("test", h)
 	assert.NoError(t, err)
 
 	hist, err := history.NewHistory(10, 2)
 	assert.NoError(t, err)
 
-	err = config.HistoryStore.Add("test", hist)
+	err = historyStore.Add("test", hist)
 	assert.NoError(t, err)
 
 	ns := notify.NewStore()
-	config.App.NotificationStore = ns
+	notificationStore = ns
 
 	mux := http.NewServeMux()
-	mux.Handle("GET /ping/{id}", Ping(log))
+	mux.Handle("GET /ping/{id}", Ping(log, heartbeatStore, notificationStore, historyStore))
 
 	t.Run("Heartbeat found and enabled", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/ping/test", nil)
