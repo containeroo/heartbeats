@@ -77,6 +77,7 @@ func (m *MSTeamsNotifier) ValidateTemplate(data interface{}) error {
 	if _, err := utils.FormatTemplate("title", m.Config.Title, data); err != nil {
 		return fmt.Errorf("cannot validate MS Teams title template. %s", err)
 	}
+
 	if _, err := utils.FormatTemplate("text", m.Config.Text, data); err != nil {
 		return fmt.Errorf("cannot validate MS Teams text template. %s", err)
 	}

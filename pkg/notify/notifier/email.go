@@ -74,6 +74,7 @@ func (e *EmailNotifier) ValidateTemplate(data interface{}) error {
 	if _, err := utils.FormatTemplate("title", e.Config.Email.Subject, data); err != nil {
 		return fmt.Errorf("cannot validate email subject template. %s", err)
 	}
+
 	if _, err := utils.FormatTemplate("text", e.Config.Email.Body, data); err != nil {
 		return fmt.Errorf("cannot validate email body template. %s", err)
 	}

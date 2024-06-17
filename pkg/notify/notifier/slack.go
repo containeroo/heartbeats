@@ -95,6 +95,7 @@ func (s *SlackNotifier) ValidateTemplate(data interface{}) error {
 	if _, err := utils.FormatTemplate("title", s.Config.Title, data); err != nil {
 		return fmt.Errorf("cannot validate Slack title template. %s", err)
 	}
+
 	if _, err := utils.FormatTemplate("text", s.Config.Text, data); err != nil {
 		return fmt.Errorf("cannot validate Slack text template. %s", err)
 	}
