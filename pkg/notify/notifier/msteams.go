@@ -3,9 +3,9 @@ package notifier
 import (
 	"context"
 	"fmt"
-	"heartbeats/pkg/notify/resolver"
 	"heartbeats/pkg/notify/services/msteams"
 	"heartbeats/pkg/notify/utils"
+	"heartbeats/pkg/resolver"
 	"time"
 )
 
