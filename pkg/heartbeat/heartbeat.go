@@ -126,13 +126,21 @@ func (h *Heartbeat) StartGrace(ctx context.Context, log logger.Logger, notificat
 	h.StopTimers()
 
 	h.Grace.RunTimer(ctx, func() {
-		h.Status = StatusNOK.String() // only update status
-		h.log(log, logger.DebugLevel, hi, EventGrace, fmt.Sprintf("grace timer %s elapsed", h.Grace.Interval))
-
-		h.SendNotifications(ctx, log, notificationStore, hi, false)
-
-		metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(metrics.DOWN)
+		h.handleGraceTimerElapsed(ctx, log, notificationStore, hi)
 	})
+}
+
+// handleGraceTimerElapsed is a helper method to handle the logic when the grace timer elapses.
+func (h *Heartbeat) handleGraceTimerElapsed(ctx context.Context, log logger.Logger, notificationStore *notify.Store, hi *history.History) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	h.Status = StatusNOK.String() // only update status
+	h.log(log, logger.DebugLevel, hi, EventGrace, fmt.Sprintf("grace timer %s elapsed", h.Grace.Interval))
+
+	h.SendNotifications(ctx, log, notificationStore, hi, false)
+
+	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": h.Name}).Set(metrics.DOWN)
 }
 
 // StopTimers stops both the interval and grace timers.

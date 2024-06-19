@@ -184,6 +184,33 @@ func TestSendNotifications(t *testing.T) {
 	})
 }
 
+func TestHandleGraceTimerElapsed(t *testing.T) {
+	log := logger.NewLogger(true)
+	hist, err := history.NewHistory(10, 2)
+	assert.NoError(t, err)
+
+	ns := notify.NewStore()
+
+	interval := time.Second * 2
+	grace := time.Second * 2
+	tm := timer.Timer{Interval: &interval}
+	gr := timer.Timer{Interval: &grace}
+
+	h := &Heartbeat{
+		Name:     "test",
+		Interval: &tm,
+		Grace:    &gr,
+	}
+
+	ctx := context.Background()
+
+	t.Run("HandleGraceTimerElapsed", func(t *testing.T) {
+		h.handleGraceTimerElapsed(ctx, log, ns, hist)
+		assert.Equal(t, StatusNOK.String(), h.Status, "Expected status to be NOK after grace timer elapsed")
+		// Add more assertions as needed to check other side effects
+	})
+}
+
 func boolPtr(b bool) *bool {
 	return &b
 }

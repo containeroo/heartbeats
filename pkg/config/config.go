@@ -46,6 +46,35 @@ func Validate(heartbeatStore *heartbeat.Store, notificationStore *notify.Store) 
 	return nil
 }
 
+// validateNotifications validates the notification configurations.
+func validateNotifications(notificationStore *notify.Store) error {
+	var hbDummy heartbeat.Heartbeat
+	for _, notification := range notificationStore.GetAll() {
+		if notification.Enabled != nil && !*notification.Enabled {
+			continue
+		}
+
+		if err := notification.ValidateTemplate(&hbDummy); err != nil {
+			return fmt.Errorf("cannot validate templates. %s", err)
+		}
+	}
+
+	return nil
+}
+
+// validateHeartbeats validates the heartbeat configurations.
+func validateHeartbeats(heartbeatStore *heartbeat.Store, notificationStore *notify.Store) error {
+	for name, heartbeat := range heartbeatStore.GetAll() {
+		for _, notification := range heartbeat.Notifications {
+			if exists := notificationStore.Get(notification); exists == nil {
+				return fmt.Errorf("notification '%s' not found for heartbeat '%s'.", notification, name)
+			}
+		}
+	}
+
+	return nil
+}
+
 // processNotifications processes the raw notification configurations and updates the notification store.
 func processNotifications(rawNotifications interface{}, notificationStore *notify.Store) error {
 	notifications, ok := rawNotifications.(map[string]interface{})
@@ -84,6 +113,7 @@ func updateSlackNotification(name string, notification *notify.Notification, not
 			return fmt.Errorf("failed to update notification '%s'. %w", notification.Name, err)
 		}
 	}
+
 	return nil
 }
 
@@ -115,35 +145,6 @@ func processHeartbeats(rawHeartbeats interface{}, heartbeatStore *heartbeat.Stor
 
 		if err := historyStore.Add(name, historyInstance); err != nil {
 			return fmt.Errorf("failed to create heartbeat history for '%s'. %w", name, err)
-		}
-	}
-
-	return nil
-}
-
-// validateNotifications validates the notification configurations.
-func validateNotifications(notificationStore *notify.Store) error {
-	var hbDummy heartbeat.Heartbeat
-	for _, notification := range notificationStore.GetAll() {
-		if notification.Enabled != nil && !*notification.Enabled {
-			continue
-		}
-
-		if err := notification.ValidateTemplate(&hbDummy); err != nil {
-			return fmt.Errorf("cannot validate templates. %s", err)
-		}
-	}
-
-	return nil
-}
-
-// validateHeartbeats validates the heartbeat configurations.
-func validateHeartbeats(heartbeatStore *heartbeat.Store, notificationStore *notify.Store) error {
-	for name, heartbeat := range heartbeatStore.GetAll() {
-		for _, notification := range heartbeat.Notifications {
-			if exists := notificationStore.Get(notification); exists == nil {
-				return fmt.Errorf("notification '%s' not found for heartbeat '%s'.", notification, name)
-			}
 		}
 	}
 
