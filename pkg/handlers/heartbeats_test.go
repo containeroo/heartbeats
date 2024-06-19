@@ -103,3 +103,45 @@ func TestHeartbeatsHandler(t *testing.T) {
 		assert.Contains(t, rec.Body.String(), "Internal Server Error", "Expected internal server error message")
 	})
 }
+
+func TestCreateHeartbeatList(t *testing.T) {
+	heartbeatStore := heartbeat.NewStore()
+	notificationStore := notify.NewStore()
+
+	interval := time.Minute
+	grace := time.Minute
+
+	h := &heartbeat.Heartbeat{
+		Name:          "test",
+		Enabled:       new(bool),
+		Interval:      &timer.Timer{Interval: &interval},
+		Grace:         &timer.Timer{Interval: &grace},
+		LastPing:      time.Now(),
+		Notifications: []string{"test"},
+	}
+	*h.Enabled = true
+
+	err := heartbeatStore.Add("test", h)
+	assert.NoError(t, err)
+
+	ns := &notify.Notification{
+		Name:       "test",
+		Type:       "email",
+		Enabled:    new(bool),
+		MailConfig: &notifier.MailConfig{},
+	}
+	*ns.Enabled = true
+
+	err = notificationStore.Add("test", ns)
+	assert.NoError(t, err)
+
+	t.Run("CreateHeartbeatList", func(t *testing.T) {
+		heartbeatList := createHeartbeatList(heartbeatStore, notificationStore)
+		assert.Len(t, heartbeatList, 1, "Expected one heartbeat in list")
+		assert.Equal(t, "test", heartbeatList[0].Name, "Expected heartbeat name to be 'test'")
+		assert.Equal(t, "email", heartbeatList[0].Notifications[0].Type, "Expected notification type to be 'email'")
+		assert.Equal(t, true, heartbeatList[0].Notifications[0].Enabled, "Expected notification to be enabled")
+		assert.Equal(t, interval, *heartbeatList[0].Interval.Interval, "Expected interval duration to match")
+		assert.Equal(t, grace, *heartbeatList[0].Grace.Interval, "Expected grace duration to match")
+	})
+}

@@ -59,33 +59,12 @@ func Heartbeats(logger logger.Logger, staticFS fs.FS, version, siteRoot string, 
 			return
 		}
 
-		var heartbeatDataList []*HeartbeatData
-		for _, h := range heartbeatStore.GetAll() {
-			var notifications []NotificationState
-			for _, notificationName := range h.Notifications {
-				n := notificationStore.Get(notificationName)
-				if n != nil {
-					notifications = append(notifications, NotificationState{
-						Name:    n.Name,
-						Enabled: *n.Enabled,
-						Type:    n.Type,
-					})
-				}
-			}
-			heartbeatDataList = append(heartbeatDataList, &HeartbeatData{
-				Name:          h.Name,
-				Status:        h.Status,
-				Interval:      h.Interval,
-				Grace:         h.Grace,
-				LastPing:      h.LastPing,
-				Notifications: notifications,
-			})
-		}
+		heartbeatList := createHeartbeatList(heartbeatStore, notificationStore)
 
 		data := HeartbeatPageData{
 			Version:    version,
 			SiteRoot:   siteRoot,
-			Heartbeats: heartbeatDataList,
+			Heartbeats: heartbeatList,
 		}
 
 		if err := tmpl.ExecuteTemplate(w, "heartbeat", data); err != nil {
@@ -93,4 +72,32 @@ func Heartbeats(logger logger.Logger, staticFS fs.FS, version, siteRoot string, 
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 	}
+}
+
+// createHeartbeatList formats the heartbeats from the heartbeatStore for the template
+func createHeartbeatList(heartbeatStore *heartbeat.Store, notificationStore *notify.Store) []*HeartbeatData {
+	var heartbeatDataList []*HeartbeatData
+	for _, h := range heartbeatStore.GetAll() {
+		var notifications []NotificationState
+		for _, notificationName := range h.Notifications {
+			n := notificationStore.Get(notificationName)
+			if n != nil {
+				notifications = append(notifications, NotificationState{
+					Name:    n.Name,
+					Enabled: *n.Enabled,
+					Type:    n.Type,
+				})
+			}
+		}
+		heartbeatDataList = append(heartbeatDataList, &HeartbeatData{
+			Name:          h.Name,
+			Status:        h.Status,
+			Interval:      h.Interval,
+			Grace:         h.Grace,
+			LastPing:      h.LastPing,
+			Notifications: notifications,
+		})
+	}
+
+	return heartbeatDataList
 }
