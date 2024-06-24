@@ -29,6 +29,17 @@ func Ping(logger logger.Logger, heartbeatStore *heartbeat.Store, notificationSto
 				http.Error(w, errMsg, http.StatusNotFound)
 				return
 			}
+			msg := "got ping"
+			logger.Infof("%s %s", heartbeatName, msg)
+
+			if h.Enabled != nil && !*h.Enabled {
+				http.Error(w, fmt.Sprintf("Heartbeat '%s' not enabled", heartbeatName), http.StatusServiceUnavailable)
+				return
+			}
+
+			hs := historyStore.Get(heartbeatName)
+
+			h.StartInterval(ctx, logger, notificationStore, hs)
 
 			details := map[string]string{
 				"proto":     r.Proto,
@@ -36,19 +47,7 @@ func Ping(logger logger.Logger, heartbeatStore *heartbeat.Store, notificationSto
 				"method":    r.Method,
 				"userAgent": r.UserAgent(),
 			}
-
-			msg := "got ping"
-			logger.Infof("%s %s", heartbeatName, msg)
-
-			hs := historyStore.Get(heartbeatName)
 			hs.Add(history.Beat, msg, details)
-
-			if h.Enabled != nil && !*h.Enabled {
-				http.Error(w, fmt.Sprintf("Heartbeat '%s' not enabled", heartbeatName), http.StatusServiceUnavailable)
-				return
-			}
-
-			h.StartInterval(ctx, logger, notificationStore, hs)
 
 			w.WriteHeader(http.StatusOK)
 			if _, err := w.Write([]byte("ok")); err != nil {
