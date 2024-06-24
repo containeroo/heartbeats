@@ -107,7 +107,7 @@ func (h *Heartbeat) StartInterval(ctx context.Context, log logger.Logger, notifi
 	h.StopTimers() // Stop all timers before starting new ones
 
 	h.Interval.RunTimer(ctx, func() {
-		h.log(log, logger.DebugLevel, hi, EventInterval, fmt.Sprintf("interval timer %s elapsed", h.Grace.Interval))
+		h.log(log, logger.DebugLevel, hi, EventInterval, fmt.Sprintf("interval timer %s elapsed", h.Interval.Interval))
 		h.StartGrace(ctx, log, notificationStore, hi)
 	})
 
