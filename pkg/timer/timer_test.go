@@ -28,7 +28,7 @@ func TestTimer(t *testing.T) {
 		defer cancel()
 
 		var called bool
-		tm.RunTimer(ctx, func(ctx context.Context) {
+		tm.RunTimer(ctx, func() {
 			called = true
 		})
 
@@ -41,9 +41,10 @@ func TestTimer(t *testing.T) {
 			Interval: durationPtr(1 * time.Second),
 		}
 		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
 		var called bool
-		tm.RunTimer(ctx, func(ctx context.Context) {
+		tm.RunTimer(ctx, func() {
 			called = true
 		})
 
@@ -60,7 +61,7 @@ func TestTimer(t *testing.T) {
 		defer cancel()
 
 		var called bool
-		tm.RunTimer(ctx, func(ctx context.Context) {
+		tm.RunTimer(ctx, func() {
 			called = true
 		})
 
