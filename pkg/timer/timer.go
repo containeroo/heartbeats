@@ -8,7 +8,7 @@ import (
 
 // TimerCallback is a function type that defines the signature for callback functions
 // to be executed by Timer.
-type TimerCallback func()
+type TimerCallback func(ctx context.Context)
 
 // Timer encapsulates a time.Timer for scheduling callbacks at specific intervals.
 type Timer struct {
@@ -51,8 +51,8 @@ func (t *Timer) RunTimer(ctx context.Context, callback TimerCallback) {
 	}
 
 	// Create a new context with cancel function
-	var cancelCtx context.Context
-	cancelCtx, t.cancel = context.WithCancel(ctx)
+	cancelCtx, cancel := context.WithCancel(ctx)
+	t.cancel = cancel
 
 	// Create a new timer
 	t.Timer = time.AfterFunc(*t.Interval, func() {
@@ -61,8 +61,8 @@ func (t *Timer) RunTimer(ctx context.Context, callback TimerCallback) {
 			// Context was cancelled
 			return
 		default:
-			// Timer elapsed
-			callback()
+			// Timer elapsed, execute the callback
+			callback(cancelCtx)
 		}
 	})
 }
