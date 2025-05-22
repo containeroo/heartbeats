@@ -1,202 +1,205 @@
 # Heartbeats
 
-![heartbeats.png](.github/icons/heartbeats.png)
+![heartbeats.png](./web/static/icons/apple-touch-icon.png)
 
-Small helper service to monitor heartbeats (repeating "pings" from other systems).
-If a "ping" does not arrive in the given interval & grace period, Heartbeats will send notifications.
+A lightweight HTTP service for monitoring periodic “heartbeat” pings (“bumps”) and notifying configured receivers when a heartbeat goes missing or recovers. Includes an in‐browser read-only dashboard showing current heartbeats, receivers, and historical events.
 
-## Flags
+## Features
 
-```yaml
--c, --config string            Path to the configuration file (default "./deploy/config.yaml")
--l, --listen-address string    Address to listen on (default "localhost:8080")
--s, --site-root string         Site root for the heartbeat service (default "http://<listenAddress>")
--m, --max-size int             Maximum size of the cache (default 1000)
--r, --reduce int               Percentage to reduce when max size is exceeded (default 25)
--v, --verbose                  Enable verbose logging
---version                      Show version and exit
--h, --help                     Show help and exit
-```
+- **Heartbeat monitoring** with configurable `interval` & `grace` periods
+- **Pluggable notifications** via Slack, Email, or MS Teams
+- **In-memory or ring-buffer history** of events (received, failed, state changes, notifications, API requests)
+- **REST API** for bumping and failing heartbeats
+- **Dashboard** with:
+  - **Heartbeats**: status, URL, last bump, receivers, quick-links
+  - **Receivers**: type, destination, last sent, status
+  - **History**: timestamped events, filter by heartbeat
+  - Text-search filters & copy-to-clipboard URLs
+- `/healthz` and `/metrics` endpoints for health checks & Prometheus
+- YAML configuration with variable resolution via [containeroo/resolver](https://github.com/containeroo/resolver)
 
-## Environment Variables
+### Flags
 
-You can also set configuration values using environment variables. The command-line flags will take precedence over environment variables. The following environment variables are supported:
+| Flag                     | Shorthand | Default                 | Description                                                              |
+| :----------------------- | :-------- | :---------------------- | :----------------------------------------------------------------------- |
+| `--config`, `-c`         | `-c`      | `config.yaml`           | Path to configuration file                                               |
+| `--listen-address`, `-a` | `-a`      | `:8080`                 | Address to listen on                                                     |
+| `--site-root`, `-r`      | `-r`      | `http://localhost:8080` | Base URL for dashboard links                                             |
+| `--history-size`, `-s`   | `-s`      | `10000`                 | Maximum history buffer size                                              |
+| `--skip-tls`             | —         | `false`                 | Skip TLS verification for all receivers (can be overridden per receiver) |
+| `--debug`, `-d`          | `-d`      | `false`                 | Enable debug-level logging                                               |
+| `--log-format`, `-l`     | `-l`      | `json`                  | Log format (`json` or `text`)                                            |
+| `--help`, `-h`           | `-h`      | —                       | Show help & exit                                                         |
+| `--version`              | —         | —                       | Print version & exit                                                     |
 
-- `HEARTBEATS_CONFIG`: Path to the configuration file (corresponds to `--config` or `-c`).
-- `HEARTBEATS_LISTEN_ADDRESS`: Address to listen on (corresponds to `--listen-address` or `-l`).
-- `HEARTBEATS_SITE_ROOT`: Site root for the heartbeat service (corresponds to `--site-root` or `-s`).
-- `HEARTBEATS_MAX_SIZE`: Maximum size of the cache (corresponds to `--max-size` or `-m`).
-- `HEARTBEATS_VERBOSE`: Enable verbose logging (corresponds to `--verbose` or `-v`).
-- `HEARTBEATS_REDUCE`: Amount to reduce when max size is exceeded (corresponds to `--reduce` or `-r`).
+#### Proxy Environment Variables
 
-Additionally, you can set the following environment variables for proxy configuration:
+You can set the following environment variables for proxy configuration:
 
 - `HTTP_PROXY`: URL of the proxy server to use for HTTP requests.
 - `HTTPS_PROXY`: URL of the proxy server to use for HTTPS requests.
 
+## HTTP Endpoints
+
 ## Endpoints
 
-| Path                   | Method        | Description                         |
-| :--------------------- | :------------ | :---------------------------------- |
-| `/`                    | `GET`         | Home Page                           |
-| `/ping/{HEARTBEAT}`    | `GET`, `POST` | Resets timer at configured interval |
-| `/history/{HEARTBEAT}` | `GET`         | Shows the history of a Heartbeat    |
-| `/config`              | `GET`         | Returns current config              |
-| `/metrics`             | `GET`         | Entrypoint for prometheus metrics   |
-| `/healthz`             | `GET`, `POST` | Show if Heartbeats is healthy       |
+| Path              | Method | Description                        |
+| :---------------- | :----- | :--------------------------------- |
+| `/`               | `GET`  | Dashboard home page                |
+| `/bump/{id}`      | `POST` | Record a heartbeat ping            |
+| `/bump/{id}`      | `GET`  | Same as POST (for browser testing) |
+| `/bump/{id}/fail` | `POST` | Manually mark heartbeat as failed  |
+| `/bump/{id}/fail` | `GET`  | Same as POST (for browser testing) |
+| `/healthz`        | `GET`  | Liveness probe                     |
+| `/metrics`        | `GET`  | Prometheus metrics endpoint        |
 
 ## Configuration
 
-Heartbeats and notifications must be configured in a file. The config file can be `yaml`, `json` or `toml`.
-
-## Heartbeats
-
-A Heartbeat waits for a ping from another service. If it does not come in the given `interval` and `grace`, it will send a notification to your configured notification services.
-
-| Key           | Description                                                                                                   | Example                                    |
-| :------------ | :------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
-| description   | Description of the heartbeat (optional).                                                                      | `test workflow prometheus -> alertmanager` |
-| sendResolve   | Sends a `[RESOLVED]` message if a heartbeats changes from `nok` to `ok`. Defaults to `true`                   | `true`                                     |
-| interval      | Interval in which a heartbeat must receiver a `ping`. Must be a golang duration.                              | `2m`                                       |
-| grace         | Grace period after the interval elapsed. Must be a golang duration.                                           | `1m`                                       |
-| notifications | List of notifications to send if the heartbeat grace period elapsed. Must match the key of the notifications. | - `int-slack`                              |
-
-### Example
-
-```yaml
-hartbeats:
-  prometheus-int:
-    description: test workflow prometheus -> alertmanager
-    sendResolve: true
-    interval: 2s
-    grace: 1s
-    notifications:
-      - int-slack
-      - gmail
-```
-
-## Notification
-
-Each notification can only have one config. If you want to send multiple notifications, you must create multiple notifications entries.
-
-You can use all properties from heartbeats in `title`, `text`, `subject` or `body`. The variables must start with a dot, a capital letter and be surrounded by double curly brackets. Example: `{{ .Status }}`.
-The project includes [masterminds/sprig](https://github.com/Masterminds/sprig) for additional template functions, and also introduces two functions, `isTrue` and `isFalse`. These functions are particularly useful for `SendResolve` and `Enabled`, as these fields default to `true` if not explicitly set. Additionally, a new function `isRecent` has been added to check if a given time is within a second, useful for `LastPing`.
-
-### Resolving variables
-
-Credentials such as passwords or tokens can be provided in one of the following formats:
-
-- **Plain Text**: Simply input the credentials directly in plain text.
-- **Environment Variable**: Use the `env:` prefix, followed by the name of the environment variable that stores the credentials.
-- **File**: Use the `file:` prefix, followed by the path of the file that contains the credentials. The file should contain only the credentials.
-
-In case the file contains multiple key-value pairs, the specific key for the credentials can be selected by appending `//KEY` to the end of the path. Each key-value pair in the file must follow the `key = value` format. The system will use the value corresponding to the specified `//KEY`.
-
-All Keys marked with `*` will be resolved as described before.
-
-### slack_config
-
-| Key     | Description                                 | Example                                                                 |
-| :------ | :------------------------------------------ | ----------------------------------------------------------------------- |
-| channel | Slack channel `*`                           | `monitoring`                                                            |
-| token   | Slack token. `*`                            | `file:/secrets/slack_token.txt`                                         |
-| title   | Notification title. Can be go-template. `*` | `Heartbeat {{ .Name }} {{ upper .Status }}`                             |
-| text    | Notification text. Can be go-template. `*`  | `\*Description:\*\n{{ .Description }}.\nLast ping: {{ ago .LastPing }}` |
-
-`*` will be resolved as described in [Resolve Variables](#Resolve_variables).
-
-### mail_config
-
-#### smpt
-
-| Key                | Description           | Example             |
-| :----------------- | :-------------------- | ------------------- |
-| host               | smtp host `*`         | `smtp.gmail.com`    |
-| port               | smtp port `*`         | `587`               |
-| from               | from address `*`      | `example@gmail.com` |
-| username           | smtp username`*`      | `env:MAIL_USERNAME` |
-| password           | smtp password `*`     | `env:MAIL_PASSWORD` |
-| startTLS           | start TLS             | `true`              |
-| skipInsecureVerify | ignore Certifications | `true`              |
-
-`*` will be resolved as described in [Resolve Variables](#Resolve_variables).
-
-#### email
-
-| Key     | Description                            | Example                                                                 |
-| :------ | :------------------------------------- | ----------------------------------------------------------------------- |
-| isHTML  | send emails as HTML                    | `true`                                                                  |
-| subject | email subject. Can be go-template. `*` | `Heartbeat {{ .Name }} {{ upper .Status }}`                             |
-| body    | email subject. Can be go-template. `*` | `\*Description:\*\n{{ .Description }}./nLast ping: {{ ago .LastPing }}` |
-| to      | list of receivers. `*`                 | - `example@gmail.com`                                                   |
-| cc      | list of cc. `*`                        | - `cc_user@gmail.com`                                                   |
-| bcc     | list of bcc. `*`                       | - `bcc_user@gmail.com`                                                  |
-
-`*` will be resolved as described in [Resolve Variables](#Resolve_variables).
-
-#### MS Teams
-
-| Key        | Description                                 | Example                                                                 |
-| :--------- | :------------------------------------------ | ----------------------------------------------------------------------- |
-| webhookURL | MS Teams webhook URL. `*`                   | `file:/secrets/teams/webhooks//int-msteasm`                             |
-| title      | Notification title. Can be go-template. `*` | `Heartbeat {{ .Name }} {{ upper .Status }}`                             |
-| text       | Notification text. Can be go-template. `*`  | `\*Description:\*\n{{ .Description }}.\nLast ping: {{ ago .LastPing }}` |
+`heartbeats` and `receivers` must be defined in your YAML file (default `config.yaml`).
 
 ### Examples
 
 ```yaml
 ---
-notifications:
-  dev-slack:
-    enabled: true
-    slack_config:
-      channel: int-monitoring
-      token: env:SLACK_TOKEN
-      title: Heartbeat {{ .Name }} {{ upper .Status }}
-      text: |
-        *Description:*
-        {{ .Description }}.
-        Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
-  int-slack:
-    enabled: true
-    slack_config:
-      channel: int-monitoring
-      token: env:SLACK_TOKEN
-      title: Heartbeat {{ .Name }} {{ upper .Status }}
-      text: |
-        *Description:*
-        {{ .Description }}.
-        Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
-  gmail:
-    enabled: false
-    mail_config:
-      smtp:
-        host: smtp.gmail.com
-        port: 587
-        from: env:MAIL_FROM
-        username: env:MAIL_USERNAME
-        password: env:MAIL_PASSWORD
-        startTLS: true
-        skipInsecureVerify: true
-      email:
-        isHTML: true
-        subject: Heartbeat {{ .Name }} {{ upper .Status }}
-        body: |
-          <b>Description:</b><br>
-          {{ .Description }}.<br>
-          Last ping: {{ .LastPing }}
-        to:
-          - monitoring@gmail.com
-          - env:EMAIL_TO
-  int-teams:
-    enabled: false
-    msteams_config:
-      title: Heartbeat {{ .Name }} {{ upper .Status }}
-      text: |
-        *Description:*
-        {{ .Description }}.
-        Last ping: {{ if eq (ago .LastPing) "0s" }}now{{ else }}{{ ago .LastPing }}{{ end }}
-      webhook_url: file:/secrets/teams/webhooks//int-teams
+receivers:
+  dev-crew-int:
+    slack_configs:
+      - channel: integration
+        token: env:SLACK_TOKEN
+        # not title or text specified, will use the default
+      - channel: dev-crew
+        token: env:SLACK_TOKEN
+        # not title or text specified, will use the default
+    email_configs:
+      - smtp:
+          host: smtp.gmail.com
+          port: 587
+          from: env:MAIL_FROM
+          username: env:MAIL_USERNAME
+          password: env:MAIL_PASSWORD
+          startTLS: true
+          skipInsecureVerify: true
+        email:
+          isHTML: true
+          subjectTemplate: "[HEARTBEATS] {{ .Name }} {{ upper .Status }}"
+          password: env:MAIL_PASSWORD
+  dev-crew-prod:
+    msteams_configs:
+      webhook_url: file:/secrets/teams/webhooks//production
+      # no title nor text specified, will use the default
+```
+
+### Heartbeats
+
+A **heartbeat** waits for periodic pings (“bumps”). If no bump arrives within `interval + grace`, notifications are sent.
+
+| Key           | Type       | Description                                                                     |
+| :------------ | :--------- | :------------------------------------------------------------------------------ |
+| `description` | `string`   | (optional) Human-friendly description                                           |
+| `interval`    | `duration` | Required. Go duration (e.g. `30s`, `2m`) for expected interval between pings    |
+| `grace`       | `duration` | Required. Go duration after `interval` before marking missing                   |
+| `receivers`   | `[]string` | Required. List of receiver IDs (keys under `receivers:`) to notify upon missing |
+
+#### Example
+
+```yaml
+heartbeats:
+  prometheus-int:
+    description: "Prometheus → Alertmanager test"
+    interval: 30s
+    grace: 10s
+    receivers:
+      - dev-crew-int
+```
+
+### Receivers
+
+Each **receiver** can have multiple notifier configurations. Supported under `receivers:`:
+
+- `slack_configs`
+- `email_configs`
+- `msteams_configs`
+
+You may use any template variable from the heartbeat (e.g. `{{ .ID }}`, `{{ .Status }}`), and these helper functions:
+
+- **`upper`**: `{{ upper .ID }}`
+- **`lower`**: `{{ lower .ID }}`
+- **`formatTime`**: `{{ formatTime .LastBump "2006-01-02 15:04:05" }}`
+- **`ago`**: `{{ ago .LastBump }}`
+
+#### Variable Resolution
+
+`Heartbeats` uses [containeroo/resolver](https://github.com/containeroo/resolver) for variable resolving.
+
+Resolver supports:
+
+- **Plain**: literal value
+- **Environment**: `env:VAR_NAME`
+- **File**: `file:/path/to/file`
+- **Within-file**: `file:/path/to/file//KEY`, also supported `yaml:`,`json:`,`ini:` and `toml:`. For more details see [here](https://github.com/containeroo/resolver).
+
+#### Slack
+
+_Defaults:_
+
+- SubjectTemplate: `[{{ upper .Status }}] {{ .ID }}"`
+- TextTemplate: `{{ .ID }} is {{ .Status }} (last Ping: {{ ago .LastBump }})"`
+
+```yaml
+receivers:
+  dev-crew-int:
+    slack_configs:
+      - channel: "#integration"
+        token: env:SLACK_TOKEN
+        # optional custom templates:
+        titleTemplate: "[{{ upper .Status }}] {{ .ID }}"
+        textTemplate: "{{ .ID }} status: {{ .Status }}"
+        # optional: override global skip TLS
+        skipTLS: true
+```
+
+#### Email
+
+_Defaults:_
+
+- SubjectTemplate: `"[HEARTBEATS]: {{ .ID }} {{ upper .Status }}"`
+- BodyTemplate: `"<b>Description:</b> {{ .Description }}<br>Last bump: {{ ago .LastBump }}"`
+
+```yaml
+email_configs:
+  - smtp:
+      host: smtp.gmail.com
+      port: 587
+      from: admin@example.com
+      username: env:EMAIL_USER
+      password: env:EMAIL_PASS
+      # optional
+      startTLS: true
+      # optional: override global skip TLS
+      skipInsecureVerify: true
+    email:
+      isHTML: true
+      to: ["ops@example.com"]
+      # optional custom templates:
+      subjectTemplate: "[HB] {{ .ID }} {{ upper .Status }}"
+      bodyTemplate: "Last ping: {{ ago .LastBump }}"
+```
+
+#### MS Teams
+
+_Defaults:_
+
+- TitleTemplate: `"[{{ upper .Status }}] {{ .ID }}"`
+- TextTemplate: `"{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
+
+```yaml
+msteams_configs:
+  - webhookURL: file:/secrets/teams/webhook//prod
+    # optional custom templates:
+    titleTemplate: "[{{ upper .Status }}] {{ .ID }}"
+    textTemplate: "{{ .ID }} status: {{ .Status }}"
+    # optional: override global skip TLS
+    skipTLS: true
 ```
 
 ## Deployment

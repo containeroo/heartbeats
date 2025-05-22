@@ -1,99 +1,205 @@
-/* heartbeats */
-.url-cell {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.copy-btn {
-  visibility: hidden;
-  margin-left: 10px;
-  cursor: pointer;
-  color: #3182ce;
-}
-.url-cell:hover .copy-btn {
-  visibility: visible;
-}
-.icon {
-  width: 20px;
-  height: 20px;
-}
-.icon.disabled {
-  filter: grayscale(100%);
-}
-.notification-icons {
-  display: flex;
-  gap: 5px;
-}
-.heart-icon {
-  width: 20px;
-  height: 20px;
-}
-.text-pink-500 {
-  fill: #ff66b2;
-}
-.text-red-500 {
-  fill: #ef4444;
-}
-.text-orange-500 {
-  fill: #f97316;
-}
-.text-gray-500 {
-  fill: #6b7280;
-}
-.hover-row:hover {
-  background-color: #ffccff;
-}
-th {
-  cursor: pointer;
-  text-align: left;
-}
-.config-icon {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-}
-/* history */
-.message-cell {
-  position: relative;
-}
-.tooltip {
-  visibility: hidden;
-  background-color: #f56565;
-  color: #fff;
-  text-align: left;
-  padding: 5px;
-  border-radius: 5px;
-  position: absolute;
-  z-index: 1;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: max-content;
-  max-width: 200px;
-}
-.message-cell:hover .tooltip {
-  visibility: visible;
-}
-.triangle {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 0;
-  height: 0;
-  border-left: 10px solid transparent;
-  border-bottom: 10px solid #f56565;
-  cursor: pointer;
+/* Theme color variables */
+:root {
+  --bs-primary: #e63946; /* Heart-red for navbar, badges, buttons */
+  --bs-secondary: #f8f3f5; /* Pale rose for body & footer bg */
+  --bs-dark: #6a040f; /* Deep maroon for headers, missing heart */
+  --bs-light: #ffe8e8; /* Light pink for striped rows */
+
+  /* Dedicated heartbeat-status colors */
+  --hb-status-active: #ff0054; /* vivid pink-red */
+  --hb-status-grace: #990000; /* dark red */
+  --hb-status-missing: #f7819f; /* pastel rose */
+  --hb-status-unknown: #9d8189; /* dusty rose */
 }
 
-/* footer */
-.version-footer {
-  position: fixed;
-  bottom: 10px;
+/* Page background */
+body {
+  background-color: var(--bs-secondary);
+}
+
+/*   Navbar */
+.navbar {
+  background-color: var(--bs-primary);
+}
+.navbar .nav-link {
+  text-decoration: none;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s ease;
+}
+.navbar .nav-link:hover {
+  background-color: var(--bs-light);
+  color: var(--bs-dark);
+}
+.navbar .nav-link.active {
+  background-color: var(--bs-primary);
+  color: var(--bs-light);
+}
+/* constrain the SVG container */
+.navbar-icon {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+}
+.navbar-icon .icon-heart {
   width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Table header & wrappers */
+/* force header into our heart-red theme */
+.table thead th,
+.table-primary th {
+  background-color: var(--bs-primary);
+  color: var(--bs-light);
+}
+
+/* scrollable table body */
+.table-wrapper {
+  overflow-y: auto;
+  max-height: calc(
+    100vh - 56px /* navbar height */ - 3rem /* ≈ h2 + margin */ - 40px
+      /* footer height */
+  );
+}
+/* lock header row */
+.table-wrapper thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+/* striped rows in pale pink */
+.table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: var(--bs-light);
+}
+
+/* make the `.filter` group a positioning context */
+.input-group.filter {
+  position: relative;
+  overflow: visible;
+}
+
+/* give the input extra right padding so text never goes under the button */
+.with-clear {
+  padding-right: 2.5rem;
+}
+
+/* style & position the clear button */
+.clear-filter-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  z-index: 10; /* make sure it sits above the input */
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: none; /* hidden until there’s text */
+  color: var(--bs-primary);
+}
+
+/* show as soon as user types */
+.with-clear:not(:placeholder-shown) + .clear-filter-btn,
+.with-clear:valid + .clear-filter-btn {
+  display: block;
+}
+
+/* Badges */
+.badge {
+  background-color: var(--bs-primary);
+  color: var(--bs-light);
+}
+/* Dedicated badge colors by status */
+.badge.status-active {
+  background-color: var(--hb-status-active) !important;
+  color: var(--bs-light);
+}
+.badge.status-missing {
+  background-color: var(--hb-status-missing) !important;
+  color: var(--bs-light);
+}
+.badge.status-grace {
+  background-color: var(--hb-status-grace) !important;
+  color: var(--bs-light);
+}
+.badge.status-unknown {
+  background-color: var(--hb-status-unknown) !important;
+  color: var(--bs-light);
+}
+
+/* Copy-to-clipboard cells */
+.copy-cell {
+  position: relative;
+  padding-right: 3em;
+  cursor: pointer;
+}
+.copy-cell .copy-btn {
+  display: none;
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--bs-primary);
+  font-size: 0.85rem;
+}
+.copy-cell:hover .copy-btn {
+  display: inline-block;
+}
+
+/* Heart-status icon */
+.status-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  vertical-align: middle;
+}
+.status-active {
+  color: var(--hb-status-active);
+}
+.status-missing {
+  color: var(--hb-status-missing);
+}
+.status-grace {
+  color: var(--hb-status-grace);
+}
+.status-unknown {
+  color: var(--hb-status-unknown);
+}
+
+/* make that first status column just wide enough */
+.col-status {
+  width: 2rem;
   text-align: center;
-  font-size: 10px;
-  color: #6b7280;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* History icon (SVG uses fill="currentColor") */
+/* active (hasHistory=true) */
+.history-icon {
+  color: var(--bs-primary);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.history-icon:hover:not(.disabled) {
+  color: #ff99a1; /* lighter rose on hover */
+}
+
+/* inactive (hasHistory=false) */
+.history-icon.disabled {
+  color: #6c757d;
+  filter: grayscale(100%) opacity(0.6);
+  cursor: default;
+}
+.history-icon.disabled:hover {
+  color: #6c757d; /* stay gray */
+}
+
+/* Footer */
+.footer {
+  background-color: var(--bs-secondary);
 }

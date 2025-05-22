@@ -1,8 +1,5 @@
-.vscode
-*.yaml
-*.toml
-*.json
-!deploy/**
-!.github/**
-!.goreleaser.yaml
-__debug_bin
+.env
+bin/*
+./config.yaml
+cover.out
+coverage.out
