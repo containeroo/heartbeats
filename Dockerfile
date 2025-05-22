@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o /heartbeats ./cmd/main.go
+RUN go build -o /heartbeats ./main.go
 
 FROM gcr.io/distroless/static:nonroot
 
