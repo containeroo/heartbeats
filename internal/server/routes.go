@@ -42,6 +42,9 @@ func NewRouter(
 	api.Handle("POST /bump/{id}/fail", handlers.FailHandler(mgr, histStore, logger))
 	api.Handle("GET  /bump/{id}/fail", handlers.FailHandler(mgr, histStore, logger))
 
+	// mount under /api/v1/
+	root.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
+
 	// wrap the whole mux in logging if debug
 	var h http.Handler = root
 	if debug {
