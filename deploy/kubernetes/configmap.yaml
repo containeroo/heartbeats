@@ -2,85 +2,66 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: webhooks
-  namespace: heartbeats
-data:
-  webhooks: |
-    int-teams = "https://example.webhook.office.com/webhook2/<INT_TOKEN>"
-    prd-teams = "https://example.webhook.office.com/webhook2/<PRD_TOKEN>"
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: heartbeats
   namespace: heartbeats
 data:
   config.yaml: |
     ---
     heartbeats:
-      prometheus-int:
-        description: test workflow prometheus -> alertmanager
-        sendResolve: true
-        interval: 2s
-        grace: 1s
-        notifications: # must match with notifications
-          - int-slack
-      prometheus-dev:
-        description: test workflow prometheus -> alertmanager
-        sendResolve: true
-        interval: 2s
-        grace: 1s
-        notifications: # must match with notifications
-          - dev-slack
-          - gmail
-    notifications:
-      dev-slack:
-        enabled: true
-        slack_config:
-          channel: int-monitoring
-          token: env:SLACK_TOKEN
-          title: Heartbeat {{ .Name }} {{ upper .Status }}
-          text: |
-            *Description:*
-            {{ .Description }}.
-            Last ping: {{ if isRecent .LastPing }}now{{ else }}{{ ago .LastPing }}{{ end }}
-      int-slack:
-        enabled: true
-        slack_config:
-          channel: int-monitoring
-          token: env:SLACK_TOKEN
-          title: Heartbeat {{ .Name }} {{ upper .Status }}
-          text: |
-            *Description:*
-            {{ .Description }}.
-            Last ping: {{ if isRecent .LastPing }}now{{ else }}{{ ago .LastPing }}{{ end }}
-      gmail:
-        enabled: false
-        mail_config:
-          smtp:
-            host: smtp.gmail.com
-            port: 587
-            from: env:MAIL_FROM
-            username: env:MAIL_USERNAME
-            password: env:MAIL_PASSWORD
-            startTLS: true
-            skipInsecureVerify: true
-          email:
-            isHTML: true
-            subject: Heartbeat {{ .Name }} {{ upper .Status }}
-            body: |
-              <b>Description:</b><br>
-              {{ .Description }}.<br>
-              Last ping: {{ .LastPing }}
-            to:
-              - monitoring@gmail.com
-              - env:EMAIL_TO
-      int-teams:
-        enabled: false
-        msteams_config:
-          title: Heartbeat {{ .Name }} {{ upper .Status }}
-          text: |
-            *Description:*
-            {{ .Description }}.
-            Last ping: {{ if isRecent .LastPing }}now{{ else }}{{ ago .LastPing }}{{ end }}
-          webhook_url: file:/secrets/teams/webhooks//int-teams
+      alertmanager-prod:
+        description: Production AlertManager health check
+        interval: 30s
+        grace: 10s
+        receivers:
+          - platform-team
+
+      grafana-staging:
+        description: Grafana heartbeat check for staging environment
+        interval: 15s
+        grace: 5s
+        receivers:
+          - observability-team
+
+    receivers:
+      platform-team:
+        slack_configs:
+          - channel: platform-alerts
+            token: env:SLACK_PLATFORM_TOKEN
+            titleTemplate: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
+            textTemplate: |
+              *Service:* {{ .Name }}
+              *Status:* {{ .Status }}
+              *Description:* {{ .Description }}
+              *Last ping:* {{ if isRecent .LastPing }}just now{{ else }}{{ ago .LastPing }} ago{{ end }}
+
+        email_configs:
+          - smtp:
+              host: smtp.sendgrid.net
+              port: 587
+              from: alerts@platform.example.com
+              username: env:SENDGRID_USERNAME
+              password: env:SENDGRID_PASSWORD
+              startTLS: true
+              skipInsecureVerify: false
+            email:
+              isHTML: true
+              subjectTemplate: "[HEARTBEAT ALERT] {{ .Name }} is {{ upper .Status }}"
+              bodyTemplate: |
+                <h3>Service: {{ .Name }}</h3>
+                <p>Status: <b>{{ .Status }}</b></p>
+                <p>{{ .Description }}</p>
+                <p>Last ping: {{ .LastPing }}</p>
+              to:
+                - devops@platform.example.com
+                - env:ALERT_FALLBACK_EMAIL
+
+      observability-team:
+        slack_configs:
+          - token: file:/secrets/slack/tokens.txt//observability
+            channel: observability
+            titleTemplate: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
+            textTemplate: |
+              **Service:** {{ .Name }}
+              **Status:** {{ .Status }}
+              **Description:** {{ .Description }}
+              **Last ping:** {{ if isRecent .LastPing }}just now{{ else }}{{ ago .LastPing }} ago{{ end }}

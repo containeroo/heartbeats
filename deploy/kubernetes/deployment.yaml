@@ -61,13 +61,13 @@ spec:
               mountPath: /tmp/
             - name: webhooks
               mountPath: /secrets/teams
-      #affinity:
-      #  podAntiAffinity:
-      #    requiredDuringSchedulingIgnoredDuringExecution:
-      #      - labelSelector:
-      #          matchLabels:
-      #            app.kubernetes.io/name: alertmanager
-      #        topologyKey: kubernetes.io/hostname
+      # affinity:
+      #   podAntiAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       - labelSelector:
+      #           matchLabels:
+      #             app.kubernetes.io/name: alertmanager
+      #         topologyKey: kubernetes.io/hostname
       restartPolicy: Always
       automountServiceAccountToken: false
       volumes:

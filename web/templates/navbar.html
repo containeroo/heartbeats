@@ -1,0 +1,47 @@
+{{ define "navbar" }}
+<nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" href="/">
+      <span class="navbar-icon me-2">
+        <img
+          src="/static/img/heartbeats.svg"
+          alt="Heartbeats logo"
+          width="36"
+          height="36"
+          class="icon-heart"
+        />
+      </span>
+      Heartbeat
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarNav"
+      aria-controls="navbarNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="#heartbeats" data-section="heartbeats"
+            >Heartbeats</a
+          >
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#receivers" data-section="receivers"
+            >Receivers</a
+          >
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#history" data-section="history">History</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+{{ end }}

@@ -1,0 +1,52 @@
+{{ define "receivers" }}
+<h2 class="mt-1 mb-3">Receivers</h2>
+
+<div class="mb-3 row">
+  <div class="col-sm-4">
+    <div class="input-group filter">
+      <input
+        type="text"
+        id="searchReceiver"
+        class="form-control with-clear"
+        placeholder="enter receiver ID…"
+      />
+      <button type="button" class="clear-filter-btn">&times;</button>
+    </div>
+  </div>
+</div>
+
+<div class="table-wrapper">
+  <table class="table table-striped table-hover">
+    <thead class="table-primary">
+      <tr>
+        <th>Receiver</th>
+        <th>Type</th>
+        <th>Destination</th>
+        <th>Last Sent</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="recv-body">
+      {{- range .Receivers }}
+      <tr data-id="{{ .ID }}">
+        <td>{{ .ID }}</td>
+        <td>{{ .Type }}</td>
+        <td>{{ .Destination }}</td>
+        <td>{{ .LastSent }}</td>
+        <td>
+          <span
+            class='badge
+              {{ if eq .Status "Success"     }}status-active
+              {{ else if eq .Status "Failed" }}status-missing
+              {{ else                        }}status-unknown
+              {{ end }}'
+          >
+            {{ .Status }}
+          </span>
+        </td>
+      </tr>
+      {{- end }}
+    </tbody>
+  </table>
+</div>
+{{ end }}

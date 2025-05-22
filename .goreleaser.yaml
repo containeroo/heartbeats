@@ -14,6 +14,11 @@ builds:
       - amd64
       - arm64
       - arm
+    ldflags:
+      - -s -w
+      - -X github.com/containeroo/heartbeats/internal/version.Version={{ .Version }}
+      - -X github.com/containeroo/heartbeats/internal/version.Commit={{ .FullCommit }}
+      - -X github.com/containeroo/heartbeats/internal/version.Date={{ .Date }}
 dockers:
   - image_templates:
       - ghcr.io/containeroo/heartbeats:{{ .Tag }}-amd64
@@ -23,6 +28,7 @@ dockers:
       - go.mod
       - go.sum
       - main.go
+      - internal
       - pkg
       - web
     build_flag_templates:
@@ -44,6 +50,7 @@ dockers:
       - go.mod
       - go.sum
       - main.go
+      - internal
       - pkg
       - web
     goarch: arm64
