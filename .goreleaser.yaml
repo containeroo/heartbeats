@@ -7,6 +7,7 @@ builds:
   - main: ./main.go
     env:
       - CGO_ENABLED=0
+      - LDFLAGS=-s -w -X main.Version={{ .Tag }} -X main.Commit={{ .FullCommit }}
     goos:
       - linux
       - darwin
@@ -15,9 +16,7 @@ builds:
       - arm64
       - arm
     ldflags:
-      - -s -w
-      - -X main.Version={{ .Tag }}
-      - -X main.Commit={{ .FullCommit }}
+      - "{{ .Env.LDFLAGS }}"
 dockers:
   - image_templates:
       - ghcr.io/containeroo/heartbeats:{{ .Tag }}-amd64
@@ -31,6 +30,8 @@ dockers:
       - pkg
       - web
     build_flag_templates:
+      - --build-arg
+      - LDFLAGS={{ .Env.LDFLAGS }}
       - --pull
       - --platform=linux/amd64
       - --label=org.opencontainers.image.title={{ .ProjectName }}
@@ -54,6 +55,8 @@ dockers:
       - web
     goarch: arm64
     build_flag_templates:
+      - --build-arg
+      - LDFLAGS={{ .Env.LDFLAGS }}
       - --pull
       - --platform=linux/arm64
       - --label=org.opencontainers.image.title={{ .ProjectName }}

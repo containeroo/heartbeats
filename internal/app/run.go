@@ -72,6 +72,7 @@ func Run(ctx context.Context, staticFS embed.FS, version, commit string, args []
 		staticFS,
 		flags.SiteRoot,
 		version,
+		commit,
 		mgr,
 		hist,
 		disp,
