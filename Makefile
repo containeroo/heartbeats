@@ -74,7 +74,7 @@ favicon: ## Create favicons
 
 .PHONY:run
 run: ## Run go fmt against code.
-	go run main.go -c .local-config.yaml
+	go run main.go -c local-config.yaml
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
