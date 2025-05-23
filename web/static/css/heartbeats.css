@@ -16,6 +16,12 @@ body {
   background-color: var(--bs-secondary);
 }
 
+/* Tooltips */
+.tooltip .tooltip-inner {
+  background-color: var(--bs-primary);
+  color: var(--bs-light);
+}
+
 /* Navbar */
 .navbar {
   background-color: var(--bs-primary);
