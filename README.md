@@ -43,15 +43,15 @@ You can set the following environment variables for proxy configuration:
 
 ## Endpoints
 
-| Path              | Method | Description                        |
-| :---------------- | :----- | :--------------------------------- |
-| `/`               | `GET`  | Dashboard home page                |
-| `/bump/{id}`      | `POST` | Record a heartbeat ping            |
-| `/bump/{id}`      | `GET`  | Same as POST (for browser testing) |
-| `/bump/{id}/fail` | `POST` | Manually mark heartbeat as failed  |
-| `/bump/{id}/fail` | `GET`  | Same as POST (for browser testing) |
-| `/healthz`        | `GET`  | Liveness probe                     |
-| `/metrics`        | `GET`  | Prometheus metrics endpoint        |
+| Path                     | Method | Description                        |
+| :----------------------- | :----- | :--------------------------------- |
+| `/`                      | `GET`  | Dashboard home page                |
+| `/api/v1/bump/{id}`      | `POST` | Record a heartbeat ping            |
+| `/api/v1/bump/{id}`      | `GET`  | Same as POST (for browser testing) |
+| `/api/v1/bump/{id}/fail` | `POST` | Manually mark heartbeat as failed  |
+| `/api/v1/bump/{id}/fail` | `GET`  | Same as POST (for browser testing) |
+| `/healthz`               | `GET`  | Liveness probe                     |
+| `/metrics`               | `GET`  | Prometheus metrics endpoint        |
 
 ## Configuration
 
