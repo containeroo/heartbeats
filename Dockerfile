@@ -11,7 +11,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -ldflags="$LDFLAGS" -o /app ./main.go
+RUN go build -ldflags="$LDFLAGS" -o /heartbeats ./main.go
 
 FROM gcr.io/distroless/static:nonroot
 
