@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	Version string
-	Commit  string
+	Version string = "dev"
+	Commit  string = "none"
 )
 
 //go:embed web

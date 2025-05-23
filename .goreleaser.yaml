@@ -16,8 +16,8 @@ builds:
       - arm
     ldflags:
       - -s -w
-      - -X github.com/containeroo/heartbeats/internal/version.Version={{ .Tag }}
-      - -X github.com/containeroo/heartbeats/internal/version.Commit={{ .FullCommit }}
+      - -X main.Version={{ .Tag }}
+      - -X main.Commit={{ .FullCommit }}
 dockers:
   - image_templates:
       - ghcr.io/containeroo/heartbeats:{{ .Tag }}-amd64
