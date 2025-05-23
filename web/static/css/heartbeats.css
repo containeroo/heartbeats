@@ -1,118 +1,152 @@
-/* Theme color variables */
+/* Theme Color Variables */
 :root {
   --bs-primary: #e63946; /* Heart-red for navbar, badges, buttons */
-  --bs-secondary: #f8f3f5; /* Pale rose for body & footer bg */
-  --bs-dark: #6a040f; /* Deep maroon for headers, missing heart */
+  --bs-secondary: #f8f3f5; /* Pale rose for body & footer background */
+  --bs-dark: #6a040f; /* Deep maroon for headers, icons */
   --bs-light: #ffe8e8; /* Light pink for striped rows */
 
-  /* Dedicated heartbeat-status colors */
   --hb-status-active: #ff0054; /* vivid pink-red */
   --hb-status-grace: #990000; /* dark red */
   --hb-status-missing: #f7819f; /* pastel rose */
   --hb-status-unknown: #9d8189; /* dusty rose */
 }
 
-/* Page background */
+/* Global Layout & Background */
 body {
   background-color: var(--bs-secondary);
 }
 
-/*   Navbar */
+/* Navbar */
 .navbar {
   background-color: var(--bs-primary);
 }
+
 .navbar .nav-link {
   text-decoration: none;
   border-radius: 0.25rem;
   transition: background-color 0.2s ease;
 }
+
 .navbar .nav-link:hover {
   background-color: var(--bs-light);
   color: var(--bs-dark);
 }
+
 .navbar .nav-link.active {
   background-color: var(--bs-primary);
   color: var(--bs-light);
 }
-/* constrain the SVG container */
+
 .navbar-icon {
   display: inline-block;
   width: 2rem;
   height: 2rem;
   flex-shrink: 0;
 }
+
 .navbar-icon .icon-heart {
   width: 100%;
   height: 100%;
   display: block;
 }
 
-/* Table header & wrappers */
-/* force header into our heart-red theme */
+/* Table: Appearance & Behavior */
 .table thead th,
 .table-primary th {
   background-color: var(--bs-primary);
   color: var(--bs-light);
 }
 
-/* scrollable table body */
-.table-wrapper {
-  overflow-y: auto;
-  max-height: calc(
-    100vh - 56px /* navbar height */ - 3rem /* ≈ h2 + margin */ - 40px
-      /* footer height */
-  );
-}
-/* lock header row */
+/* sticky header row */
 .table-wrapper thead th {
   position: sticky;
   top: 0;
   z-index: 2;
 }
-/* striped rows in pale pink */
+
+/* scrollable table body */
+.table-wrapper {
+  overflow-y: auto;
+  max-height: calc(
+    100vh - 56px /* navbar */ - 3rem /* heading */ - 40px /* footer */
+  );
+}
+
+/* striped rows */
 .table-striped > tbody > tr:nth-of-type(odd) {
   background-color: var(--bs-light);
 }
 
-/* make the `.filter` group a positioning context */
+/* narrow status column */
+.col-status {
+  width: 2rem;
+  text-align: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Tablesort Integration */
+th[aria-sort] {
+  position: relative;
+  cursor: pointer;
+}
+
+th[aria-sort]::after {
+  content: "";
+  margin-left: 2px;
+  transform: translateY(-50%);
+  font-size: 0.75em;
+  color: var(--bs-light);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+th[aria-sort="ascending"]::after {
+  content: "▲";
+}
+
+th[aria-sort="descending"]::after {
+  content: "▼";
+}
+
+/* Filters & Clearable Input */
 .input-group.filter {
   position: relative;
   overflow: visible;
 }
 
-/* give the input extra right padding so text never goes under the button */
 .with-clear {
-  padding-right: 2.5rem;
+  padding-right: 2.5rem; /* room for clear button */
 }
 
-/* style & position the clear button */
 .clear-filter-btn {
   position: absolute;
   top: 50%;
   right: 0.75rem;
   transform: translateY(-50%);
-  z-index: 10; /* make sure it sits above the input */
+  z-index: 10;
   border: none;
   background: transparent;
   font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
-  display: none; /* hidden until there’s text */
+  display: none;
   color: var(--bs-primary);
 }
 
-/* show as soon as user types */
+/* show clear button when user types */
 .with-clear:not(:placeholder-shown) + .clear-filter-btn,
 .with-clear:valid + .clear-filter-btn {
   display: block;
 }
 
-/* Badges */
+/* Badges (Receiver Tags) */
 .badge {
   background-color: var(--bs-primary);
   color: var(--bs-light);
 }
-/* Dedicated badge colors by status */
+
+/* Override badge colors based on status */
 .badge.status-active {
   background-color: var(--hb-status-active) !important;
   color: var(--bs-light);
@@ -130,12 +164,13 @@ body {
   color: var(--bs-light);
 }
 
-/* Copy-to-clipboard cells */
+/* Copy-to-Clipboard Cells */
 .copy-cell {
   position: relative;
   padding-right: 3em;
   cursor: pointer;
 }
+
 .copy-cell .copy-btn {
   display: none;
   position: absolute;
@@ -147,16 +182,18 @@ body {
   color: var(--bs-primary);
   font-size: 0.85rem;
 }
+
 .copy-cell:hover .copy-btn {
   display: inline-block;
 }
 
-/* Heart-status icon */
+/* Heartbeat Status Icons  */
 .status-icon {
   width: 1.5rem;
   height: 1.5rem;
   vertical-align: middle;
 }
+
 .status-active {
   color: var(--hb-status-active);
 }
@@ -170,33 +207,25 @@ body {
   color: var(--hb-status-unknown);
 }
 
-/* make that first status column just wide enough */
-.col-status {
-  width: 2rem;
-  text-align: center;
-  padding-left: 0;
-  padding-right: 0;
-}
-
-/* History icon (SVG uses fill="currentColor") */
-/* active (hasHistory=true) */
+/* History Icon */
 .history-icon {
   color: var(--bs-primary);
   cursor: pointer;
   transition: color 0.2s ease;
 }
+
 .history-icon:hover:not(.disabled) {
   color: #ff99a1; /* lighter rose on hover */
 }
 
-/* inactive (hasHistory=false) */
 .history-icon.disabled {
   color: #6c757d;
   filter: grayscale(100%) opacity(0.6);
   cursor: default;
 }
+
 .history-icon.disabled:hover {
-  color: #6c757d; /* stay gray */
+  color: #6c757d;
 }
 
 /* Footer */

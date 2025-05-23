@@ -18,30 +18,33 @@ import (
 )
 
 type HeartbeatView struct {
-	ID          string
-	Status      string
-	Description string
-	Interval    string
-	Grace       string
-	LastBump    string
-	URL         string // full URL to copy
-	Receivers   []string
-	HasHistory  bool
+	ID              string
+	Status          string
+	Description     string
+	Interval        string
+	IntervalSeconds float64 // for table sorting
+	Grace           string
+	GraceSeconds    float64 // for table sorting
+	LastBump        time.Time
+	URL             string // full URL to copy
+	Receivers       []string
+	HasHistory      bool
 }
 
 // ReceiverView for rendering each notifier instance.
 type ReceiverView struct {
-	ID          string // receiver ID
-	Type        string // "slack", "email", etc.
-	Destination string // e.g. channel name, email addrs
-	LastSent    string // human‐friendly e.g. "5m30s ago" or "never"
-	Status      string // "Success", "Failed", or "-"
+	ID              string // receiver ID
+	Type            string // "slack", "email", etc.
+	Destination     string // e.g. channel name, email addrs
+	LastSent        time.Time
+	LastSentSeconds int    // for table sorting
+	Status          string // "Success", "Failed", or "-"
 }
 
 // HistoryView is what the template actually sees.
 // Details is already formatted for display.
 type HistoryView struct {
-	Timestamp   string // pre-formatted time
+	Timestamp   time.Time
 	Type        string // EventType
 	HeartbeatID string
 	Details     string // e.g. "Notification Sent", "old → new", or blank
@@ -100,22 +103,19 @@ func renderHeartbeats(
 	actors := mgr.List()
 	views := make([]HeartbeatView, 0, len(actors))
 	for id, a := range actors {
-		last := "never"
-		if !a.LastBump.IsZero() {
-			last = time.Since(a.LastBump).Truncate(time.Second).String()
-		}
 		evs := hist.GetEventsByID(id)
 
 		views = append(views, HeartbeatView{
-			ID:          id,
-			Status:      a.State.String(),
-			Description: a.Description,
-			Interval:    a.Interval.String(),
-			Grace:       a.Grace.String(),
-			LastBump:    last,
-			URL:         siteRoot + "/" + id,
-			Receivers:   a.Receivers,
-			HasHistory:  len(evs) > 0,
+			ID:              id,
+			Status:          a.State.String(),
+			Description:     a.Description,
+			Interval:        a.Interval.String(),
+			IntervalSeconds: a.Interval.Seconds(),
+			Grace:           a.Grace.String(),
+			LastBump:        a.LastBump,
+			URL:             siteRoot + "/api/v1/" + id,
+			Receivers:       a.Receivers,
+			HasHistory:      len(evs) > 0,
 		})
 	}
 	// Sort alphabetically by ID for consistent ordering
@@ -151,7 +151,8 @@ func renderReceivers(
 				rv.Destination = x.WebhookURL
 			}
 
-			rv.LastSent = time.Since(n.LastSent()).Truncate(time.Second).String() + " ago"
+			rv.LastSent = n.LastSent()
+
 			successful := n.Successful()
 			if successful != nil && *successful {
 				rv.Status = "Success"
@@ -163,6 +164,9 @@ func renderReceivers(
 			views = append(views, rv)
 		}
 	}
+
+	// Sort alphabetically by ID for consistent ordering
+	sort.Slice(views, func(i, j int) bool { return views[i].ID < views[j].ID })
 
 	data := struct{ Receivers []ReceiverView }{Receivers: views}
 
@@ -180,7 +184,6 @@ func renderHistory(
 	// build our slice of HistoryView
 	views := make([]HistoryView, 0, len(raw))
 	for _, e := range raw {
-		ts := e.Timestamp.Format("2006-01-02 15:04:05")
 
 		// pick Details
 		var det string
@@ -194,8 +197,8 @@ func renderHistory(
 		}
 
 		views = append(views, HistoryView{
-			Timestamp:   ts,
-			Type:        string(e.Type),
+			Timestamp:   e.Timestamp,
+			Type:        e.Type.String(),
 			HeartbeatID: e.HeartbeatID,
 			Details:     det,
 		})
@@ -203,10 +206,7 @@ func renderHistory(
 
 	// sort oldest first
 	sort.Slice(views, func(i, j int) bool {
-		// compare the underlying times, not the string
-		ti, _ := time.Parse("2006-01-02 15:04:05", views[i].Timestamp)
-		tj, _ := time.Parse("2006-01-02 15:04:05", views[j].Timestamp)
-		return tj.Before(ti)
+		return views[i].Timestamp.Before(views[j].Timestamp)
 	})
 
 	// execute template

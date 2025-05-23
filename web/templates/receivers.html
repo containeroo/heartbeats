@@ -32,13 +32,13 @@
         <td>{{ .ID }}</td>
         <td>{{ .Type }}</td>
         <td>{{ .Destination }}</td>
-        <td>{{ .LastSent }}</td>
-        <td>
+        <td>{{ ago .LastSent }}</td>
+        <td data-sort="{{ .Status }}">
           <span
             class='badge
-              {{ if eq .Status "Success"     }}status-active
-              {{ else if eq .Status "Failed" }}status-missing
-              {{ else                        }}status-unknown
+              {{ if eq .Status "Success"     }} status-active
+              {{ else if eq .Status "Failed" }} status-missing
+              {{ else                        }} status-unknown
               {{ end }}'
           >
             {{ .Status }}

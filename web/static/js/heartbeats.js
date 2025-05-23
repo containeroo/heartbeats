@@ -112,6 +112,12 @@ async function loadSection(sec) {
       rowSelector: "#hist-body tr",
       getText: (row) => row.dataset.id,
     });
+
+    // Sort the heartbeats table if present
+    const table = document.querySelector(".table-wrapper table");
+    if (table) {
+      new Tablesort(table);
+    }
   } catch (err) {
     console.error("loadSection error:", err);
   }

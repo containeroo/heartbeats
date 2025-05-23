@@ -13,7 +13,13 @@ func FuncMap() template.FuncMap {
 		"upper":      strings.ToUpper,
 		"lower":      strings.ToLower,
 		"formatTime": func(t time.Time, format string) string { return t.Format(format) },
-		"ago":        func(t time.Time) string { return time.Since(t).Truncate(time.Second).String() },
+		"ago": func(t time.Time) string {
+			if t.IsZero() {
+				return "never"
+			}
+			return time.Since(t).Truncate(time.Second).String()
+		},
+		"join": func(elems []string, sep string) string { return strings.Join(elems, sep) },
 	}
 }
 

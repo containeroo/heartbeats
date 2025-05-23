@@ -15,8 +15,12 @@ const (
 	EventTypeHeartbeatFailed   EventType = "HeartbeatFailed"   // EventTypeHeartbeatFailed is a manual failure.
 	EventTypeStateChanged      EventType = "StateChanged"      // EventTypeStateChanged is when an Actor’s state changes.
 	EventTypeNotificationSent  EventType = "NotificationSent"  // EventTypeNotificationSent is when a notification is dispatched.
-
 )
+
+// String returns the EventType as string.
+func (h EventType) String() string {
+	return string(h)
+}
 
 // Event is a generic record of something that happened.
 type Event struct {

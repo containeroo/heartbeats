@@ -12,7 +12,7 @@ const (
 	HeartbeatStateRecovered HeartbeatState = "recovered" // Recovered is the heartbeat recovered state. Only used for sending "resolved" messages.
 )
 
-// String returns
+// String returns the HeartbeatState as string.
 func (h HeartbeatState) String() string {
 	return string(h)
 }
