@@ -46,7 +46,7 @@ func TestMSTeamsConfig_Notify(t *testing.T) {
 	assert.True(t, mock.called)
 	assert.Contains(t, mock.sentMsg.Title, "db-check")
 	assert.Contains(t, mock.sentMsg.Text, "db-check is failed")
-	assert.True(t, *config.success)
+	assert.Nil(t, config.lastErr)
 }
 
 func TestMSTeamsConfig_Format(t *testing.T) {

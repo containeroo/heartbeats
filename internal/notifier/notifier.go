@@ -20,5 +20,5 @@ type Notifier interface {
 	Resolve() error                                          // Resolve performs any necessary resolution (e.g., secrets, tokens).
 	Type() string                                            // Type returns the notifier's type, e.g., "slack", "email", "teams".
 	LastSent() time.Time                                     // LastSent returns the timestamp of the last notification attempt.
-	Successful() *bool                                       // Successful reports whether the last notification attempt succeeded.
+	LastErr() error                                          // LastError reports whether the last notification attempt succeeded.
 }

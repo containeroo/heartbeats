@@ -17,11 +17,13 @@ const (
 
 // EmailConfig holds the configuration for sending email notifications.
 type EmailConfig struct {
-	id           string           `yaml:"-"` // id is the ID of the email configuration.
-	lastSent     time.Time        `yaml:"-"`
-	success      *bool            `yaml:"-"`
-	logger       *slog.Logger     `yaml:"-"`
-	sender       email.Sender     `yaml:"-"`
+	id string `yaml:"-"` // id is the ID of the email configuration.
+
+	lastSent time.Time    `yaml:"-"`
+	lastErr  error        `yaml:"-"`
+	logger   *slog.Logger `yaml:"-"`
+	sender   email.Sender `yaml:"-"`
+
 	SMTPConfig   email.SMTPConfig `yaml:"smtp"`  // SMTPConfig is the SMTP configuration.
 	EmailDetails EmailDetails     `yaml:"email"` // EmailDetails is the email message details.
 }
@@ -48,15 +50,19 @@ func NewEmailNotifier(id string, cfg EmailConfig, logger *slog.Logger, sender em
 
 func (en *EmailConfig) Type() string        { return "email" }
 func (en *EmailConfig) LastSent() time.Time { return en.lastSent }
-func (en *EmailConfig) Successful() *bool   { return en.success }
+func (en *EmailConfig) LastErr() error      { return en.lastErr }
 
 // Notify formats and sends the email using the configured SMTP settings.
 func (en *EmailConfig) Notify(ctx context.Context, data NotificationData) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
+	en.lastSent = time.Now()
+	en.lastErr = nil
+
 	formatted, err := en.Format(data)
 	if err != nil {
+		en.lastErr = err
 		return fmt.Errorf("failed to format notification: %w", err)
 	}
 
@@ -70,12 +76,9 @@ func (en *EmailConfig) Notify(ctx context.Context, data NotificationData) error 
 	}
 
 	if err := en.sender.Send(ctx, msg); err != nil {
-		en.success = boolPtr(false)
+		en.lastErr = err
 		return fmt.Errorf("cannot send email notification: %w", err)
 	}
-
-	en.lastSent = time.Now()
-	en.success = boolPtr(true)
 
 	en.logger.Info("Email notification sent", "receiver", en.id, "to", en.EmailDetails.To)
 	return nil

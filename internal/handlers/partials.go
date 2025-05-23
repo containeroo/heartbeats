@@ -33,12 +33,11 @@ type HeartbeatView struct {
 
 // ReceiverView for rendering each notifier instance.
 type ReceiverView struct {
-	ID              string // receiver ID
-	Type            string // "slack", "email", etc.
-	Destination     string // e.g. channel name, email addrs
-	LastSent        time.Time
-	LastSentSeconds int    // for table sorting
-	Status          string // "Success", "Failed", or "-"
+	ID          string // receiver ID
+	Type        string // "slack", "email", etc.
+	Destination string // e.g. channel name, email addrs
+	LastSent    time.Time
+	LastErr     error
 }
 
 // HistoryView is what the template actually sees.
@@ -140,7 +139,12 @@ func renderReceivers(
 	views := make([]ReceiverView, 0, len(raw))
 	for rid, nots := range raw {
 		for _, n := range nots {
-			rv := ReceiverView{ID: rid, Type: n.Type()}
+			rv := ReceiverView{
+				ID:       rid,
+				Type:     n.Type(),
+				LastSent: n.LastSent(),
+				LastErr:  n.LastErr(),
+			}
 			// Derive the destination field based on concrete Notifier type.
 			switch x := n.(type) {
 			case *notifier.SlackConfig:
@@ -151,16 +155,6 @@ func renderReceivers(
 				rv.Destination = x.WebhookURL
 			}
 
-			rv.LastSent = n.LastSent()
-
-			successful := n.Successful()
-			if successful != nil && *successful {
-				rv.Status = "Success"
-			} else if successful != nil && !*successful {
-				rv.Status = "Failed"
-			} else {
-				rv.Status = "Never"
-			}
 			views = append(views, rv)
 		}
 	}

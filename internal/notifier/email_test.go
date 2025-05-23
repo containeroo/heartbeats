@@ -53,7 +53,7 @@ func TestEmailConfig_Notify(t *testing.T) {
 	assert.Equal(t, "dev@example.com", mock.message.To[0])
 	assert.Contains(t, mock.message.Subject, "my-check")
 	assert.Contains(t, mock.message.Body, "Last ping")
-	assert.True(t, *cfg.success)
+	assert.Nil(t, cfg.lastErr)
 	assert.WithinDuration(t, time.Now(), cfg.lastSent, time.Second)
 }
 

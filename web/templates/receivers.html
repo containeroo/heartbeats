@@ -33,15 +33,18 @@
         <td>{{ .Type }}</td>
         <td>{{ .Destination }}</td>
         <td>{{ ago .LastSent }}</td>
-        <td data-sort="{{ .Status }}">
+        <td data-sort="{{ .LastErr }}">
           <span
-            class='badge
-              {{ if eq .Status "Success"     }} status-active
-              {{ else if eq .Status "Failed" }} status-missing
-              {{ else                        }} status-unknown
-              {{ end }}'
+            data-bs-toggle="tooltip"
+            title="{{ if ne .LastErr nil }}{{ .LastErr.Error }}{{ end }}"
+            class="badge
+              {{ if .LastSent.IsZero       }} status-missing
+              {{ else if eq .LastErr nil   }} status-active
+              {{ else                      }} status-unknown
+              {{ end }}"
           >
-            {{ .Status }}
+            {{ if .LastSent.IsZero }}never{{ else if eq .LastErr nil }}
+            success{{ else }}error{{ end }}
           </span>
         </td>
       </tr>

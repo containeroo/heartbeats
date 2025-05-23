@@ -19,9 +19,10 @@ const (
 
 // SlackConfig sends notifications to Slack.
 type SlackConfig struct {
-	id       string       `yaml:"-"` // config ID for logging
+	id string `yaml:"-"` // config ID for logging
+
 	lastSent time.Time    `yaml:"-"`
-	success  *bool        `yaml:"-"`
+	lastErr  error        `yaml:"-"`
 	logger   *slog.Logger `yaml:"-"` // logger for internal events
 	sender   slack.Sender `yaml:"-"` // Optional override for injecting a custom sender (used in tests)
 
@@ -44,15 +45,19 @@ func NewSlackNotifier(id string, cfg SlackConfig, logger *slog.Logger, sender sl
 // Type returns the type of the notifier
 func (sn *SlackConfig) Type() string        { return "slack" }
 func (sn *SlackConfig) LastSent() time.Time { return sn.lastSent }
-func (sn *SlackConfig) Successful() *bool   { return sn.success }
+func (sn *SlackConfig) LastErr() error      { return sn.lastErr }
 
 // Notify sends a Slack notification.
 func (sn *SlackConfig) Notify(ctx context.Context, data NotificationData) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
+	sn.lastSent = time.Now()
+	sn.lastErr = nil
+
 	formatted, err := sn.Format(data)
 	if err != nil {
+		sn.lastErr = err
 		return fmt.Errorf("format notification: %w", err)
 	}
 
@@ -74,12 +79,9 @@ func (sn *SlackConfig) Notify(ctx context.Context, data NotificationData) error 
 	}
 
 	if _, err := sn.sender.Send(ctx, payload); err != nil {
-		sn.success = boolPtr(false)
+		sn.lastErr = err
 		return fmt.Errorf("send slack notification: %w", err)
 	}
-
-	sn.lastSent = time.Now()
-	sn.success = boolPtr(true)
 
 	sn.logger.Info("slack notification sent", "receiver", sn.id, "channel", sn.Channel)
 	return nil

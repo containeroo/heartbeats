@@ -18,9 +18,10 @@ const (
 
 // MSTeamsConfig sends notifications to MSTeams.
 type MSTeamsConfig struct {
-	id       string         `yaml:"-"` // id is the ID of the email configuration.
+	id string `yaml:"-"` // id is the ID of the email configuration.
+
 	lastSent time.Time      `yaml:"-"`
-	success  *bool          `yaml:"-"`
+	lastErr  error          `yaml:"-"`
 	logger   *slog.Logger   `yaml:"-"` // logger is the logger for logging events.
 	sender   msteams.Sender `yaml:"-"` // Optional override for injecting a custom sender (used in tests)
 
@@ -40,14 +41,18 @@ func NewMSTeamsNotifier(id string, cfg MSTeamsConfig, logger *slog.Logger, sende
 
 func (mc *MSTeamsConfig) Type() string        { return "msteams" }
 func (mc *MSTeamsConfig) LastSent() time.Time { return mc.lastSent }
-func (mc *MSTeamsConfig) Successful() *bool   { return mc.success }
+func (mc *MSTeamsConfig) LastErr() error      { return mc.lastErr }
 
 func (mc *MSTeamsConfig) Notify(ctx context.Context, data NotificationData) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
+	mc.lastSent = time.Now()
+	mc.lastErr = nil
+
 	formatted, err := mc.Format(data)
 	if err != nil {
+		mc.lastErr = err
 		return fmt.Errorf("failed to format notification: %w", err)
 	}
 
@@ -57,12 +62,9 @@ func (mc *MSTeamsConfig) Notify(ctx context.Context, data NotificationData) erro
 	}
 
 	if _, err := mc.sender.Send(ctx, msg, mc.WebhookURL); err != nil {
-		mc.success = boolPtr(false)
+		mc.lastErr = err
 		return fmt.Errorf("cannot send MS Teams notification. %w", err)
 	}
-
-	mc.lastSent = time.Now()
-	mc.success = boolPtr(true)
 
 	mc.logger.Info("MSTeams notification sent", "receiver", mc.id)
 	return nil

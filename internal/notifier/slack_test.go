@@ -51,7 +51,7 @@ func TestSlackConfig_Notify(t *testing.T) {
 	require.Equal(t, "#devops", mock.payload.Channel)
 	require.Contains(t, mock.payload.Attachments[0].Title, "api-check")
 	require.Contains(t, mock.payload.Attachments[0].Text, "api-check is missing")
-	require.True(t, *cfg.success)
+	require.Nil(t, cfg.lastErr)
 	require.WithinDuration(t, time.Now(), cfg.lastSent, time.Second)
 }
 
