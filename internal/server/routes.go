@@ -17,7 +17,6 @@ func NewRouter(
 	staticFS fs.FS,
 	siteRoot string,
 	version string,
-	commit string,
 	mgr *heartbeat.Manager,
 	histStore history.Store,
 	disp *notifier.Dispatcher,
@@ -31,7 +30,7 @@ func NewRouter(
 	fileServer := http.FileServer(http.FS(staticContent))
 	root.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
-	root.Handle("/", handlers.HomeHandler(staticFS, version, commit)) // no Method allowed, otherwise it crashes
+	root.Handle("/", handlers.HomeHandler(staticFS, version)) // no Method allowed, otherwise it crashes
 	root.Handle("/partials/", http.StripPrefix("/partials", handlers.PartialHandler(staticFS, siteRoot, mgr, histStore, disp, logger)))
 	root.Handle("GET /healthz", handlers.Healthz())
 	root.Handle("GET /metrics", handlers.Metrics())

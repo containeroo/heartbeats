@@ -8,7 +8,7 @@ import (
 )
 
 // HomeHandler renders the base template with navbar and footer.
-func HomeHandler(staticFS fs.FS, version, commit string) http.HandlerFunc {
+func HomeHandler(staticFS fs.FS, version string) http.HandlerFunc {
 	tmpl := template.Must(
 		template.New("base.html").
 			ParseFS(staticFS,
@@ -22,7 +22,6 @@ func HomeHandler(staticFS fs.FS, version, commit string) http.HandlerFunc {
 		Commit  string
 	}{
 		Version: version,
-		Commit:  commit,
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {

@@ -13,7 +13,7 @@ type MockNotifier struct {
 	last       NotificationData                                       // holds the last NotificationData passed to Notify
 	TypeName   string                                                 // optional custom type name returned by Type()
 	Sent       time.Time                                              // mock timestamp returned by LastSent()
-	Success    *bool                                                  // mock success status returned by Successful()
+	lastErr    error                                                  // mock error returned by LastErr()
 	FormatFunc func(NotificationData) (NotificationData, error)       // optional override for Format behavior
 	NotifyFunc func(ctx context.Context, data NotificationData) error // optional override for Notify behavior
 }
@@ -38,25 +38,14 @@ func (m *MockNotifier) Format(data NotificationData) (NotificationData, error) {
 	return data, nil
 }
 
-func (m *MockNotifier) Validate() error {
-	return nil
-}
-
-func (m *MockNotifier) Resolve() error {
-	return nil
-}
+func (m *MockNotifier) Validate() error     { return nil }
+func (m *MockNotifier) Resolve() error      { return nil }
+func (m *MockNotifier) LastSent() time.Time { return m.Sent }
+func (m *MockNotifier) LastErr() error      { return m.lastErr }
 
 func (m *MockNotifier) Type() string {
 	if m.TypeName != "" {
 		return m.TypeName
 	}
 	return "mock"
-}
-
-func (m *MockNotifier) LastSent() time.Time {
-	return m.Sent
-}
-
-func (m *MockNotifier) Successful() *bool {
-	return m.Success
 }

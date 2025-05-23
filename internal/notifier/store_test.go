@@ -20,7 +20,7 @@ func TestReceiverStore_addAndGet(t *testing.T) {
 		mock := &MockNotifier{
 			TypeName: "mock",
 			Sent:     time.Now(),
-			Success:  boolPtr(true),
+			lastErr:  nil,
 		}
 
 		store.addNotifier("r1", mock)

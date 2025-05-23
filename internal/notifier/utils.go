@@ -43,8 +43,3 @@ func resolveSkipTLS(explicit *bool, fallback bool) bool {
 	}
 	return fallback
 }
-
-// boolPtr returns a pointer to the given boolean value.
-func boolPtr(b bool) *bool {
-	return &b
-}
