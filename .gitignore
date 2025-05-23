@@ -1,5 +1,5 @@
 .env
 bin/*
-./config.yaml
+local-config.yaml
 cover.out
 coverage.out

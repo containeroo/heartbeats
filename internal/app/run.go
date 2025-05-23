@@ -68,7 +68,16 @@ func Run(ctx context.Context, staticFS embed.FS, version, commit string, args []
 	)
 
 	// Create server and run forever
-	router := server.NewRouter(staticFS, flags.SiteRoot, version, mgr, hist, disp, logger, flags.Debug)
+	router := server.NewRouter(
+		staticFS,
+		flags.SiteRoot,
+		version,
+		mgr,
+		hist,
+		disp,
+		logger,
+		flags.Debug,
+	)
 	if err := server.Run(ctx, flags.ListenAddr, router, logger); err != nil {
 		return fmt.Errorf("failed to run proxy: %w", err)
 	}

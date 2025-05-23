@@ -28,7 +28,7 @@
     <tbody id="hist-body">
       {{- range .Events }}
       <tr data-id="{{ .HeartbeatID }}">
-        <td>{{ .Timestamp }}</td>
+        <td>{{ formatTime .Timestamp "2006-01-02 15:04:05" }}</td>
         <td>{{ .Type }}</td>
         <td>{{ .HeartbeatID }}</td>
         <td>{{ .Details }}</td>

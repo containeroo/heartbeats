@@ -12,7 +12,6 @@ import (
 var (
 	Version string
 	Commit  string
-	Date    string
 )
 
 //go:embed web

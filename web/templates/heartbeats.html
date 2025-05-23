@@ -33,7 +33,7 @@
       {{- range $hb := .Heartbeats }}
       <tr>
         <!-- status icon -->
-        <td class="col-status">
+        <td class="col-status" data-sort="{{ $hb.Status }}">
           <svg
             class='status-icon
               {{ if eq $hb.Status      "active"  }}status-active
@@ -71,10 +71,10 @@
             Copy
           </button>
         </td>
-        <td>{{ $hb.Interval }}</td>
-        <td>{{ $hb.Grace }}</td>
-        <td>{{ $hb.LastBump }}</td>
-        <td>
+        <td data-sort="{{ $hb.IntervalSeconds }}">{{ $hb.Interval }}</td>
+        <td data-sort="{{ $hb.GraceSeconds }}">{{ $hb.Grace }}</td>
+        <td data-sort="{{ $hb.LastBump }}">{{ ago $hb.LastBump }}</td>
+        <td data-sort="{{ join $hb.Receivers "," }}">
           {{- range $rv := $hb.Receivers }}
           <span
             class="badge me-1"
@@ -87,7 +87,7 @@
           </span>
           {{- end }}
         </td>
-        <td class="text-center">
+        <td class="col-status" data-sort="{{ $hb.HasHistory }}">
           <svg
             class="history-icon {{ if not $hb.HasHistory }}disabled{{ end }}"
             id="ekg"
