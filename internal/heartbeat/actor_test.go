@@ -18,7 +18,7 @@ func TestActor_Run_Smoke(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
 	hist := history.NewRingStore(20)
 	store := notifier.InitializeStore(nil, false, logger)
-	disp := notifier.NewDispatcher(store, logger)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 	actor := NewActor(
 		ctx,
@@ -84,10 +84,13 @@ func TestActor_Run_Smoke(t *testing.T) {
 			if e.PrevState == common.HeartbeatStateMissing.String() && e.NewState == common.HeartbeatStateActive.String() {
 				hasRecoveredState = true
 			}
-			n := e.Notification
-			if n == nil {
+			p := e.Payload
+
+			if p == nil {
 				continue
 			}
+			n, ok := p.(*notifier.NotificationData)
+			assert.True(t, ok)
 			if n.Status == common.HeartbeatStateRecovered.String() {
 				hasRecoveredNotification = true
 			}

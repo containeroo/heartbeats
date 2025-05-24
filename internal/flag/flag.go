@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/containeroo/heartbeats/internal/logging"
 
@@ -24,11 +25,13 @@ func (e *HelpRequested) Error() string {
 type Config struct {
 	Debug       bool              // Set LogLevel to Debug
 	LogFormat   logging.LogFormat // Specify the log output format
-	ConfigPath  string            // ConfigPath is the path to the configuration file.
-	ListenAddr  string            // ListenAddress is the address to listen on.
-	SiteRoot    string            // SiteRoot is the root URL of the site.
-	HistorySize int               // HistorySize is the size of the history ring buffer.
-	SkipTLS     bool              // SkipTLS for all receivers
+	ConfigPath  string            // Path to the configuration file
+	ListenAddr  string            // Address to listen on
+	SiteRoot    string            // Root URL of the site
+	HistorySize int               // Size of the history ring buffer
+	SkipTLS     bool              // Skip TLS for all receivers
+	RetryCount  int               // Number of retries for notifications
+	RetryDelay  time.Duration     // Delay between retries
 }
 
 // ParseFlags parses command-line flags.
@@ -41,11 +44,15 @@ func ParseFlags(args []string, version string) (Config, error) {
 	listenAddress := fs.StringP("listen-address", "a", ":8080", "Address to listen on")
 	siteRoot := fs.StringP("site-root", "r", "http://localhost:8080", "Site root URL")
 	historySize := fs.IntP("history-size", "s", 10000, "Size of the history")
+	skipTLS := fs.Bool("skip-tls", false, "Skip TLS verification for all receivers (can be overridden per receiver)")
 
 	// Application logging.
-	skipTLS := fs.Bool("skip-tls", false, "Skip TLS verification for all receivers (can be overridden per receiver)")
 	debug := fs.BoolP("debug", "d", false, "Enable debug logging (default: false)")
 	logFormat := fs.StringP("log-format", "l", "json", "Log format (json | text)")
+
+	// Retry settings
+	retryCount := fs.Int("retry-count", 3, "Number of times to retry failed notifications")
+	retryDelay := fs.Duration("retry-delay", 2*time.Second, "Delay between notification retries (e.g. '1s', '500ms')")
 
 	// Meta
 	var showHelp, showVersion bool
@@ -85,5 +92,7 @@ func ParseFlags(args []string, version string) (Config, error) {
 		Debug:       *debug,
 		LogFormat:   logging.LogFormat(*logFormat),
 		SkipTLS:     *skipTLS,
+		RetryCount:  *retryCount,
+		RetryDelay:  *retryDelay,
 	}, nil
 }

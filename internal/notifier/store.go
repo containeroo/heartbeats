@@ -13,8 +13,8 @@ type ReceiverStore struct {
 	notifiers map[string][]Notifier // map of notifiers by receiver ID
 }
 
-// newStore creates an empty ReceiverStore.
-func newStore() *ReceiverStore {
+// newReceiverStore creates an empty ReceiverStore.
+func newReceiverStore() *ReceiverStore {
 	return &ReceiverStore{notifiers: make(map[string][]Notifier)}
 }
 
@@ -30,7 +30,7 @@ func (s *ReceiverStore) getNotifiers(receiverID string) []Notifier {
 
 // InitializeStore builds a store from the receiver configuration.
 func InitializeStore(cfg map[string]ReceiverConfig, globalSkipTLS bool, logger *slog.Logger) *ReceiverStore {
-	store := newStore()
+	store := newReceiverStore()
 	for id, rc := range cfg {
 		for _, sc := range rc.SlackConfigs {
 			effectiveSkipTLS := resolveSkipTLS(sc.SkipTLS, globalSkipTLS)
