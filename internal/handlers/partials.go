@@ -182,7 +182,7 @@ func renderHistory(
 		// pick Details
 		var det string
 		switch {
-		case e.Notification != nil:
+		case e.Payload != nil:
 			det = "Notification Sent"
 		case e.PrevState != "":
 			det = e.PrevState + " → " + e.NewState

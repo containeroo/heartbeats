@@ -51,6 +51,9 @@ func NewEmailNotifier(id string, cfg EmailConfig, logger *slog.Logger, sender em
 func (en *EmailConfig) Type() string        { return "email" }
 func (en *EmailConfig) LastSent() time.Time { return en.lastSent }
 func (en *EmailConfig) LastErr() error      { return en.lastErr }
+func (ec *EmailConfig) Format(data NotificationData) (NotificationData, error) {
+	return formatNotification(data, ec.EmailDetails.SubjectTmpl, ec.EmailDetails.BodyTmpl, defaultEmailSubjectTmpl, defaultEmailBodyTmpl)
+}
 
 // Notify formats and sends the email using the configured SMTP settings.
 func (en *EmailConfig) Notify(ctx context.Context, data NotificationData) error {
@@ -84,30 +87,6 @@ func (en *EmailConfig) Notify(ctx context.Context, data NotificationData) error 
 	return nil
 }
 
-// Format applies templates to subject and body fields.
-func (en *EmailConfig) Format(data NotificationData) (NotificationData, error) {
-	if en.EmailDetails.SubjectTmpl == "" {
-		en.EmailDetails.SubjectTmpl = defaultEmailSubjectTmpl
-	}
-	subject, err := applyTemplate(en.EmailDetails.SubjectTmpl, data)
-	if err != nil {
-		return data, err
-	}
-
-	if en.EmailDetails.BodyTmpl == "" {
-		en.EmailDetails.BodyTmpl = defaultEmailBodyTmpl
-	}
-	body, err := applyTemplate(en.EmailDetails.BodyTmpl, data)
-	if err != nil {
-		return data, err
-	}
-
-	data.Title = subject
-	data.Message = body
-	return data, nil
-}
-
-// Resolve interpolates all environment variables used in the configuration.
 func (ec *EmailConfig) Resolve() error {
 	resolve := func(in string) (string, error) {
 		return resolver.ResolveVariable(in)
@@ -161,7 +140,6 @@ func (ec *EmailConfig) Resolve() error {
 	return nil
 }
 
-// Validate checks the basic configuration for completeness.
 func (ec *EmailConfig) Validate() error {
 	if _, err := ec.Format(NotificationData{}); err != nil {
 		return err

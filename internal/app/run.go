@@ -52,18 +52,24 @@ func Run(ctx context.Context, staticFS embed.FS, version, commit string, args []
 	defer stop()
 
 	// Create history
-	hist := history.NewRingStore(flags.HistorySize)
+	history := history.NewRingStore(flags.HistorySize)
 
 	// Inizalize notification
 	store := notifier.InitializeStore(cfg.Receivers, false, logger)
-	disp := notifier.NewDispatcher(store, logger)
+	dispatcher := notifier.NewDispatcher(
+		store,
+		logger,
+		history,
+		flags.RetryCount,
+		flags.RetryDelay,
+	)
 
 	// Create Heartbeat Manager
 	mgr := heartbeat.NewManager(
 		ctx,
 		cfg.Heartbeats,
-		disp,
-		hist,
+		dispatcher,
+		history,
 		logger,
 	)
 
@@ -73,8 +79,8 @@ func Run(ctx context.Context, staticFS embed.FS, version, commit string, args []
 		flags.SiteRoot,
 		version,
 		mgr,
-		hist,
-		disp,
+		history,
+		dispatcher,
 		logger,
 		flags.Debug,
 	)

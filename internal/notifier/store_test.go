@@ -15,7 +15,7 @@ func TestReceiverStore_addAndGet(t *testing.T) {
 	t.Run("add and retrieve mock notifier", func(t *testing.T) {
 		t.Parallel()
 
-		store := newStore()
+		store := newReceiverStore()
 
 		mock := &MockNotifier{
 			TypeName: "mock",

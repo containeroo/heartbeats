@@ -53,7 +53,8 @@ func TestPartialHandler(t *testing.T) {
 		UserAgent:   "Go-http-client",
 	})
 
-	disp := notifier.NewDispatcher(notifier.InitializeStore(nil, false, logger), logger)
+	store := notifier.InitializeStore(nil, false, logger)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 	mgr := heartbeat.NewManager(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"hb1": {
@@ -119,7 +120,8 @@ func TestRenderHeartbeats(t *testing.T) {
 	tmpl := loadTestTemplate(t, "heartbeats", `{{define "heartbeats"}}{{range .Heartbeats}}{{.ID}}:{{.Status}};{{end}}{{end}}`)
 
 	hist := history.NewRingStore(10)
-	disp := notifier.NewDispatcher(notifier.InitializeStore(nil, false, nil), nil)
+	store := notifier.InitializeStore(nil, false, nil)
+	disp := notifier.NewDispatcher(store, nil, hist, 1, 1)
 	mgr := heartbeat.NewManager(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"b": {
 			Description: "b-desc",
@@ -156,7 +158,8 @@ func TestRenderReceivers(t *testing.T) {
 	}
 	rc := map[string]notifier.ReceiverConfig{"r": r}
 
-	disp := notifier.NewDispatcher(notifier.InitializeStore(rc, false, nil), nil)
+	store := notifier.InitializeStore(rc, false, nil)
+	disp := notifier.NewDispatcher(store, nil, nil, 1, 1)
 
 	var buf bytes.Buffer
 	err := renderReceivers(&buf, tmpl, disp)
@@ -177,7 +180,7 @@ func TestRenderHistory(t *testing.T) {
 		Method:      "GET",
 		Source:      "127.0.0.1",
 		UserAgent:   "Go-http-client",
-		Notification: &notifier.NotificationData{
+		Payload: &notifier.NotificationData{
 			ID:          "r1",
 			Name:        "r1",
 			Description: "desc-1",

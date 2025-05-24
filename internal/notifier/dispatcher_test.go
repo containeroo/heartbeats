@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,11 +19,11 @@ func TestDispatcher_Dispatch(t *testing.T) {
 		t.Parallel()
 
 		n := &MockNotifier{}
-		store := newStore()
+		store := newReceiverStore()
 		store.addNotifier("r1", n)
 
-		logger := slog.Default()
-		dispatcher := NewDispatcher(store, logger)
+		hist := history.NewRingStore(10)
+		dispatcher := NewDispatcher(store, slog.Default(), hist, 1, 1)
 
 		data := NotificationData{
 			Receivers: []string{"r1"},
@@ -47,10 +48,11 @@ func TestDispatcher_Dispatch(t *testing.T) {
 	t.Run("logs and skips unknown receiver", func(t *testing.T) {
 		t.Parallel()
 
-		store := newStore()
+		store := newReceiverStore()
 		logger := slog.Default()
 
-		dispatcher := NewDispatcher(store, logger)
+		hist := history.NewRingStore(10)
+		dispatcher := NewDispatcher(store, logger, hist, 1, 1)
 
 		data := NotificationData{
 			Receivers: []string{"nonexistent"},
@@ -64,7 +66,7 @@ func TestDispatcher_Dispatch(t *testing.T) {
 func TestDispatcher_ListAndGet(t *testing.T) {
 	t.Parallel()
 
-	store := newStore()
+	store := newReceiverStore()
 	n1 := &MockNotifier{}
 	n2 := &MockNotifier{}
 
@@ -72,7 +74,8 @@ func TestDispatcher_ListAndGet(t *testing.T) {
 	store.addNotifier("a", n2)
 	store.addNotifier("b", n1)
 
-	d := NewDispatcher(store, slog.Default())
+	hist := history.NewRingStore(10)
+	d := NewDispatcher(store, slog.Default(), hist, 1, 1)
 
 	list := d.List()
 	assert.Len(t, list, 2)
@@ -86,7 +89,7 @@ func TestDispatcher_ListAndGet(t *testing.T) {
 }
 
 func TestDispatcher_LogsErrorFromNotifier(t *testing.T) {
-	store := newStore()
+	store := newReceiverStore()
 	store.addNotifier("receiver1", &MockNotifier{
 		NotifyFunc: func(ctx context.Context, data NotificationData) error {
 			return fmt.Errorf("fail!")

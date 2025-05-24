@@ -20,17 +20,19 @@ A lightweight HTTP service for monitoring periodic “heartbeat” pings (“bum
 
 ### Flags
 
-| Flag                     | Shorthand | Default                 | Description                                                              |
-| :----------------------- | :-------- | :---------------------- | :----------------------------------------------------------------------- |
-| `--config`, `-c`         | `-c`      | `config.yaml`           | Path to configuration file                                               |
-| `--listen-address`, `-a` | `-a`      | `:8080`                 | Address to listen on                                                     |
-| `--site-root`, `-r`      | `-r`      | `http://localhost:8080` | Base URL for dashboard links                                             |
-| `--history-size`, `-s`   | `-s`      | `10000`                 | Maximum history buffer size                                              |
-| `--skip-tls`             | —         | `false`                 | Skip TLS verification for all receivers (can be overridden per receiver) |
-| `--debug`, `-d`          | `-d`      | `false`                 | Enable debug-level logging                                               |
-| `--log-format`, `-l`     | `-l`      | `json`                  | Log format (`json` or `text`)                                            |
-| `--help`, `-h`           | `-h`      | —                       | Show help & exit                                                         |
-| `--version`              | —         | —                       | Print version & exit                                                     |
+| Flag                       | Shorthand | Default                 | Description                                                              |
+| :------------------------- | :-------- | :---------------------- | :----------------------------------------------------------------------- |
+| `--config`, `-c`           | `-c`      | `config.yaml`           | Path to configuration file                                               |
+| `--listen-address`, `-a`   | `-a`      | `:8080`                 | Address to listen on                                                     |
+| `--site-root`, `-r`        | `-r`      | `http://localhost:8080` | Base URL for dashboard links                                             |
+| `--history-size`, `-s`     | `-s`      | `10000`                 | Maximum history buffer size                                              |
+| `--skip-tls`               | —         | `false`                 | Skip TLS verification for all receivers (can be overridden per receiver) |
+| `--debug`, `-d`            | `-d`      | `false`                 | Enable debug-level logging                                               |
+| `--log-format`, `-l`       | `-l`      | `json`                  | Log format (`json` or `text`)                                            |
+| `--retry-count` `int`      | —         | `3`                     | Number of times to retry failed notifications                            |
+| `--retry-delay` `duration` | —         | `5s`                    | Duration to wait between retries                                         |
+| `--help`, `-h`             | `-h`      | —                       | Show help & exit                                                         |
+| `--version`                | —         | —                       | Print version & exit                                                     |
 
 #### Proxy Environment Variables
 

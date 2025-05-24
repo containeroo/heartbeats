@@ -67,7 +67,8 @@ func TestNewRouter(t *testing.T) {
 			Receivers:   []string{"r1"},
 		},
 	}
-	disp := notifier.NewDispatcher(notifier.InitializeStore(nil, false, nil), nil)
+	store := notifier.InitializeStore(nil, false, nil)
+	disp := notifier.NewDispatcher(store, nil, nil, 0, 0)
 	hist := history.NewRingStore(10)
 	logger := logging.SetupLogger(logging.LogFormatText, false, io.Discard)
 
