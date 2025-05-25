@@ -5,7 +5,7 @@ go 1.24.2
 toolchain go1.24.3
 
 require (
-	github.com/containeroo/resolver v0.0.3
+	github.com/containeroo/resolver v0.1.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/spf13/afero v1.14.0
 	github.com/spf13/pflag v1.0.6
