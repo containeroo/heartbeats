@@ -51,8 +51,8 @@ func ParseFlags(args []string, version string) (Config, error) {
 	logFormat := fs.StringP("log-format", "l", "json", "Log format (json | text)")
 
 	// Retry settings
-	retryCount := fs.Int("retry-count", 3, "Number of times to retry failed notifications")
-	retryDelay := fs.Duration("retry-delay", 2*time.Second, "Delay between notification retries (e.g. '1s', '500ms')")
+	retryCount := fs.Int("retry-count", 3, "How many times to retry a failed notification. Use -1 for infinite retries.")
+ retryDelay := fs.Duration("retry-delay", 2*time.Second, "Delay between retries. Must be >= 1s.")
 
 	// Meta
 	var showHelp, showVersion bool
