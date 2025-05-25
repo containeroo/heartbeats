@@ -149,7 +149,7 @@ func TestRenderHeartbeats(t *testing.T) {
 func TestRenderReceivers(t *testing.T) {
 	t.Parallel()
 
-	tmpl := loadTestTemplate(t, "receivers", `{{define "receivers"}}{{range .Receivers}}{{.Status}};{{end}}{{end}}`)
+	tmpl := loadTestTemplate(t, "receivers", `{{define "receivers"}}{{range .Receivers}}{{.Type}};{{end}}{{end}}`)
 
 	r := notifier.ReceiverConfig{
 		SlackConfigs:   []notifier.SlackConfig{{Channel: "channel"}},
@@ -164,7 +164,7 @@ func TestRenderReceivers(t *testing.T) {
 	var buf bytes.Buffer
 	err := renderReceivers(&buf, tmpl, disp)
 	assert.NoError(t, err)
-	assert.Equal(t, buf.String(), "Never;Never;Never;")
+	assert.Equal(t, buf.String(), "slack;email;msteams;")
 }
 
 func TestRenderHistory(t *testing.T) {
@@ -202,5 +202,5 @@ func TestRenderHistory(t *testing.T) {
 	var buf bytes.Buffer
 	err := renderHistory(&buf, tmpl, hist)
 	assert.NoError(t, err)
-	assert.Equal(t, "HeartbeatReceived:Notification Sent;HeartbeatReceived:missing → received;", buf.String())
+	assert.Equal(t, "HeartbeatReceived:missing → received;HeartbeatReceived:Notification Sent;", buf.String())
 }

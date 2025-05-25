@@ -66,7 +66,7 @@ func (mc *MSTeamsConfig) Notify(ctx context.Context, data NotificationData) erro
 
 	if _, err := mc.sender.Send(ctx, msg, mc.WebhookURL); err != nil {
 		mc.lastErr = err
-		return fmt.Errorf("cannot send MS Teams notification. %w", err)
+		return fmt.Errorf("cannot send MSTeams notification. %w", err)
 	}
 
 	mc.logger.Info("MSTeams notification sent", "receiver", mc.id)

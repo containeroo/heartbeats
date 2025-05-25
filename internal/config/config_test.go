@@ -187,7 +187,7 @@ func TestConfigValidate(t *testing.T) {
 
 		err := cfg.Validate()
 		assert.Error(t, err)
-		assert.EqualError(t, err, "receiver \"r\" email config error: SMTP host and port must be specified")
+		assert.EqualError(t, err, "receiver \"r\" email config error: SMTP host must be specified")
 	})
 
 	t.Run("invalid email config - resolve error", func(t *testing.T) {

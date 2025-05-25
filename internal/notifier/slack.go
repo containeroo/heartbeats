@@ -82,10 +82,10 @@ func (sn *SlackConfig) Notify(ctx context.Context, data NotificationData) error 
 
 	if _, err := sn.sender.Send(ctx, payload); err != nil {
 		sn.lastErr = err
-		return fmt.Errorf("send slack notification: %w", err)
+		return fmt.Errorf("send Slack notification: %w", err)
 	}
 
-	sn.logger.Info("slack notification sent", "receiver", sn.id, "channel", sn.Channel)
+	sn.logger.Info("Slack notification sent", "receiver", sn.id, "channel", sn.Channel)
 	return nil
 }
 

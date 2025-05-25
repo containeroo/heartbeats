@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"testing"
@@ -14,39 +15,192 @@ import (
 type mockMSTeamsSender struct {
 	called  bool
 	sentMsg msteams.MSTeams
-	sendErr error
+	err     error
 }
 
 func (m *mockMSTeamsSender) Send(ctx context.Context, msg msteams.MSTeams, webhookURL string) (string, error) {
 	m.called = true
 	m.sentMsg = msg
-	return "ok", m.sendErr
+	return "ok", m.err
+}
+
+func TestMSTeamsConfig_Type(t *testing.T) {
+	t.Parallel()
+	t.Run("returns msteams", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, "msteams", NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).Type())
+	})
+}
+
+func TestMSTeamsConfig_LastSent(t *testing.T) {
+	t.Parallel()
+	t.Run("returns last sent time", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, time.Time{}, NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).LastSent())
+	})
+}
+
+func TestMSTeamsConfig_LastErr(t *testing.T) {
+	t.Parallel()
+	t.Run("returns last error", func(t *testing.T) {
+		t.Parallel()
+		assert.Nil(t, NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).LastErr())
+	})
 }
 
 func TestMSTeamsConfig_Notify(t *testing.T) {
-	mock := &mockMSTeamsSender{}
+	t.Parallel()
 
-	config := &MSTeamsConfig{
-		WebhookURL: "https://example.com",
-		logger:     slog.New(slog.NewTextHandler(os.Stdout, nil)),
-		sender:     mock,
-	}
+	t.Run("fails on invalid template", func(t *testing.T) {
+		t.Parallel()
 
-	now := time.Now()
-	data := NotificationData{
-		ID:       "db-check",
-		Status:   "failed",
-		LastBump: now.Add(-2 * time.Minute),
-		Message:  "",
-		Title:    "",
-	}
+		mock := &mockMSTeamsSender{}
 
-	err := config.Notify(context.Background(), data)
-	assert.NoError(t, err)
-	assert.True(t, mock.called)
-	assert.Contains(t, mock.sentMsg.Title, "db-check")
-	assert.Contains(t, mock.sentMsg.Text, "db-check is failed")
-	assert.Nil(t, config.lastErr)
+		config := &MSTeamsConfig{
+			WebhookURL: "https://example.com",
+			logger:     slog.New(slog.NewTextHandler(os.Stdout, nil)),
+			sender:     mock,
+			TextTmpl:   "{{ .Missing }}",
+		}
+
+		now := time.Now()
+		data := NotificationData{
+			ID:       "db-check",
+			Status:   "failed",
+			LastBump: now.Add(-2 * time.Minute),
+			Message:  "",
+			Title:    "",
+		}
+
+		err := config.Notify(context.Background(), data)
+		assert.EqualError(t, err, "failed to format notification: format message: template: notification:1:3: executing \"notification\" at <.Missing>: can't evaluate field Missing in type notifier.NotificationData")
+	})
+
+	t.Run("Sender returns error", func(t *testing.T) {
+		t.Parallel()
+
+		mock := &mockMSTeamsSender{err: fmt.Errorf("mock error")}
+
+		config := &MSTeamsConfig{
+			logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
+			sender: mock,
+		}
+
+		now := time.Now()
+		data := NotificationData{
+			ID:       "db-check",
+			Status:   "failed",
+			LastBump: now.Add(-2 * time.Minute),
+			Message:  "",
+			Title:    "",
+		}
+
+		err := config.Notify(context.Background(), data)
+		assert.EqualError(t, err, "cannot send MSTeams notification. mock error")
+	})
+
+	t.Run("sends notification", func(t *testing.T) {
+		mock := &mockMSTeamsSender{}
+
+		config := &MSTeamsConfig{
+			WebhookURL: "https://example.com",
+			logger:     slog.New(slog.NewTextHandler(os.Stdout, nil)),
+			sender:     mock,
+		}
+
+		now := time.Now()
+		data := NotificationData{
+			ID:       "db-check",
+			Status:   "failed",
+			LastBump: now.Add(-2 * time.Minute),
+			Message:  "",
+			Title:    "",
+		}
+
+		err := config.Notify(context.Background(), data)
+		assert.NoError(t, err)
+		assert.True(t, mock.called)
+		assert.Contains(t, mock.sentMsg.Title, "db-check")
+		assert.Contains(t, mock.sentMsg.Text, "db-check is failed")
+		assert.Nil(t, config.lastErr)
+	})
+}
+
+func TestMSTeamsConfig_Resolve(t *testing.T) {
+	t.Setenv("TEAMS_URL", "https://hooks.example.com")
+	t.Setenv("TEAMS_TITLE", "[{{ .Status }}] Alert")
+	t.Setenv("TEAMS_TEXT", "Last seen at {{ ago .LastBump }}")
+
+	t.Run("resolves all fields", func(t *testing.T) {
+		cfg := &MSTeamsConfig{
+			WebhookURL: "env:TEAMS_URL",
+			TitleTmpl:  "env:TEAMS_TITLE",
+			TextTmpl:   "env:TEAMS_TEXT",
+		}
+
+		err := cfg.Resolve()
+		assert.NoError(t, err)
+		assert.Equal(t, "https://hooks.example.com", cfg.WebhookURL)
+		assert.Equal(t, "[{{ .Status }}] Alert", cfg.TitleTmpl)
+		assert.Equal(t, "Last seen at {{ ago .LastBump }}", cfg.TextTmpl)
+	})
+
+	t.Run("fails on WebhookURL", func(t *testing.T) {
+		cfg := &MSTeamsConfig{
+			WebhookURL: "env:INVALID",
+		}
+		err := cfg.Resolve()
+		assert.EqualError(t, err, "failed to resolve WebhookURL: environment variable 'INVALID' not found")
+	})
+
+	t.Run("fails on TitleTmpl", func(t *testing.T) {
+		cfg := &MSTeamsConfig{
+			WebhookURL: "https://ok",
+			TitleTmpl:  "env:INVALID",
+		}
+		err := cfg.Resolve()
+		assert.EqualError(t, err, "failed to resolve title template: environment variable 'INVALID' not found")
+	})
+
+	t.Run("fails on TextTmpl", func(t *testing.T) {
+		cfg := &MSTeamsConfig{
+			WebhookURL: "https://ok",
+			TextTmpl:   "env:INVALID",
+		}
+		err := cfg.Resolve()
+		assert.EqualError(t, err, "failed to resolve text template: environment variable 'INVALID' not found")
+	})
+}
+
+func TestMSTeamsConfig_Validate(t *testing.T) {
+	t.Run("valid config", func(t *testing.T) {
+		cfg := &MSTeamsConfig{
+			WebhookURL: "https://hooks.example.com",
+			TitleTmpl:  "[{{ .ID }}]",
+			TextTmpl:   "Body",
+		}
+		err := cfg.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("fails with invalid template", func(t *testing.T) {
+		cfg := &MSTeamsConfig{
+			WebhookURL: "https://hooks.example.com",
+			TitleTmpl:  "{{ .", // invalid
+		}
+		err := cfg.Validate()
+		assert.ErrorContains(t, err, "format title")
+	})
+
+	t.Run("fails when URL is empty", func(t *testing.T) {
+		cfg := &MSTeamsConfig{
+			WebhookURL: "",
+			TitleTmpl:  "OK",
+			TextTmpl:   "OK",
+		}
+		err := cfg.Validate()
+		assert.EqualError(t, err, "webhook URL cannot be empty")
+	})
 }
 
 func TestMSTeamsConfig_Format(t *testing.T) {
