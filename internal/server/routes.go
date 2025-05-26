@@ -31,7 +31,7 @@ func NewRouter(
 	root.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
 	root.Handle("/", handlers.HomeHandler(staticFS, version)) // no Method allowed, otherwise it crashes
-	root.Handle("/partials/", http.StripPrefix("/partials", handlers.PartialHandler(staticFS, siteRoot, mgr, histStore, disp, logger)))
+	root.Handle("GET /partials/", http.StripPrefix("/partials", handlers.PartialHandler(staticFS, siteRoot, mgr, histStore, disp, logger)))
 	root.Handle("GET /healthz", handlers.Healthz())
 	root.Handle("GET /metrics", handlers.Metrics())
 
