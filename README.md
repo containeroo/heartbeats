@@ -5,7 +5,7 @@
 [![Release](https://img.shields.io/github/release/containeroo/heartbeats.svg?style=flat-square)](https://github.com/containeroo/heartbeats/releases/latest)
 [![GitHub tag](https://img.shields.io/github/tag/containeroo/heartbeats.svg?style=flat-square)](https://github.com/containeroo/heartbeats/releases/latest)
 ![Tests](https://github.com/containeroo/heartbeats/actions/workflows/tests.yml/badge.svg)
-[![Build](https://github.com/containeroo/heartbeats/actions/workflows/build.yml/badge.svg)](https://github.com/containeroo/heartbeats/actions/workflows/build.yml)
+[![Build](https://github.com/containeroo/heartbeats/actions/workflows/release.yml/badge.svg)](https://github.com/containeroo/heartbeats/actions/workflows/release.yml)
 
 [![license](https://img.shields.io/github/license/containeroo/heartbeats.svg?style=flat-square)](LICENSE)
 
