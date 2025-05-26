@@ -217,3 +217,7 @@ msteams_configs:
 Download the binary and update the example [config.yaml](./deploy/config.yaml) according your needs.
 If you prefer to run heartbeats in docker, you find a `docker-compose.yaml` & `config.yaml` [here](./deploy/).
 For a kubernetes deployment you find the manifests [here](./deploy/kubernetes).
+
+## License
+
+This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
