@@ -68,5 +68,8 @@ func (c *Config) Validate() error {
 			}
 		}
 	}
+	if len(c.Heartbeats) == 0 {
+		return fmt.Errorf("at least one heartbeat must be defined")
+	}
 	return nil
 }

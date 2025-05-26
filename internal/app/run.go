@@ -2,10 +2,10 @@ package app
 
 import (
 	"context"
-	"embed"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os/signal"
 	"syscall"
 
@@ -19,8 +19,8 @@ import (
 )
 
 // Run is the single entry point for the application.
-func Run(ctx context.Context, staticFS embed.FS, version, commit string, args []string, w io.Writer) error {
-	// Parse command-line flags.
+func Run(ctx context.Context, staticFS fs.FS, version, commit string, args []string, w io.Writer) error {
+	// Parse and validate command-line flags.
 	flags, err := flag.ParseFlags(args, version)
 	if err != nil {
 		var helpErr *flag.HelpRequested
@@ -30,6 +30,9 @@ func Run(ctx context.Context, staticFS embed.FS, version, commit string, args []
 		}
 		return fmt.Errorf("parsing error: %w", err)
 	}
+	if err := flags.Validate(); err != nil {
+		return fmt.Errorf("invalid CLI flags: %w", err)
+	}
 
 	// Load and validate configuration.
 	cfg, err := config.LoadConfig(flags.ConfigPath)
@@ -37,7 +40,7 @@ func Run(ctx context.Context, staticFS embed.FS, version, commit string, args []
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 	if err := cfg.Validate(); err != nil {
-		return fmt.Errorf("configuration validation failed: %w", err)
+		return fmt.Errorf("invalid YAML config: %w", err)
 	}
 
 	// Setup logger
@@ -52,18 +55,24 @@ func Run(ctx context.Context, staticFS embed.FS, version, commit string, args []
 	defer stop()
 
 	// Create history
-	hist := history.NewRingStore(flags.HistorySize)
+	history := history.NewRingStore(flags.HistorySize)
 
 	// Inizalize notification
 	store := notifier.InitializeStore(cfg.Receivers, false, logger)
-	disp := notifier.NewDispatcher(store, logger)
+	dispatcher := notifier.NewDispatcher(
+		store,
+		logger,
+		history,
+		flags.RetryCount,
+		flags.RetryDelay,
+	)
 
 	// Create Heartbeat Manager
 	mgr := heartbeat.NewManager(
 		ctx,
 		cfg.Heartbeats,
-		disp,
-		hist,
+		dispatcher,
+		history,
 		logger,
 	)
 
@@ -73,13 +82,13 @@ func Run(ctx context.Context, staticFS embed.FS, version, commit string, args []
 		flags.SiteRoot,
 		version,
 		mgr,
-		hist,
-		disp,
+		history,
+		dispatcher,
 		logger,
 		flags.Debug,
 	)
 	if err := server.Run(ctx, flags.ListenAddr, router, logger); err != nil {
-		return fmt.Errorf("failed to run proxy: %w", err)
+		return fmt.Errorf("failed to run Heartbeats: %w", err)
 	}
 
 	return nil

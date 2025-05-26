@@ -51,6 +51,9 @@ func NewEmailNotifier(id string, cfg EmailConfig, logger *slog.Logger, sender em
 func (en *EmailConfig) Type() string        { return "email" }
 func (en *EmailConfig) LastSent() time.Time { return en.lastSent }
 func (en *EmailConfig) LastErr() error      { return en.lastErr }
+func (ec *EmailConfig) Format(data NotificationData) (NotificationData, error) {
+	return formatNotification(data, ec.EmailDetails.SubjectTmpl, ec.EmailDetails.BodyTmpl, defaultEmailSubjectTmpl, defaultEmailBodyTmpl)
+}
 
 // Notify formats and sends the email using the configured SMTP settings.
 func (en *EmailConfig) Notify(ctx context.Context, data NotificationData) error {
@@ -77,99 +80,58 @@ func (en *EmailConfig) Notify(ctx context.Context, data NotificationData) error 
 
 	if err := en.sender.Send(ctx, msg); err != nil {
 		en.lastErr = err
-		return fmt.Errorf("cannot send email notification: %w", err)
+		return fmt.Errorf("cannot send Email notification: %w", err)
 	}
 
 	en.logger.Info("Email notification sent", "receiver", en.id, "to", en.EmailDetails.To)
 	return nil
 }
 
-// Format applies templates to subject and body fields.
-func (en *EmailConfig) Format(data NotificationData) (NotificationData, error) {
-	if en.EmailDetails.SubjectTmpl == "" {
-		en.EmailDetails.SubjectTmpl = defaultEmailSubjectTmpl
-	}
-	subject, err := applyTemplate(en.EmailDetails.SubjectTmpl, data)
-	if err != nil {
-		return data, err
-	}
-
-	if en.EmailDetails.BodyTmpl == "" {
-		en.EmailDetails.BodyTmpl = defaultEmailBodyTmpl
-	}
-	body, err := applyTemplate(en.EmailDetails.BodyTmpl, data)
-	if err != nil {
-		return data, err
-	}
-
-	data.Title = subject
-	data.Message = body
-	return data, nil
-}
-
-// Resolve interpolates all environment variables used in the configuration.
 func (ec *EmailConfig) Resolve() error {
-	resolve := func(in string) (string, error) {
-		return resolver.ResolveVariable(in)
-	}
-
 	var err error
-	if ec.SMTPConfig.Host, err = resolve(ec.SMTPConfig.Host); err != nil {
+	if ec.SMTPConfig.Host, err = resolver.ResolveVariable(ec.SMTPConfig.Host); err != nil {
 		return fmt.Errorf("failed to resolve SMTP host: %w", err)
 	}
-	if ec.SMTPConfig.From, err = resolve(ec.SMTPConfig.From); err != nil {
+	if ec.SMTPConfig.From, err = resolver.ResolveVariable(ec.SMTPConfig.From); err != nil {
 		return fmt.Errorf("failed to resolve SMTP from: %w", err)
 	}
-	if ec.SMTPConfig.From == "" {
-		return fmt.Errorf("SMTP from must be specified")
-	}
-	if ec.SMTPConfig.Username, err = resolve(ec.SMTPConfig.Username); err != nil {
+	if ec.SMTPConfig.Username, err = resolver.ResolveVariable(ec.SMTPConfig.Username); err != nil {
 		return fmt.Errorf("failed to resolve SMTP username: %w", err)
 	}
-	if ec.SMTPConfig.Password, err = resolve(ec.SMTPConfig.Password); err != nil {
+	if ec.SMTPConfig.Password, err = resolver.ResolveVariable(ec.SMTPConfig.Password); err != nil {
 		return fmt.Errorf("failed to resolve SMTP password: %w", err)
 	}
 
-	resolveList := func(list []string) ([]string, error) {
-		out := make([]string, 0, len(list))
-		for _, item := range list {
-			resolved, err := resolve(item)
-			if err != nil {
-				return nil, err
-			}
-			out = append(out, resolved)
-		}
-		return out, nil
-	}
-
-	if ec.EmailDetails.To, err = resolveList(ec.EmailDetails.To); err != nil {
+	if ec.EmailDetails.To, err = resolver.ResolveSlice(ec.EmailDetails.To); err != nil {
 		return fmt.Errorf("failed to resolve email recipient: %w", err)
 	}
-	if ec.EmailDetails.Cc, err = resolveList(ec.EmailDetails.Cc); err != nil {
+	if ec.EmailDetails.Cc, err = resolver.ResolveSlice(ec.EmailDetails.Cc); err != nil {
 		return fmt.Errorf("failed to resolve email cc: %w", err)
 	}
-	if ec.EmailDetails.Bcc, err = resolveList(ec.EmailDetails.Bcc); err != nil {
+	if ec.EmailDetails.Bcc, err = resolver.ResolveSlice(ec.EmailDetails.Bcc); err != nil {
 		return fmt.Errorf("failed to resolve email bcc: %w", err)
 	}
-	if ec.EmailDetails.SubjectTmpl, err = resolve(ec.EmailDetails.SubjectTmpl); err != nil {
+	if ec.EmailDetails.SubjectTmpl, err = resolver.ResolveVariable(ec.EmailDetails.SubjectTmpl); err != nil {
 		return fmt.Errorf("failed to resolve subject template: %w", err)
 	}
-	if ec.EmailDetails.BodyTmpl, err = resolve(ec.EmailDetails.BodyTmpl); err != nil {
+	if ec.EmailDetails.BodyTmpl, err = resolver.ResolveVariable(ec.EmailDetails.BodyTmpl); err != nil {
 		return fmt.Errorf("failed to resolve body template: %w", err)
 	}
 
 	return nil
 }
 
-// Validate checks the basic configuration for completeness.
 func (ec *EmailConfig) Validate() error {
-	if _, err := ec.Format(NotificationData{}); err != nil {
-		return err
-	}
 	if ec.SMTPConfig.Host == "" || ec.SMTPConfig.Port == 0 {
 		return fmt.Errorf("SMTP host and port must be specified")
 	}
-	if len(ec.EmailDetails.To) == 0 {
+	if ec.SMTPConfig.From == "" {
+		return fmt.Errorf("SMTP from must be specified")
+	}
+	if _, err := ec.Format(NotificationData{}); err != nil {
+		return err
+	}
+	if len(ec.EmailDetails.To) == 0 && len(ec.EmailDetails.Cc) == 0 && len(ec.EmailDetails.Bcc) == 0 {
 		return fmt.Errorf("at least one recipient must be specified")
 	}
 	return nil

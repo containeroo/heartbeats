@@ -46,8 +46,10 @@ func NewSlackNotifier(id string, cfg SlackConfig, logger *slog.Logger, sender sl
 func (sn *SlackConfig) Type() string        { return "slack" }
 func (sn *SlackConfig) LastSent() time.Time { return sn.lastSent }
 func (sn *SlackConfig) LastErr() error      { return sn.lastErr }
+func (sn *SlackConfig) Format(data NotificationData) (NotificationData, error) {
+	return formatNotification(data, sn.TitleTmpl, sn.TextTmpl, defaultSlackTitleTmpl, defaultSlackTextTmpl)
+}
 
-// Notify sends a Slack notification.
 func (sn *SlackConfig) Notify(ctx context.Context, data NotificationData) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -80,36 +82,18 @@ func (sn *SlackConfig) Notify(ctx context.Context, data NotificationData) error 
 
 	if _, err := sn.sender.Send(ctx, payload); err != nil {
 		sn.lastErr = err
-		return fmt.Errorf("send slack notification: %w", err)
+		return fmt.Errorf("send Slack notification: %w", err)
 	}
 
-	sn.logger.Info("slack notification sent", "receiver", sn.id, "channel", sn.Channel)
+	sn.logger.Info("Slack notification sent", "receiver", sn.id, "channel", sn.Channel)
 	return nil
-}
-
-// Format applies templates to produce a notification.
-func (sn *SlackConfig) Format(data NotificationData) (NotificationData, error) {
-	if sn.TitleTmpl == "" {
-		sn.TitleTmpl = defaultSlackTitleTmpl
-	}
-	t, err := applyTemplate(sn.TitleTmpl, data)
-	if err != nil {
-		return data, err
-	}
-	if sn.TextTmpl == "" {
-		sn.TextTmpl = defaultSlackTextTmpl
-	}
-	msg, err := applyTemplate(sn.TextTmpl, data)
-	if err != nil {
-		return data, err
-	}
-	data.Title = t
-	data.Message = msg
-	return data, nil
 }
 
 // Validate ensures required fields are set.
 func (sn *SlackConfig) Validate() error {
+	if sn.Token == "" {
+		return fmt.Errorf("token cannot be empty")
+	}
 	if sn.Channel == "" {
 		return fmt.Errorf("channel cannot be empty")
 	}

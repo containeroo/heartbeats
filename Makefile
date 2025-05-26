@@ -72,6 +72,10 @@ favicon: ## Create favicons
 
 ##@ Development
 
+.PHONY: download
+download: ## Download go packages
+	go mod download
+
 .PHONY:run
 run: ## Run go fmt against code.
 	go run main.go -c local-config.yaml

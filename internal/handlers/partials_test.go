@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"html/template"
-	"io/fs"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -19,29 +18,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupTestFS() fs.FS {
-	return fstest.MapFS{
-		"web/templates/heartbeats.html": &fstest.MapFile{Data: []byte(`{{define "heartbeats"}}HEARTBEATS{{end}}`)},
-		"web/templates/receivers.html":  &fstest.MapFile{Data: []byte(`{{define "receivers"}}RECEIVERS{{end}}`)},
-		"web/templates/history.html":    &fstest.MapFile{Data: []byte(`{{define "history"}}HISTORY{{end}}`)},
-	}
-}
-
 func loadTestTemplate(t *testing.T, name string, content string) *template.Template {
+	t.Helper()
+
 	fs := fstest.MapFS{
 		"web/templates/" + name + ".html": &fstest.MapFile{Data: []byte(content)},
 	}
 	tmpl, err := template.New(name).
 		Funcs(notifier.FuncMap()).
 		ParseFS(fs, "web/templates/"+name+".html")
+
 	assert.NoError(t, err)
+
 	return tmpl
 }
 
 func TestPartialHandler(t *testing.T) {
 	t.Parallel()
 
-	fs := setupTestFS()
+	staticFS := fstest.MapFS{
+		"web/templates/heartbeats.html": &fstest.MapFile{Data: []byte(`{{define "heartbeats"}}HEARTBEATS{{end}}`)},
+		"web/templates/receivers.html":  &fstest.MapFile{Data: []byte(`{{define "receivers"}}RECEIVERS{{end}}`)},
+		"web/templates/history.html":    &fstest.MapFile{Data: []byte(`{{define "history"}}HISTORY{{end}}`)},
+	}
+
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
 	_ = hist.RecordEvent(context.Background(), history.Event{
@@ -53,7 +53,8 @@ func TestPartialHandler(t *testing.T) {
 		UserAgent:   "Go-http-client",
 	})
 
-	disp := notifier.NewDispatcher(notifier.InitializeStore(nil, false, logger), logger)
+	store := notifier.InitializeStore(nil, false, logger)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 	mgr := heartbeat.NewManager(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"hb1": {
@@ -65,10 +66,12 @@ func TestPartialHandler(t *testing.T) {
 	}, disp, hist, logger)
 
 	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+
 		req := httptest.NewRequest("GET", "/partials/invalid", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(fs, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
@@ -76,10 +79,12 @@ func TestPartialHandler(t *testing.T) {
 	})
 
 	t.Run("heartbeats", func(t *testing.T) {
+		t.Parallel()
+
 		req := httptest.NewRequest("GET", "/partials/heartbeats", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(fs, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -92,7 +97,7 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/receivers", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(fs, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -105,7 +110,7 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/history", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(fs, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -119,7 +124,8 @@ func TestRenderHeartbeats(t *testing.T) {
 	tmpl := loadTestTemplate(t, "heartbeats", `{{define "heartbeats"}}{{range .Heartbeats}}{{.ID}}:{{.Status}};{{end}}{{end}}`)
 
 	hist := history.NewRingStore(10)
-	disp := notifier.NewDispatcher(notifier.InitializeStore(nil, false, nil), nil)
+	store := notifier.InitializeStore(nil, false, nil)
+	disp := notifier.NewDispatcher(store, nil, hist, 1, 1)
 	mgr := heartbeat.NewManager(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"b": {
 			Description: "b-desc",
@@ -147,7 +153,7 @@ func TestRenderHeartbeats(t *testing.T) {
 func TestRenderReceivers(t *testing.T) {
 	t.Parallel()
 
-	tmpl := loadTestTemplate(t, "receivers", `{{define "receivers"}}{{range .Receivers}}{{.Status}};{{end}}{{end}}`)
+	tmpl := loadTestTemplate(t, "receivers", `{{define "receivers"}}{{range .Receivers}}{{.Type}};{{end}}{{end}}`)
 
 	r := notifier.ReceiverConfig{
 		SlackConfigs:   []notifier.SlackConfig{{Channel: "channel"}},
@@ -156,12 +162,13 @@ func TestRenderReceivers(t *testing.T) {
 	}
 	rc := map[string]notifier.ReceiverConfig{"r": r}
 
-	disp := notifier.NewDispatcher(notifier.InitializeStore(rc, false, nil), nil)
+	store := notifier.InitializeStore(rc, false, nil)
+	disp := notifier.NewDispatcher(store, nil, nil, 1, 1)
 
 	var buf bytes.Buffer
 	err := renderReceivers(&buf, tmpl, disp)
 	assert.NoError(t, err)
-	assert.Equal(t, buf.String(), "Never;Never;Never;")
+	assert.Equal(t, buf.String(), "slack;email;msteams;")
 }
 
 func TestRenderHistory(t *testing.T) {
@@ -177,7 +184,7 @@ func TestRenderHistory(t *testing.T) {
 		Method:      "GET",
 		Source:      "127.0.0.1",
 		UserAgent:   "Go-http-client",
-		Notification: &notifier.NotificationData{
+		Payload: &notifier.NotificationData{
 			ID:          "r1",
 			Name:        "r1",
 			Description: "desc-1",
@@ -198,6 +205,7 @@ func TestRenderHistory(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := renderHistory(&buf, tmpl, hist)
+
 	assert.NoError(t, err)
-	assert.Equal(t, "HeartbeatReceived:Notification Sent;HeartbeatReceived:missing → received;", buf.String())
+	assert.Equal(t, "HeartbeatReceived:missing → received;HeartbeatReceived:Notification Sent;", buf.String())
 }

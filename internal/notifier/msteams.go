@@ -42,6 +42,9 @@ func NewMSTeamsNotifier(id string, cfg MSTeamsConfig, logger *slog.Logger, sende
 func (mc *MSTeamsConfig) Type() string        { return "msteams" }
 func (mc *MSTeamsConfig) LastSent() time.Time { return mc.lastSent }
 func (mc *MSTeamsConfig) LastErr() error      { return mc.lastErr }
+func (mc *MSTeamsConfig) Format(data NotificationData) (NotificationData, error) {
+	return formatNotification(data, mc.TitleTmpl, mc.TextTmpl, defaultMSTeamsTitleTmpl, defaultMSTeamsTextTmpl)
+}
 
 func (mc *MSTeamsConfig) Notify(ctx context.Context, data NotificationData) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -63,31 +66,11 @@ func (mc *MSTeamsConfig) Notify(ctx context.Context, data NotificationData) erro
 
 	if _, err := mc.sender.Send(ctx, msg, mc.WebhookURL); err != nil {
 		mc.lastErr = err
-		return fmt.Errorf("cannot send MS Teams notification. %w", err)
+		return fmt.Errorf("cannot send MSTeams notification. %w", err)
 	}
 
 	mc.logger.Info("MSTeams notification sent", "receiver", mc.id)
 	return nil
-}
-
-func (sn *MSTeamsConfig) Format(data NotificationData) (NotificationData, error) {
-	if sn.TitleTmpl == "" {
-		sn.TitleTmpl = defaultMSTeamsTitleTmpl
-	}
-	finalTitle, err := applyTemplate(sn.TitleTmpl, data)
-	if err != nil {
-		return data, err
-	}
-	if sn.TextTmpl == "" {
-		sn.TextTmpl = defaultMSTeamsTextTmpl
-	}
-	finalText, err := applyTemplate(sn.TextTmpl, data)
-	if err != nil {
-		return data, err
-	}
-	data.Title = finalTitle
-	data.Message = finalText
-	return data, nil
 }
 
 func (mc *MSTeamsConfig) Resolve() error {

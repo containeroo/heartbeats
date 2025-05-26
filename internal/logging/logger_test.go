@@ -3,8 +3,9 @@ package logging
 import (
 	"bytes"
 	"encoding/json"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSetupLogger(t *testing.T) {
@@ -19,16 +20,11 @@ func TestSetupLogger(t *testing.T) {
 		logger.Info("test message", "key", "value")
 
 		var logEntry map[string]any
-		if err := json.Unmarshal(buf.Bytes(), &logEntry); err != nil {
-			t.Fatalf("expected JSON log, got error: %v", err)
-		}
+		err := json.Unmarshal(buf.Bytes(), &logEntry)
 
-		if logEntry["msg"] != "test message" {
-			t.Errorf("expected 'test message', got: %v", logEntry["msg"])
-		}
-		if logEntry["key"] != "value" {
-			t.Errorf("expected 'key=value', got: %v", logEntry["key"])
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "test message", logEntry["msg"])
+		assert.Equal(t, "value", logEntry["key"])
 	})
 
 	t.Run("Text logger", func(t *testing.T) {
@@ -40,28 +36,24 @@ func TestSetupLogger(t *testing.T) {
 		logger.Info("hello world", "foo", "bar")
 
 		logOutput := buf.String()
-		if !strings.Contains(logOutput, "hello world") {
-			t.Errorf("expected message 'hello world' in text output, got: %s", logOutput)
-		}
-		if !strings.Contains(logOutput, "foo=bar") {
-			t.Errorf("expected attribute 'foo=bar' in text output, got: %s", logOutput)
-		}
+
+		assert.Contains(t, logOutput, "hello world")
+		assert.Contains(t, logOutput, "foo=bar")
 	})
 
 	t.Run("Invalid format - default to json", func(t *testing.T) {
 		t.Parallel()
+
 		var buf bytes.Buffer
 		logger := SetupLogger("invalid", false, &buf)
 
 		logger.Info("fallback check", "k", "v")
 
 		var logEntry map[string]any
-		if err := json.Unmarshal(buf.Bytes(), &logEntry); err != nil {
-			t.Fatalf("expected JSON fallback log, got error: %v", err)
-		}
-		if logEntry["msg"] != "fallback check" {
-			t.Errorf("expected fallback log message, got: %v", logEntry["msg"])
-		}
+		err := json.Unmarshal(buf.Bytes(), &logEntry)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "fallback check", logEntry["msg"])
 	})
 
 	t.Run("Debug level", func(t *testing.T) {
@@ -73,8 +65,6 @@ func TestSetupLogger(t *testing.T) {
 		logger.Debug("debug enabled", "foo", "bar")
 
 		logOutput := buf.String()
-		if !strings.Contains(logOutput, "debug enabled") {
-			t.Errorf("expected debug message in output, got: %s", logOutput)
-		}
+		assert.Contains(t, logOutput, `level=DEBUG msg="debug enabled" foo=bar`)
 	})
 }

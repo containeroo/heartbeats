@@ -22,6 +22,16 @@ func (m *mockHTTPClient) DoRequest(ctx context.Context, method, url string, body
 	return m.Response, m.Err
 }
 
+func TestNew(t *testing.T) {
+	slack := New(map[string]string{"Authorization": "Bearer my-token"}, true)
+	assert.IsType(t, slack, &Client{}, slack)
+}
+
+func TestNewWithToken(t *testing.T) {
+	slack := NewWithToken("my-token", true)
+	assert.IsType(t, slack, &Client{}, slack)
+}
+
 func TestClient_Send_Success(t *testing.T) {
 	t.Parallel()
 

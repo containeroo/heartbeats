@@ -16,7 +16,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupRouter(hbName string, hist *history.RingStore) http.Handler {
+func setupRouter(t *testing.T, hbName string, hist history.Store) http.Handler {
+	t.Helper()
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	heartbeats := heartbeat.HeartbeatConfigMap{
 		hbName: {
@@ -28,7 +30,8 @@ func setupRouter(hbName string, hist *history.RingStore) http.Handler {
 		},
 	}
 
-	disp := notifier.NewDispatcher(notifier.InitializeStore(nil, false, logger), logger)
+	store := notifier.InitializeStore(nil, false, logger)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 	mgr := heartbeat.NewManager(context.Background(), heartbeats, disp, hist, logger)
 	router := http.NewServeMux()
 	router.Handle("GET /no-id/", BumpHandler(mgr, hist, logger))
@@ -48,7 +51,7 @@ func TestBumpHandler(t *testing.T) {
 	t.Run("missing id", func(t *testing.T) {
 		t.Parallel()
 
-		router := setupRouter("invalid", hist)
+		router := setupRouter(t, "invalid", hist)
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", "/no-id/", nil)
@@ -61,7 +64,7 @@ func TestBumpHandler(t *testing.T) {
 	t.Run("not found id", func(t *testing.T) {
 		t.Parallel()
 
-		router := setupRouter("invalid", hist)
+		router := setupRouter(t, "invalid", hist)
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", "/bump/not-found", nil)
@@ -75,7 +78,7 @@ func TestBumpHandler(t *testing.T) {
 		t.Parallel()
 
 		hbName := "get-success"
-		router := setupRouter(hbName, hist)
+		router := setupRouter(t, hbName, hist)
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", fmt.Sprintf("/bump/%s", hbName), nil)
@@ -101,7 +104,7 @@ func TestBumpHandler(t *testing.T) {
 		t.Parallel()
 
 		hbName := "post-success"
-		router := setupRouter(hbName, hist)
+		router := setupRouter(t, hbName, hist)
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest("POST", fmt.Sprintf("/bump/%s", hbName), nil)
@@ -129,7 +132,7 @@ func TestFailHandler(t *testing.T) {
 	t.Run("missing id", func(t *testing.T) {
 		t.Parallel()
 
-		router := setupRouter("invalid", hist)
+		router := setupRouter(t, "invalid", hist)
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", "/no-id/fail", nil)
@@ -142,7 +145,7 @@ func TestFailHandler(t *testing.T) {
 	t.Run("not found id", func(t *testing.T) {
 		t.Parallel()
 
-		router := setupRouter("invalid", hist)
+		router := setupRouter(t, "invalid", hist)
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", "/bump/not-found/fail", nil)
@@ -156,7 +159,7 @@ func TestFailHandler(t *testing.T) {
 		t.Parallel()
 
 		hbName := "check-success-fail"
-		router := setupRouter(hbName, hist)
+		router := setupRouter(t, hbName, hist)
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", fmt.Sprintf("/bump/%s/fail", hbName), nil)
@@ -181,7 +184,7 @@ func TestFailHandler(t *testing.T) {
 		t.Parallel()
 
 		hbName := "post-success-fail"
-		router := setupRouter(hbName, hist)
+		router := setupRouter(t, hbName, hist)
 
 		rec := httptest.NewRecorder()
 		req := httptest.NewRequest("POST", fmt.Sprintf("/bump/%s/fail", hbName), nil)
