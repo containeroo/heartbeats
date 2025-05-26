@@ -2,14 +2,17 @@
 
 ![heartbeats.png](./web/static/icons/apple-touch-icon.png)
 
+---
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/containeroo/heartbeats?style=flat-square)](https://goreportcard.com/report/github.com/containeroo/heartbeats)
 [![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/containeroo/heartbeats)
 [![Release](https://img.shields.io/github/release/containeroo/heartbeats.svg?style=flat-square)](https://github.com/containeroo/heartbeats/releases/latest)
 [![GitHub tag](https://img.shields.io/github/tag/containeroo/heartbeats.svg?style=flat-square)](https://github.com/containeroo/heartbeats/releases/latest)
 ![Tests](https://github.com/containeroo/heartbeats/actions/workflows/tests.yml/badge.svg)
 [![Build](https://github.com/containeroo/heartbeats/actions/workflows/release.yml/badge.svg)](https://github.com/containeroo/heartbeats/actions/workflows/release.yml)
-
 [![license](https://img.shields.io/github/license/containeroo/heartbeats.svg?style=flat-square)](LICENSE)
+
+---
 
 A lightweight HTTP service for monitoring periodic “heartbeat” pings (“bumps”) and notifying configured receivers when a heartbeat goes missing or recovers. Includes an in‐browser read-only dashboard showing current heartbeats, receivers, and historical events.
 
