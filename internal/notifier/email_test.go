@@ -26,24 +26,30 @@ func (m *mockEmailSender) Send(ctx context.Context, msg email.Message) error {
 
 func TestEmailConfig_Type(t *testing.T) {
 	t.Parallel()
+
 	t.Run("returns email", func(t *testing.T) {
 		t.Parallel()
+
 		assert.Equal(t, "email", NewEmailNotifier("id", EmailConfig{}, nil, nil).Type())
 	})
 }
 
 func TestEmailConfig_LastSent(t *testing.T) {
 	t.Parallel()
+
 	t.Run("returns last sent time", func(t *testing.T) {
 		t.Parallel()
+
 		assert.Equal(t, time.Time{}, NewEmailNotifier("id", EmailConfig{}, nil, nil).LastSent())
 	})
 }
 
 func TestEmailConfig_LastErr(t *testing.T) {
 	t.Parallel()
+
 	t.Run("returns last error", func(t *testing.T) {
 		t.Parallel()
+
 		assert.Nil(t, NewEmailNotifier("id", EmailConfig{}, nil, nil).LastErr())
 	})
 }
@@ -165,6 +171,8 @@ func TestEmailConfig_Resolve(t *testing.T) {
 	t.Setenv("EMAIL_BODY", "Body for {{ .ID }")
 
 	t.Run("resolves all fields", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host:     "env:SMTP_HOST",
@@ -191,7 +199,9 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		assert.Equal(t, "Body for {{ .ID }", cfg.EmailDetails.BodyTmpl)
 	})
 
-	t.Run("fails on missing required 'host'", func(t *testing.T) {
+	t.Run("fails on not resolvable 'host'", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host: "env:INVALID",
@@ -202,18 +212,9 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		assert.EqualError(t, err, "failed to resolve SMTP host: environment variable 'INVALID' not found")
 	})
 
-	t.Run("fails on 'Host' with no value", func(t *testing.T) {
-		cfg := &EmailConfig{
-			SMTPConfig: email.SMTPConfig{
-				Host: "",
-			},
-		}
+	t.Run("fails on not resolvable 'From'", func(t *testing.T) {
+		t.Parallel()
 
-		err := cfg.Resolve()
-		assert.EqualError(t, err, "SMTP host must be specified")
-	})
-
-	t.Run("fails on missing required 'From'", func(t *testing.T) {
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host: "smtp.example.com",
@@ -225,19 +226,9 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		assert.EqualError(t, err, "failed to resolve SMTP from: environment variable 'INVALID' not found")
 	})
 
-	t.Run("fails on 'From' with no value", func(t *testing.T) {
-		cfg := &EmailConfig{
-			SMTPConfig: email.SMTPConfig{
-				Host: "smtp.example.com",
-				From: "",
-			},
-		}
+	t.Run("fails on not resolvable 'Username'", func(t *testing.T) {
+		t.Parallel()
 
-		err := cfg.Resolve()
-		assert.EqualError(t, err, "SMTP from must be specified")
-	})
-
-	t.Run("fails on 'Username' with no value", func(t *testing.T) {
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host:     "smtp.example.com",
@@ -250,7 +241,9 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		assert.EqualError(t, err, "failed to resolve SMTP username: environment variable 'INVALID' not found")
 	})
 
-	t.Run("fails on 'Password' with no value", func(t *testing.T) {
+	t.Run("fails on not resolvable 'Password'", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host:     "smtp.example.com",
@@ -263,7 +256,9 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		assert.EqualError(t, err, "failed to resolve SMTP password: environment variable 'INVALID' not found")
 	})
 
-	t.Run("fails on 'To' with no value", func(t *testing.T) {
+	t.Run("fails on not resolvable 'To'", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host: "smtp.example.com",
@@ -274,11 +269,14 @@ func TestEmailConfig_Resolve(t *testing.T) {
 				To: []string{"env:INVALID"},
 			},
 		}
+
 		err := cfg.Resolve()
 		assert.EqualError(t, err, "failed to resolve email recipient: environment variable 'INVALID' not found")
 	})
 
-	t.Run("fails on 'Cc' with no value", func(t *testing.T) {
+	t.Run("fails on not resolvable 'Cc'", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host: "smtp.example.com",
@@ -289,11 +287,14 @@ func TestEmailConfig_Resolve(t *testing.T) {
 				Cc: []string{"env:INVALID"},
 			},
 		}
+
 		err := cfg.Resolve()
 		assert.EqualError(t, err, "failed to resolve email cc: environment variable 'INVALID' not found")
 	})
 
-	t.Run("fails on 'Bcc' with no value", func(t *testing.T) {
+	t.Run("fails on not resolvable 'Bcc'", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host: "smtp.example.com",
@@ -304,11 +305,14 @@ func TestEmailConfig_Resolve(t *testing.T) {
 				Bcc: []string{"env:INVALID"},
 			},
 		}
+
 		err := cfg.Resolve()
 		assert.EqualError(t, err, "failed to resolve email bcc: environment variable 'INVALID' not found")
 	})
 
-	t.Run("fails on 'SubjectTmpl' with no value", func(t *testing.T) {
+	t.Run("fails on not resolvable 'SubjectTmpl'", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host: "smtp.example.com",
@@ -319,11 +323,14 @@ func TestEmailConfig_Resolve(t *testing.T) {
 				SubjectTmpl: "env:INVALID",
 			},
 		}
+
 		err := cfg.Resolve()
 		assert.EqualError(t, err, "failed to resolve subject template: environment variable 'INVALID' not found")
 	})
 
-	t.Run("fails on 'BodyTmpl' with no value", func(t *testing.T) {
+	t.Run("fails on not resolvable 'BodyTmpl'", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host: "smtp.example.com",
@@ -334,31 +341,41 @@ func TestEmailConfig_Resolve(t *testing.T) {
 				BodyTmpl: "env:INVALID",
 			},
 		}
+
 		err := cfg.Resolve()
 		assert.EqualError(t, err, "failed to resolve body template: environment variable 'INVALID' not found")
 	})
 }
 
 func TestEmailConfig_Validate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("invalid format", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host: "smtp.example.com",
 				Port: 587,
+				From: "from@example.com",
 			},
 			EmailDetails: EmailDetails{
 				To:          []string{"user@example.com"},
 				SubjectTmpl: "{{.",
 			},
 		}
+
 		err := cfg.Validate()
 		assert.EqualError(t, err, "format title: template: notification:1: illegal number syntax: \".\"")
 	})
 
 	t.Run("valid config", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host: "smtp.example.com",
+				From: "from@example.com",
 				Port: 587,
 			},
 			EmailDetails: EmailDetails{
@@ -372,9 +389,26 @@ func TestEmailConfig_Validate(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("missing host and port", func(t *testing.T) {
+	t.Run("fails on 'Host' with no value", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
-			SMTPConfig: email.SMTPConfig{},
+			SMTPConfig: email.SMTPConfig{
+				Host: "",
+			},
+		}
+
+		err := cfg.Validate()
+		assert.EqualError(t, err, "SMTP host and port must be specified")
+	})
+
+	t.Run("missing port", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := &EmailConfig{
+			SMTPConfig: email.SMTPConfig{
+				Host: "host.example.com",
+			},
 			EmailDetails: EmailDetails{
 				To:          []string{"user@example.com"},
 				SubjectTmpl: "Hello",
@@ -387,10 +421,13 @@ func TestEmailConfig_Validate(t *testing.T) {
 	})
 
 	t.Run("missing recipient", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &EmailConfig{
 			SMTPConfig: email.SMTPConfig{
 				Host: "smtp.example.com",
 				Port: 25,
+				From: "from@example.com",
 			},
 			EmailDetails: EmailDetails{
 				To:          []string{},
@@ -401,5 +438,20 @@ func TestEmailConfig_Validate(t *testing.T) {
 
 		err := cfg.Validate()
 		assert.EqualError(t, err, "at least one recipient must be specified")
+	})
+
+	t.Run("fails on 'From' with no value", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := &EmailConfig{
+			SMTPConfig: email.SMTPConfig{
+				Host: "smtp.example.com",
+				Port: 587,
+				From: "",
+			},
+		}
+
+		err := cfg.Validate()
+		assert.EqualError(t, err, "SMTP from must be specified")
 	})
 }

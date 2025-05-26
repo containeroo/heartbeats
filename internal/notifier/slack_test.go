@@ -192,8 +192,13 @@ func TestSlackConfig_Resolve(t *testing.T) {
 }
 
 func TestSlackConfig_Validate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("valid with plain channel", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &SlackConfig{
+			Token:   "token",
 			Channel: "alerts",
 		}
 		err := cfg.Validate()
@@ -202,7 +207,10 @@ func TestSlackConfig_Validate(t *testing.T) {
 	})
 
 	t.Run("valid with hash-prefixed channel", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &SlackConfig{
+			Token:   "token",
 			Channel: "#alerts",
 		}
 		err := cfg.Validate()
@@ -210,8 +218,33 @@ func TestSlackConfig_Validate(t *testing.T) {
 		assert.Equal(t, "#alerts", cfg.Channel)
 	})
 
-	t.Run("missing channel", func(t *testing.T) {
+	t.Run("valid without hash-prefixed channel", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &SlackConfig{
+			Token:   "token",
+			Channel: "alerts",
+		}
+		err := cfg.Validate()
+		assert.NoError(t, err)
+		assert.Equal(t, "#alerts", cfg.Channel)
+	})
+
+	t.Run("missing token", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := &SlackConfig{
+			Channel: "",
+		}
+		err := cfg.Validate()
+		assert.EqualError(t, err, "token cannot be empty")
+	})
+
+	t.Run("missing channel", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := &SlackConfig{
+			Token:   "token",
 			Channel: "",
 		}
 		err := cfg.Validate()

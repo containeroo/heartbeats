@@ -21,9 +21,12 @@ func TestDispatcher_Dispatch(t *testing.T) {
 		n := &MockNotifier{}
 		store := newReceiverStore()
 		store.addNotifier("r1", n)
-
 		hist := history.NewRingStore(10)
-		dispatcher := NewDispatcher(store, slog.Default(), hist, 1, 1)
+
+		var logBuffer strings.Builder
+		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+
+		dispatcher := NewDispatcher(store, logger, hist, 1, 1)
 
 		data := NotificationData{
 			Receivers: []string{"r1"},
@@ -42,15 +45,17 @@ func TestDispatcher_Dispatch(t *testing.T) {
 
 		n.mu.Lock()
 		defer n.mu.Unlock()
+
 		assert.Equal(t, "hello", n.last.Message)
 	})
 
 	t.Run("logs and skips unknown receiver", func(t *testing.T) {
 		t.Parallel()
 
-		store := newReceiverStore()
-		logger := slog.Default()
+		var logBuffer strings.Builder
+		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
 
+		store := newReceiverStore()
 		hist := history.NewRingStore(10)
 		dispatcher := NewDispatcher(store, logger, hist, 1, 1)
 
@@ -66,6 +71,9 @@ func TestDispatcher_Dispatch(t *testing.T) {
 func TestDispatcher_ListAndGet(t *testing.T) {
 	t.Parallel()
 
+	var logBuffer strings.Builder
+	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+
 	store := newReceiverStore()
 	n1 := &MockNotifier{}
 	n2 := &MockNotifier{}
@@ -75,7 +83,7 @@ func TestDispatcher_ListAndGet(t *testing.T) {
 	store.addNotifier("b", n1)
 
 	hist := history.NewRingStore(10)
-	d := NewDispatcher(store, slog.Default(), hist, 1, 1)
+	d := NewDispatcher(store, logger, hist, 1, 1)
 
 	t.Run("lists all receivers", func(t *testing.T) {
 		t.Parallel()

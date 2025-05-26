@@ -123,6 +123,7 @@ func TestFormatNotification(t *testing.T) {
 
 		data := NotificationData{ID: "abc"}
 		out, err := formatNotification(data, "", "", "Title: {{ .ID }}", "Body")
+
 		assert.NoError(t, err)
 		assert.Equal(t, "Title: abc", out.Title)
 		assert.Equal(t, "Body", out.Message)
@@ -133,6 +134,7 @@ func TestFormatNotification(t *testing.T) {
 
 		data := NotificationData{ID: "ping-42", Status: "grace", LastBump: time.Now().Add(-2 * time.Second)}
 		out, err := formatNotification(data, "[{{ .Status }}] {{ .ID }}", "last: {{ ago .LastBump }}", "fallback", "fallback")
+
 		assert.NoError(t, err)
 		assert.Equal(t, "[grace] ping-42", out.Title)
 		assert.NotEmpty(t, out.Message)
@@ -143,6 +145,7 @@ func TestFormatNotification(t *testing.T) {
 
 		data := NotificationData{ID: "x"}
 		_, err := formatNotification(data, "{{ .Missing }}", "ok", "fallback", "fallback")
+
 		assert.Error(t, err)
 	})
 }

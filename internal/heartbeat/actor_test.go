@@ -13,28 +13,32 @@ import (
 )
 
 func TestActor_Run_Smoke(t *testing.T) {
-	ctx := t.Context()
-	var logBuffer strings.Builder
-	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
-	hist := history.NewRingStore(20)
-	store := notifier.InitializeStore(nil, false, logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
-
-	actor := NewActor(
-		ctx,
-		"heartbeat-1",
-		"Test Actor",
-		100*time.Millisecond,
-		100*time.Millisecond,
-		[]string{"r1"},
-		logger,
-		hist,
-		disp,
-	)
-
-	go actor.Run(ctx)
+	t.Parallel()
 
 	t.Run("Let heartbeat expire", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		var logBuffer strings.Builder
+		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+		hist := history.NewRingStore(20)
+		store := notifier.InitializeStore(nil, false, logger)
+		disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
+
+		actor := NewActor(
+			ctx,
+			"heartbeat-1",
+			"Test Actor",
+			100*time.Millisecond,
+			100*time.Millisecond,
+			[]string{"r1"},
+			logger,
+			hist,
+			disp,
+		)
+
+		go actor.Run(ctx)
+
 		// Send EventReceive — should trigger state Active and setup check timer
 		actor.Mailbox() <- common.EventReceive
 		time.Sleep(150 * time.Millisecond) // Allow time for timers and logic
@@ -72,11 +76,35 @@ func TestActor_Run_Smoke(t *testing.T) {
 	})
 
 	t.Run("Let heartbeat recover", func(t *testing.T) {
-		// Send EventReceive — should trigger state Recover and setup check timer
-		actor.Mailbox() <- common.EventReceive
-		time.Sleep(200 * time.Millisecond) // Allow time for timers and logic
+		t.Parallel()
 
-		// Check history includes state transitions and a notification
+		ctx := t.Context()
+		var logBuffer strings.Builder
+		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+		hist := history.NewRingStore(20)
+		store := notifier.InitializeStore(nil, false, logger)
+		disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
+
+		actor := NewActor(
+			ctx,
+			"heartbeat-1",
+			"Test Actor",
+			100*time.Millisecond,
+			100*time.Millisecond,
+			[]string{"r1"},
+			logger,
+			hist,
+			disp,
+		)
+
+		go actor.Run(ctx)
+
+		time.Sleep(400 * time.Millisecond)     // wait until actor is idle
+		actor.Mailbox() <- common.EventReceive // send receive
+		time.Sleep(400 * time.Millisecond)     // enough for idle → active → grace → missing
+		actor.Mailbox() <- common.EventReceive // recover
+		time.Sleep(400 * time.Millisecond)     // give time for recovery transition
+
 		events := hist.GetEvents()
 
 		var hasRecoveredState, hasRecoveredNotification bool
@@ -85,7 +113,6 @@ func TestActor_Run_Smoke(t *testing.T) {
 				hasRecoveredState = true
 			}
 			p := e.Payload
-
 			if p == nil {
 				continue
 			}
@@ -95,7 +122,12 @@ func TestActor_Run_Smoke(t *testing.T) {
 				hasRecoveredNotification = true
 			}
 		}
-		assert.True(t, hasRecoveredState)
-		assert.True(t, hasRecoveredNotification)
+
+		for _, e := range events {
+			t.Logf("%s → %s (%s)", e.PrevState, e.NewState, e.Type)
+		}
+
+		assert.True(t, hasRecoveredState, "expected missing → active state transition")
+		assert.True(t, hasRecoveredNotification, "expected recovery notification to be sent")
 	})
 }

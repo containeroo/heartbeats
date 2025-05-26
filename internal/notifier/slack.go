@@ -91,6 +91,9 @@ func (sn *SlackConfig) Notify(ctx context.Context, data NotificationData) error 
 
 // Validate ensures required fields are set.
 func (sn *SlackConfig) Validate() error {
+	if sn.Token == "" {
+		return fmt.Errorf("token cannot be empty")
+	}
 	if sn.Channel == "" {
 		return fmt.Errorf("channel cannot be empty")
 	}

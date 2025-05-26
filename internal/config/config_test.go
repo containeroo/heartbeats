@@ -111,7 +111,10 @@ func TestConfigValidate(t *testing.T) {
 
 		rc := notifier.ReceiverConfig{
 			SlackConfigs: []notifier.SlackConfig{
-				{Channel: "", Token: ""},
+				{
+					Channel: "",
+					Token:   "token",
+				},
 			},
 		}
 		cfg := &Config{
@@ -187,7 +190,7 @@ func TestConfigValidate(t *testing.T) {
 
 		err := cfg.Validate()
 		assert.Error(t, err)
-		assert.EqualError(t, err, "receiver \"r\" email config error: SMTP host must be specified")
+		assert.EqualError(t, err, "receiver \"r\" email config error: SMTP host and port must be specified")
 	})
 
 	t.Run("invalid email config - resolve error", func(t *testing.T) {
@@ -272,5 +275,22 @@ func TestConfigValidate(t *testing.T) {
 		err := cfg.Validate()
 		assert.Error(t, err)
 		assert.EqualError(t, err, "receiver \"r\" MSTeams config error: failed to resolve WebhookURL: environment variable 'INVALID' not found")
+	})
+
+	t.Run("No heartbeats", func(t *testing.T) {
+		t.Parallel()
+
+		rc := notifier.ReceiverConfig{
+			MSTeamsConfigs: []notifier.MSTeamsConfig{{WebhookURL: "webhook"}},
+		}
+
+		cfg := &Config{
+			Receivers:  map[string]notifier.ReceiverConfig{"r": rc},
+			Heartbeats: map[string]heartbeat.HeartbeatConfig{},
+		}
+
+		err := cfg.Validate()
+		assert.Error(t, err)
+		assert.EqualError(t, err, "at least one heartbeat must be defined")
 	})
 }

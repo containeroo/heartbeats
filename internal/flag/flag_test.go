@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/stretchr/testify/assert"
@@ -20,6 +21,8 @@ func TestParseFlags(t *testing.T) {
 	})
 
 	t.Run("use defaults", func(t *testing.T) {
+		t.Parallel()
+
 		cfg, err := ParseFlags([]string{}, "vX.Y.Z")
 		assert.NoError(t, err)
 		assert.Equal(t, "config.yaml", cfg.ConfigPath, "default config path")
@@ -53,14 +56,6 @@ func TestParseFlags(t *testing.T) {
 		assert.True(t, strings.HasPrefix(helpErr.Message, "Usage: heartbeats [flags]"))
 	})
 
-	t.Run("invalid log format", func(t *testing.T) {
-		t.Parallel()
-
-		_, err := ParseFlags([]string{"--log-format", "xml"}, "")
-		assert.Error(t, err)
-		assert.EqualError(t, err, "invalid log format: 'xml'")
-	})
-
 	t.Run("custom values", func(t *testing.T) {
 		t.Parallel()
 
@@ -89,5 +84,68 @@ func TestParseFlags(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.EqualError(t, err, "unknown flag: --invalid")
+	})
+}
+
+func TestConfig_Validate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("valid config", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := Options{
+			LogFormat:  logging.LogFormatJSON,
+			RetryCount: 3,
+			RetryDelay: 2 * time.Second,
+		}
+		assert.NoError(t, cfg.Validate())
+	})
+
+	t.Run("invalid retry count = 0", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := Options{
+			LogFormat:  logging.LogFormatText,
+			RetryCount: 0,
+			RetryDelay: 2 * time.Second,
+		}
+		err := cfg.Validate()
+		assert.ErrorContains(t, err, "retry count")
+	})
+
+	t.Run("invalid retry count < -1", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := Options{
+			LogFormat:  logging.LogFormatText,
+			RetryCount: -2,
+			RetryDelay: 2 * time.Second,
+		}
+		err := cfg.Validate()
+		assert.ErrorContains(t, err, "retry count")
+	})
+
+	t.Run("invalid retry delay < 1s", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := Options{
+			LogFormat:  logging.LogFormatText,
+			RetryCount: 3,
+			RetryDelay: 500 * time.Millisecond,
+		}
+		err := cfg.Validate()
+		assert.ErrorContains(t, err, "retry delay")
+	})
+
+	t.Run("invalid log format", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := Options{
+			LogFormat:  "xml", // invalid
+			RetryCount: 3,
+			RetryDelay: 2 * time.Second,
+		}
+		err := cfg.Validate()
+		assert.ErrorContains(t, err, "invalid log format")
 	})
 }

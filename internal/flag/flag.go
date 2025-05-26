@@ -21,8 +21,8 @@ func (e *HelpRequested) Error() string {
 	return e.Message
 }
 
-// Config holds the application configuration.
-type Config struct {
+// Options holds the application configuration.
+type Options struct {
 	Debug       bool              // Set LogLevel to Debug
 	LogFormat   logging.LogFormat // Specify the log output format
 	ConfigPath  string            // Path to the configuration file
@@ -35,7 +35,7 @@ type Config struct {
 }
 
 // ParseFlags parses command-line flags.
-func ParseFlags(args []string, version string) (Config, error) {
+func ParseFlags(args []string, version string) (Options, error) {
 	fs := flag.NewFlagSet("Heartbeats", flag.ContinueOnError)
 	fs.SortFlags = false
 
@@ -52,7 +52,7 @@ func ParseFlags(args []string, version string) (Config, error) {
 
 	// Retry settings
 	retryCount := fs.Int("retry-count", 3, "How many times to retry a failed notification. Use -1 for infinite retries.")
- retryDelay := fs.Duration("retry-delay", 2*time.Second, "Delay between retries. Must be >= 1s.")
+	retryDelay := fs.Duration("retry-delay", 2*time.Second, "Delay between retries. Must be >= 1s.")
 
 	// Meta
 	var showHelp, showVersion bool
@@ -66,25 +66,21 @@ func ParseFlags(args []string, version string) (Config, error) {
 	}
 
 	if err := fs.Parse(args); err != nil {
-		return Config{}, err
+		return Options{}, err
 	}
 
 	if showVersion {
-		return Config{}, &HelpRequested{Message: fmt.Sprintf("%s version %s\n", fs.Name(), version)}
+		return Options{}, &HelpRequested{Message: fmt.Sprintf("%s version %s\n", fs.Name(), version)}
 	}
 	if showHelp {
 		// Capture custom usage output into buffer
 		var buf bytes.Buffer
 		fs.SetOutput(&buf)
 		fs.Usage()
-		return Config{}, &HelpRequested{Message: buf.String()}
+		return Options{}, &HelpRequested{Message: buf.String()}
 	}
 
-	if *logFormat != "json" && *logFormat != "text" {
-		return Config{}, fmt.Errorf("invalid log format: '%s'", *logFormat)
-	}
-
-	return Config{
+	return Options{
 		ConfigPath:  *configPath,
 		ListenAddr:  *listenAddress,
 		SiteRoot:    *siteRoot,
@@ -95,4 +91,18 @@ func ParseFlags(args []string, version string) (Config, error) {
 		RetryCount:  *retryCount,
 		RetryDelay:  *retryDelay,
 	}, nil
+}
+
+// Validate checks whether the Config is semantically valid.
+func (c *Options) Validate() error {
+	if c.RetryCount == 0 || c.RetryCount < -1 {
+		return fmt.Errorf("retry count must be -1 (infinite) or >= 1, got %d", c.RetryCount)
+	}
+	if c.RetryDelay < time.Second {
+		return fmt.Errorf("retry delay must be at least 1s, got %s", c.RetryDelay)
+	}
+	if c.LogFormat != logging.LogFormatText && c.LogFormat != logging.LogFormatJSON {
+		return fmt.Errorf("invalid log format: '%s'", c.LogFormat)
+	}
+	return nil
 }

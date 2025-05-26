@@ -92,14 +92,8 @@ func (ec *EmailConfig) Resolve() error {
 	if ec.SMTPConfig.Host, err = resolver.ResolveVariable(ec.SMTPConfig.Host); err != nil {
 		return fmt.Errorf("failed to resolve SMTP host: %w", err)
 	}
-	if ec.SMTPConfig.Host == "" {
-		return fmt.Errorf("SMTP host must be specified")
-	}
 	if ec.SMTPConfig.From, err = resolver.ResolveVariable(ec.SMTPConfig.From); err != nil {
 		return fmt.Errorf("failed to resolve SMTP from: %w", err)
-	}
-	if ec.SMTPConfig.From == "" {
-		return fmt.Errorf("SMTP from must be specified")
 	}
 	if ec.SMTPConfig.Username, err = resolver.ResolveVariable(ec.SMTPConfig.Username); err != nil {
 		return fmt.Errorf("failed to resolve SMTP username: %w", err)
@@ -128,11 +122,14 @@ func (ec *EmailConfig) Resolve() error {
 }
 
 func (ec *EmailConfig) Validate() error {
-	if _, err := ec.Format(NotificationData{}); err != nil {
-		return err
-	}
 	if ec.SMTPConfig.Host == "" || ec.SMTPConfig.Port == 0 {
 		return fmt.Errorf("SMTP host and port must be specified")
+	}
+	if ec.SMTPConfig.From == "" {
+		return fmt.Errorf("SMTP from must be specified")
+	}
+	if _, err := ec.Format(NotificationData{}); err != nil {
+		return err
 	}
 	if len(ec.EmailDetails.To) == 0 && len(ec.EmailDetails.Cc) == 0 && len(ec.EmailDetails.Bcc) == 0 {
 		return fmt.Errorf("at least one recipient must be specified")

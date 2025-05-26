@@ -13,11 +13,16 @@ import (
 )
 
 func TestRun(t *testing.T) {
+	//	t.Parallel()
+
 	t.Run("Start and stop server lifecycle", func(t *testing.T) {
+		//		t.Parallel()
+
 		var logBuffer strings.Builder
 		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
 
 		mux := http.NewServeMux()
 
@@ -25,14 +30,11 @@ func TestRun(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := Run(ctx, ":8080", mux, logger)
+			err := Run(ctx, ":0", mux, logger) // :0 = random port
 			assert.NoError(t, err, "Run function should not return an error")
 		}()
 
 		time.Sleep(100 * time.Millisecond) // Give the server time to start
-
-		cancel() // Cancel the context to stop the server
-
 		wg.Wait()
 
 		// Validate log messages

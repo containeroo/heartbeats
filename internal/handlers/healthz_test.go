@@ -9,6 +9,8 @@ import (
 )
 
 func TestHealthz(t *testing.T) {
+	t.Parallel()
+
 	handler := Healthz()
 
 	req := httptest.NewRequest("GET", "/healthz", nil)

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"html/template"
-	"io/fs"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -19,29 +18,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupTestFS() fs.FS {
-	return fstest.MapFS{
-		"web/templates/heartbeats.html": &fstest.MapFile{Data: []byte(`{{define "heartbeats"}}HEARTBEATS{{end}}`)},
-		"web/templates/receivers.html":  &fstest.MapFile{Data: []byte(`{{define "receivers"}}RECEIVERS{{end}}`)},
-		"web/templates/history.html":    &fstest.MapFile{Data: []byte(`{{define "history"}}HISTORY{{end}}`)},
-	}
-}
-
 func loadTestTemplate(t *testing.T, name string, content string) *template.Template {
+	t.Helper()
+
 	fs := fstest.MapFS{
 		"web/templates/" + name + ".html": &fstest.MapFile{Data: []byte(content)},
 	}
 	tmpl, err := template.New(name).
 		Funcs(notifier.FuncMap()).
 		ParseFS(fs, "web/templates/"+name+".html")
+
 	assert.NoError(t, err)
+
 	return tmpl
 }
 
 func TestPartialHandler(t *testing.T) {
 	t.Parallel()
 
-	fs := setupTestFS()
+	staticFS := fstest.MapFS{
+		"web/templates/heartbeats.html": &fstest.MapFile{Data: []byte(`{{define "heartbeats"}}HEARTBEATS{{end}}`)},
+		"web/templates/receivers.html":  &fstest.MapFile{Data: []byte(`{{define "receivers"}}RECEIVERS{{end}}`)},
+		"web/templates/history.html":    &fstest.MapFile{Data: []byte(`{{define "history"}}HISTORY{{end}}`)},
+	}
+
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
 	_ = hist.RecordEvent(context.Background(), history.Event{
@@ -66,10 +66,12 @@ func TestPartialHandler(t *testing.T) {
 	}, disp, hist, logger)
 
 	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+
 		req := httptest.NewRequest("GET", "/partials/invalid", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(fs, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
@@ -77,10 +79,12 @@ func TestPartialHandler(t *testing.T) {
 	})
 
 	t.Run("heartbeats", func(t *testing.T) {
+		t.Parallel()
+
 		req := httptest.NewRequest("GET", "/partials/heartbeats", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(fs, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -93,7 +97,7 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/receivers", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(fs, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -106,7 +110,7 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/history", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(fs, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -201,6 +205,7 @@ func TestRenderHistory(t *testing.T) {
 
 	var buf bytes.Buffer
 	err := renderHistory(&buf, tmpl, hist)
+
 	assert.NoError(t, err)
 	assert.Equal(t, "HeartbeatReceived:missing → received;HeartbeatReceived:Notification Sent;", buf.String())
 }

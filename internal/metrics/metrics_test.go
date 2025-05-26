@@ -10,6 +10,8 @@ import (
 )
 
 func TestNewMetrics(t *testing.T) {
+	t.Parallel()
+
 	PromMetrics = NewMetrics()
 	assert.NotNil(t, PromMetrics.Registry, "Registry should not be nil")
 
@@ -41,6 +43,8 @@ func TestNewMetrics(t *testing.T) {
 }
 
 func TestHeartbeatStatusMetric(t *testing.T) {
+	t.Parallel()
+
 	PromMetrics = NewMetrics()
 
 	HeartbeatStatus.With(prometheus.Labels{"heartbeat": "test_heartbeat"}).Set(UP)
@@ -55,6 +59,8 @@ func TestHeartbeatStatusMetric(t *testing.T) {
 }
 
 func TestTotalHeartbeatsMetric(t *testing.T) {
+	t.Parallel()
+
 	PromMetrics = NewMetrics()
 
 	TotalHeartbeats.With(prometheus.Labels{"heartbeat": "test_heartbeat"}).Inc()
