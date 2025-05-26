@@ -1,5 +1,7 @@
 # Heartbeats
 
+![Tests](https://github.com/containeroo/heartbeats/actions/workflows/tests.yaml/badge.svg)
+
 ![heartbeats.png](./web/static/icons/apple-touch-icon.png)
 
 A lightweight HTTP service for monitoring periodic “heartbeat” pings (“bumps”) and notifying configured receivers when a heartbeat goes missing or recovers. Includes an in‐browser read-only dashboard showing current heartbeats, receivers, and historical events.
