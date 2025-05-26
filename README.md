@@ -18,8 +18,7 @@ A lightweight HTTP service for monitoring periodic “heartbeat” pings (“bum
 
 - **Heartbeat monitoring** with configurable `interval` & `grace` periods
 - **Pluggable notifications** via Slack, Email, or MS Teams
-- **In-memory or ring-buffer history** of events (received, failed, state changes, notifications, API requests)
-- **REST API** for bumping and failing heartbeats
+- **In-memory history** of events (received, failed, state changes, notifications, API requests)
 - **Dashboard** with:
   - **Heartbeats**: status, URL, last bump, receivers, quick-links
   - **Receivers**: type, destination, last sent, status
@@ -55,15 +54,13 @@ You can set the following environment variables for proxy configuration:
 
 ## Endpoints
 
-| Path                     | Method | Description                        |
-| :----------------------- | :----- | :--------------------------------- |
-| `/`                      | `GET`  | Dashboard home page                |
-| `/api/v1/bump/{id}`      | `POST` | Record a heartbeat ping            |
-| `/api/v1/bump/{id}`      | `GET`  | Same as POST (for browser testing) |
-| `/api/v1/bump/{id}/fail` | `POST` | Manually mark heartbeat as failed  |
-| `/api/v1/bump/{id}/fail` | `GET`  | Same as POST (for browser testing) |
-| `/healthz`               | `GET`  | Liveness probe                     |
-| `/metrics`               | `GET`  | Prometheus metrics endpoint        |
+| Path                     | Method        | Description                       |
+| :----------------------- | :------------ | :-------------------------------- |
+| `/`                      | `GET`         | Dashboard home page               |
+| `/api/v1/bump/{id}`      | `POST`, `GET` | Create a new heartbeat            |
+| `/api/v1/bump/{id}/fail` | `POST`, `GET` | Manually mark heartbeat as failed |
+| `/healthz`               | `GET`         | Liveness probe                    |
+| `/metrics`               | `GET`         | Prometheus metrics endpoint       |
 
 ## Configuration
 
@@ -149,7 +146,7 @@ Resolver supports:
 - **Plain**: literal value
 - **Environment**: `env:VAR_NAME`
 - **File**: `file:/path/to/file`
-- **Within-file**: `file:/path/to/file//KEY`, also supported `yaml:`,`json:`,`ini:` and `toml:`. For more details see [here](https://github.com/containeroo/resolver).
+- **Within-file**: `file:/path/to/file//KEY`, also supported `yaml:`,`json:`,`ini:` and `toml:`. For more details see [containeroo/resolver](https://github.com/containeroo/resolver).
 
 #### Slack
 
