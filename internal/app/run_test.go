@@ -18,7 +18,7 @@ func TestRun(t *testing.T) {
 	t.Parallel()
 
 	// in-memory file system with minimal template files
-	staticFS := fstest.MapFS{
+	webFS := fstest.MapFS{
 		"web/static/css/heartbeats.css": &fstest.MapFile{Data: []byte(`body {}`)},
 		"web/templates/base.html":       &fstest.MapFile{Data: []byte(`{{define "base"}}<html>{{template "navbar"}}<footer>{{.Version}}</footer>{{end}}`)},
 		"web/templates/navbar.html":     &fstest.MapFile{Data: []byte(`{{define "navbar"}}<nav>nav</nav>{{end}}`)},
@@ -28,11 +28,18 @@ func TestRun(t *testing.T) {
 		"web/templates/footer.html":     &fstest.MapFile{Data: []byte(`{{define "footer"}}<!-- footer -->{{end}}`)},
 	}
 
+	version := "dev"
+	commit := "abc"
+	getEnv := func(key string) string {
+		m := map[string]string{}
+		return m[key]
+	}
+
 	t.Run("shows help and exits", func(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), staticFS, "dev", "abc", []string{"--help"}, &out)
+		err := app.Run(context.Background(), webFS, version, commit, []string{"--help"}, getEnv, &out)
 
 		assert.NoError(t, err)
 		assert.Contains(t, out.String(), "Usage:")
@@ -42,7 +49,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), staticFS, "v1.2.3", "deadbeef", []string{"--version"}, &out)
+		err := app.Run(context.Background(), webFS, "v1.2.3", commit, []string{"--version"}, getEnv, &out)
 
 		assert.NoError(t, err)
 		assert.Equal(t, "Heartbeats version v1.2.3\n", out.String())
@@ -52,7 +59,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), staticFS, "dev", "abc", []string{"--log-format", "xml"}, &out)
+		err := app.Run(context.Background(), webFS, version, commit, []string{"--log-format", "xml"}, getEnv, &out)
 
 		assert.EqualError(t, err, "invalid CLI flags: invalid log format: 'xml'")
 	})
@@ -61,7 +68,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), staticFS, "dev", "abc", []string{"--retry-delay", "foo"}, &out)
+		err := app.Run(context.Background(), webFS, version, commit, []string{"--retry-delay", "foo"}, getEnv, &out)
 
 		assert.EqualError(t, err, "parsing error: invalid argument \"foo\" for \"--retry-delay\" flag: time: invalid duration \"foo\"")
 	})
@@ -70,7 +77,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), staticFS, "dev", "abc", []string{"--retry-count", "0"}, &out)
+		err := app.Run(context.Background(), webFS, version, commit, []string{"--retry-count", "0"}, getEnv, &out)
 
 		assert.EqualError(t, err, "invalid CLI flags: retry count must be -1 (infinite) or >= 1, got 0")
 	})
@@ -79,7 +86,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), staticFS, "dev", "abc", []string{"--retry-delay", "200ms"}, &out)
+		err := app.Run(context.Background(), webFS, version, commit, []string{"--retry-delay", "200ms"}, getEnv, &out)
 
 		assert.EqualError(t, err, "invalid CLI flags: retry delay must be at least 1s, got 200ms")
 	})
@@ -88,7 +95,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), staticFS, "dev", "abc", []string{"--config", "nope.yaml"}, &out)
+		err := app.Run(context.Background(), webFS, version, commit, []string{"--config", "nope.yaml"}, getEnv, &out)
 
 		assert.EqualError(t, err, "failed to load config: open nope.yaml: no such file or directory")
 	})
@@ -103,7 +110,7 @@ func TestRun(t *testing.T) {
 		defer cancel()
 
 		var out bytes.Buffer
-		err := app.Run(ctx, staticFS, "dev", "abc", []string{"--config", tmpFile}, &out)
+		err := app.Run(ctx, webFS, version, commit, []string{"--config", tmpFile}, getEnv, &out)
 
 		assert.EqualError(t, err, "invalid YAML config: at least one heartbeat must be defined")
 	})
@@ -111,7 +118,7 @@ func TestRun(t *testing.T) {
 	t.Run("startup and state change succeeds", func(t *testing.T) {
 		t.Parallel()
 
-		webFS := staticFS
+		webFS := webFS
 		tmpFile := filepath.Join(t.TempDir(), "good.yaml")
 
 		config := `
@@ -141,7 +148,7 @@ heartbeats:
 		}
 
 		go func() {
-			_ = app.Run(ctx, webFS, "dev", "abc", args, &buf)
+			_ = app.Run(ctx, webFS, version, commit, args, getEnv, &buf)
 		}()
 
 		time.Sleep(200 * time.Millisecond)

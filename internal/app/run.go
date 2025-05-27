@@ -19,9 +19,9 @@ import (
 )
 
 // Run is the single entry point for the application.
-func Run(ctx context.Context, staticFS fs.FS, version, commit string, args []string, w io.Writer) error {
+func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string, getEnv func(string) string, w io.Writer) error {
 	// Parse and validate command-line flags.
-	flags, err := flag.ParseFlags(args, version)
+	flags, err := flag.ParseFlags(args, getEnv, version)
 	if err != nil {
 		var helpErr *flag.HelpRequested
 		if errors.As(err, &helpErr) {
@@ -78,7 +78,7 @@ func Run(ctx context.Context, staticFS fs.FS, version, commit string, args []str
 
 	// Create server and run forever
 	router := server.NewRouter(
-		staticFS,
+		webFS,
 		flags.SiteRoot,
 		version,
 		mgr,

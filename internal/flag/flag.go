@@ -35,24 +35,24 @@ type Options struct {
 }
 
 // ParseFlags parses command-line flags.
-func ParseFlags(args []string, version string) (Options, error) {
+func ParseFlags(args []string, getEnv func(string) string, version string) (Options, error) {
 	fs := flag.NewFlagSet("Heartbeats", flag.ContinueOnError)
 	fs.SortFlags = false
 
 	// Server settings
-	configPath := fs.StringP("config", "c", "config.yaml", "Path to configuration file")
-	listenAddress := fs.StringP("listen-address", "a", ":8080", "Address to listen on")
-	siteRoot := fs.StringP("site-root", "r", "http://localhost:8080", "Site root URL")
-	historySize := fs.IntP("history-size", "s", 10000, "Size of the history")
-	skipTLS := fs.Bool("skip-tls", false, "Skip TLS verification for all receivers (can be overridden per receiver)")
+	configPath := fs.StringP("config", "c", "config.yaml", "Path to configuration file [env: HEARTBEATS_CONFIG]")
+	listenAddress := fs.StringP("listen-address", "a", ":8080", "Address to listen on [env: HEARTBEATS_LISTEN_ADDRESS]")
+	siteRoot := fs.StringP("site-root", "r", "http://localhost:8080", "Site root URL [env: HEARTBEATS_SITE_ROOT]")
+	historySize := fs.IntP("history-size", "s", 10000, "Size of the history [env: HEARTBEATS_HISTORY_SIZE]")
+	skipTLS := fs.Bool("skip-tls", false, "Skip TLS verification for all receivers (can be overridden per receiver) [env: HEARTBEATS_SKIP_TLS]")
 
 	// Application logging.
-	debug := fs.BoolP("debug", "d", false, "Enable debug logging (default: false)")
-	logFormat := fs.StringP("log-format", "l", "json", "Log format (json | text)")
+	debug := fs.BoolP("debug", "d", false, "Enable debug logging (default: false) [env: HEARTBEAT_DEBUG]")
+	logFormat := fs.StringP("log-format", "l", "json", "Log format (json | text) [env: HEARTBEATS_LOG_FORMAT]")
 
 	// Retry settings
-	retryCount := fs.Int("retry-count", 3, "How many times to retry a failed notification. Use -1 for infinite retries.")
-	retryDelay := fs.Duration("retry-delay", 2*time.Second, "Delay between retries. Must be >= 1s.")
+	retryCount := fs.Int("retry-count", 3, "How many times to retry a failed notification. Use -1 for infinite retries. [env: HEARTBEATS_RETRY_COUNT]")
+	retryDelay := fs.Duration("retry-delay", 2*time.Second, "Delay between retries. Must be >= 1s. [env: HEARTBEATS_RETRY_DELAY]")
 
 	// Meta
 	var showHelp, showVersion bool
@@ -80,6 +80,8 @@ func ParseFlags(args []string, version string) (Options, error) {
 		return Options{}, &HelpRequested{Message: buf.String()}
 	}
 
+	bindEnvFromUsage(fs, getEnv)
+
 	return Options{
 		ConfigPath:  *configPath,
 		ListenAddr:  *listenAddress,
@@ -91,6 +93,36 @@ func ParseFlags(args []string, version string) (Options, error) {
 		RetryCount:  *retryCount,
 		RetryDelay:  *retryDelay,
 	}, nil
+}
+
+// bindEnvFromUsage overrides unset flags using env vars extracted from usage annotations.
+func bindEnvFromUsage(fs *flag.FlagSet, getEnv func(string) string) {
+	fs.VisitAll(func(f *flag.Flag) {
+		// Try to extract "env: VAR" from the usage string
+		usage := f.Usage
+		prefix := "[env:"
+		start := strings.Index(usage, prefix)
+		if start == -1 {
+			return
+		}
+		end := strings.Index(usage[start:], "]")
+		if end == -1 {
+			return
+		}
+		envVar := strings.TrimSpace(usage[start+len(prefix) : start+end])
+
+		// Don't override if flag was explicitly set
+		if fs.Changed(f.Name) {
+			return
+		}
+
+		envVal := getEnv(envVar)
+		if envVal == "" {
+			return
+		}
+
+		fs.Set(f.Name, envVal) // nolint:errcheck
+	})
 }
 
 // Validate checks whether the Config is semantically valid.

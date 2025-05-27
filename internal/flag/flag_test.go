@@ -2,11 +2,14 @@ package flag
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/logging"
+
+	flag "github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +26,7 @@ func TestParseFlags(t *testing.T) {
 	t.Run("use defaults", func(t *testing.T) {
 		t.Parallel()
 
-		cfg, err := ParseFlags([]string{}, "vX.Y.Z")
+		cfg, err := ParseFlags([]string{}, os.Getenv, "vX.Y.Z")
 		assert.NoError(t, err)
 		assert.Equal(t, "config.yaml", cfg.ConfigPath, "default config path")
 		assert.Equal(t, ":8080", cfg.ListenAddr, "default listen address")
@@ -37,7 +40,7 @@ func TestParseFlags(t *testing.T) {
 	t.Run("show version", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := ParseFlags([]string{"--version"}, "1.2.3")
+		_, err := ParseFlags([]string{"--version"}, os.Getenv, "1.2.3")
 		assert.Error(t, err)
 		helpErr, ok := err.(*HelpRequested)
 		assert.True(t, ok, "should return HelpRequested")
@@ -48,7 +51,7 @@ func TestParseFlags(t *testing.T) {
 	t.Run("show help", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := ParseFlags([]string{"--help"}, "")
+		_, err := ParseFlags([]string{"--help"}, os.Getenv, "")
 		assert.Error(t, err)
 		helpErr, ok := err.(*HelpRequested)
 		assert.True(t, ok, "should return HelpRequested")
@@ -67,7 +70,7 @@ func TestParseFlags(t *testing.T) {
 			"-d",
 			"-l", "text",
 		}
-		cfg, err := ParseFlags(args, "")
+		cfg, err := ParseFlags(args, os.Getenv, "")
 		assert.NoError(t, err)
 		assert.Equal(t, "myconf.yml", cfg.ConfigPath)
 		assert.Equal(t, "127.0.0.1:9000", cfg.ListenAddr)
@@ -80,10 +83,80 @@ func TestParseFlags(t *testing.T) {
 	t.Run("parsing error", func(t *testing.T) {
 		t.Parallel()
 		args := []string{"--invalid"}
-		_, err := ParseFlags(args, "")
+		_, err := ParseFlags(args, os.Getenv, "")
 
 		assert.Error(t, err)
 		assert.EqualError(t, err, "unknown flag: --invalid")
+	})
+}
+
+func TestBindEnvFromUsage(t *testing.T) {
+	t.Parallel()
+
+	getEnv := func(key string) string {
+		m := map[string]string{
+			"TEST_CONFIG":         "env.yaml",
+			"TEST_CONFIG_MISSING": "default.yaml",
+		}
+
+		return m[key]
+	}
+
+	t.Run("Overrides Unset", func(t *testing.T) {
+		t.Parallel()
+
+		var value string
+		fs := flag.NewFlagSet("test", flag.ContinueOnError)
+		fs.StringVar(&value, "config", "default.yaml", "Config path [env: TEST_CONFIG]")
+
+		assert.NoError(t, fs.Parse([]string{}))
+
+		bindEnvFromUsage(fs, getEnv)
+
+		assert.Equal(t, "env.yaml", value)
+	},
+	)
+
+	t.Run("Does not override explicit flag", func(t *testing.T) {
+		t.Parallel()
+
+		var value string
+		fs := flag.NewFlagSet("test", flag.ContinueOnError)
+		fs.StringVar(&value, "config", "default.yaml", "Config path [env: TEST_CONFIG]")
+
+		assert.NoError(t, fs.Parse([]string{"--config=explicit.yaml"}))
+
+		bindEnvFromUsage(fs, os.Getenv)
+
+		assert.Equal(t, "explicit.yaml", value)
+	})
+
+	t.Run("Does not override missing env var", func(t *testing.T) {
+		t.Parallel()
+
+		var value string
+		fs := flag.NewFlagSet("test", flag.ContinueOnError)
+		fs.StringVar(&value, "config", "default.yaml", "Config path [env: TEST_CONFIG_MISSING]")
+
+		assert.NoError(t, fs.Parse([]string{}))
+
+		bindEnvFromUsage(fs, os.Getenv)
+
+		assert.Equal(t, "default.yaml", value)
+	})
+
+	t.Run("Corrupted env var", func(t *testing.T) {
+		t.Parallel()
+
+		var value string
+		fs := flag.NewFlagSet("test", flag.ContinueOnError)
+		fs.StringVar(&value, "config", "default.yaml", "Config path [env: TEST_CONFIG")
+
+		assert.NoError(t, fs.Parse([]string{}))
+
+		bindEnvFromUsage(fs, getEnv)
+
+		assert.Equal(t, "default.yaml", value)
 	})
 }
 
