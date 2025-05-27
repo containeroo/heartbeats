@@ -86,10 +86,10 @@ func TestNewRouter(t *testing.T) {
 		assert.Equal(t, "ok", rec.Body.String())
 	})
 
-	t.Run("GET /api/v1/bump/test", func(t *testing.T) {
+	t.Run("GET /bump/test", func(t *testing.T) {
 		t.Parallel()
 
-		req := httptest.NewRequest("GET", "/api/v1/bump/a1", nil)
+		req := httptest.NewRequest("GET", "/bump/a1", nil)
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, req)
 

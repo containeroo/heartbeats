@@ -112,7 +112,7 @@ func renderHeartbeats(
 			IntervalSeconds: a.Interval.Seconds(),
 			Grace:           a.Grace.String(),
 			LastBump:        a.LastBump,
-			URL:             siteRoot + "/api/v1/" + id,
+			URL:             siteRoot + id,
 			Receivers:       a.Receivers,
 			HasHistory:      len(evs) > 0,
 		})
