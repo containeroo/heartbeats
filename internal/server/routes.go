@@ -36,14 +36,10 @@ func NewRouter(
 	root.Handle("GET /metrics", handlers.Metrics())
 
 	// define your API routes on a sub-mux
-	api := http.NewServeMux()
-	api.Handle("POST /bump/{id}", handlers.BumpHandler(mgr, histStore, logger))
-	api.Handle("GET  /bump/{id}", handlers.BumpHandler(mgr, histStore, logger))
-	api.Handle("POST /bump/{id}/fail", handlers.FailHandler(mgr, histStore, logger))
-	api.Handle("GET  /bump/{id}/fail", handlers.FailHandler(mgr, histStore, logger))
-
-	// mount under /api/v1/
-	root.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
+	root.Handle("POST /bump/{id}", handlers.BumpHandler(mgr, histStore, logger))
+	root.Handle("GET  /bump/{id}", handlers.BumpHandler(mgr, histStore, logger))
+	root.Handle("POST /bump/{id}/fail", handlers.FailHandler(mgr, histStore, logger))
+	root.Handle("GET  /bump/{id}/fail", handlers.FailHandler(mgr, histStore, logger))
 
 	// wrap the whole mux in logging if debug
 	var h http.Handler = root

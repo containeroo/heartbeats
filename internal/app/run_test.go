@@ -146,7 +146,7 @@ heartbeats:
 
 		time.Sleep(200 * time.Millisecond)
 
-		resp, err := http.Post("http://localhost:8070/api/v1/bump/ping", "text/plain", nil)
+		resp, err := http.Post("http://localhost:8070/bump/ping", "text/plain", nil)
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
