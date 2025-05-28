@@ -21,7 +21,7 @@ func TestNewRouter(t *testing.T) {
 	t.Parallel()
 
 	// in-memory file system with minimal template files
-	staticFS := fstest.MapFS{
+	webFS := fstest.MapFS{
 		"web/static/css/heartbeats.css": &fstest.MapFile{Data: []byte(`body {}`)},
 		"web/templates/base.html":       &fstest.MapFile{Data: []byte(`{{define "base"}}<html>{{template "navbar"}}<footer>{{.Version}}</footer>{{end}}`)},
 		"web/templates/navbar.html":     &fstest.MapFile{Data: []byte(`{{define "navbar"}}<nav>nav</nav>{{end}}`)},
@@ -51,7 +51,7 @@ func TestNewRouter(t *testing.T) {
 
 	mgr := heartbeat.NewManager(ctx, cfg, disp, hist, logger)
 
-	router := NewRouter(staticFS, siteRoot, version, mgr, hist, disp, logger, true)
+	router := NewRouter(webFS, siteRoot, version, mgr, hist, disp, logger, true)
 
 	t.Run("GET /", func(t *testing.T) {
 		t.Parallel()

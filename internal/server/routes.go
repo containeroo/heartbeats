@@ -14,7 +14,7 @@ import (
 
 // NewRouter creates a new HTTP router
 func NewRouter(
-	staticFS fs.FS,
+	webFS fs.FS,
 	siteRoot string,
 	version string,
 	mgr *heartbeat.Manager,
@@ -26,12 +26,12 @@ func NewRouter(
 	root := http.NewServeMux()
 
 	// Handler for embedded static files
-	staticContent, _ := fs.Sub(staticFS, "web/static")
+	staticContent, _ := fs.Sub(webFS, "web/static")
 	fileServer := http.FileServer(http.FS(staticContent))
 	root.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
-	root.Handle("/", handlers.HomeHandler(staticFS, version)) // no Method allowed, otherwise it crashes
-	root.Handle("GET /partials/", http.StripPrefix("/partials", handlers.PartialHandler(staticFS, siteRoot, mgr, histStore, disp, logger)))
+	root.Handle("/", handlers.HomeHandler(webFS, version)) // no Method allowed, otherwise it crashes
+	root.Handle("GET /partials/", http.StripPrefix("/partials", handlers.PartialHandler(webFS, siteRoot, mgr, histStore, disp, logger)))
 	root.Handle("GET /healthz", handlers.Healthz())
 	root.Handle("GET /metrics", handlers.Metrics())
 

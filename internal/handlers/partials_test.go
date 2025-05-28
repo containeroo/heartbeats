@@ -36,7 +36,7 @@ func loadTestTemplate(t *testing.T, name string, content string) *template.Templ
 func TestPartialHandler(t *testing.T) {
 	t.Parallel()
 
-	staticFS := fstest.MapFS{
+	webFS := fstest.MapFS{
 		"web/templates/heartbeats.html": &fstest.MapFile{Data: []byte(`{{define "heartbeats"}}HEARTBEATS{{end}}`)},
 		"web/templates/receivers.html":  &fstest.MapFile{Data: []byte(`{{define "receivers"}}RECEIVERS{{end}}`)},
 		"web/templates/history.html":    &fstest.MapFile{Data: []byte(`{{define "history"}}HISTORY{{end}}`)},
@@ -71,7 +71,7 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/invalid", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(webFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
@@ -84,7 +84,7 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/heartbeats", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(webFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -97,7 +97,7 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/receivers", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(webFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -110,7 +110,7 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/history", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(staticFS, "http://localhost", mgr, hist, disp, logger)
+		handler := PartialHandler(webFS, "http://localhost", mgr, hist, disp, logger)
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)

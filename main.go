@@ -15,13 +15,13 @@ var (
 )
 
 //go:embed web
-var staticFS embed.FS
+var webFS embed.FS
 
 // main sets up the application context and runs the proxy.
 func main() {
 	ctx := context.Background()
 
-	if err := app.Run(ctx, staticFS, Version, Commit, os.Args[1:], os.Stdout); err != nil {
+	if err := app.Run(ctx, webFS, Version, Commit, os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

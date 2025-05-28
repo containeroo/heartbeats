@@ -16,14 +16,14 @@ func TestHomeHandler(t *testing.T) {
 		t.Parallel()
 
 		// in-memory file system with minimal template files
-		staticFS := fstest.MapFS{
+		webFS := fstest.MapFS{
 			"web/templates/base.html":   &fstest.MapFile{Data: []byte(`{{define "base"}}<html>{{template "navbar"}}<footer>{{.Version}}</footer>{{end}}`)},
 			"web/templates/navbar.html": &fstest.MapFile{Data: []byte(`{{define "navbar"}}<nav>nav</nav>{{end}}`)},
 			"web/templates/footer.html": &fstest.MapFile{Data: []byte(`{{define "footer"}}<!-- footer -->{{end}}`)},
 		}
 
 		version := "v1.2.3"
-		handler := HomeHandler(staticFS, version)
+		handler := HomeHandler(webFS, version)
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
@@ -45,14 +45,14 @@ func TestHomeHandler(t *testing.T) {
 		t.Parallel()
 
 		// in-memory file system with minimal template files
-		staticFS := fstest.MapFS{
+		webFS := fstest.MapFS{
 			"web/templates/base.html":   &fstest.MapFile{Data: []byte(``)},
 			"web/templates/navbar.html": &fstest.MapFile{Data: []byte(`{{define "navbar"}}<nav>nav</nav>{{end}}`)},
 			"web/templates/footer.html": &fstest.MapFile{Data: []byte(`{{define "footer"}}<!-- footer -->{{end}}`)},
 		}
 
 		version := "v1.2.3"
-		handler := HomeHandler(staticFS, version)
+		handler := HomeHandler(webFS, version)
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()

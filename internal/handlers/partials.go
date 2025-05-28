@@ -51,7 +51,7 @@ type HistoryView struct {
 
 // PartialHandler serves HTML snippets for dashboard sections: heartbeats, receivers, history.
 func PartialHandler(
-	staticFS fs.FS,
+	webFS fs.FS,
 	siteRoot string,
 	mgr *heartbeat.Manager,
 	hist history.Store,
@@ -61,7 +61,7 @@ func PartialHandler(
 	tmpl := template.Must(
 		template.New("partials").
 			Funcs(notifier.FuncMap()).
-			ParseFS(staticFS,
+			ParseFS(webFS,
 				"web/templates/heartbeats.html",
 				"web/templates/receivers.html",
 				"web/templates/history.html",

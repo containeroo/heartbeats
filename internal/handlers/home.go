@@ -8,10 +8,10 @@ import (
 )
 
 // HomeHandler renders the base template with navbar and footer.
-func HomeHandler(staticFS fs.FS, version string) http.HandlerFunc {
+func HomeHandler(webFS fs.FS, version string) http.HandlerFunc {
 	tmpl := template.Must(
 		template.New("base.html").
-			ParseFS(staticFS,
+			ParseFS(webFS,
 				path.Join("web/templates", "base.html"),
 				path.Join("web/templates", "navbar.html"),
 				path.Join("web/templates", "footer.html"),
