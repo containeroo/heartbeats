@@ -89,7 +89,7 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: fmt vet  ## Run unit tests.
+test: fmt vet ## Run unit tests.
 	go test -covermode=atomic -count=1 -parallel=4 -timeout=5m ./...
 
 .PHONY: cover
