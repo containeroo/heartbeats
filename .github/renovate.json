@@ -11,8 +11,8 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "(^|/)Makefile$"
+      "managerFilePatterns": [
+        "/(^|/)Makefile$/"
       ],
       "matchStrings": [
         "#\\srenovate:\\sdatasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?( extractVersion=(?<extractVersion>.*?))?\\s.*?_VERSION(\\s+?\\?=\\s)(?<currentValue>.*)\\s"
