@@ -94,7 +94,7 @@ receivers:
           password: env:MAIL_PASSWORD
   dev-crew-prod:
     msteams_configs:
-      webhook_url: file:/secrets/teams/webhooks//production
+      webhookURL: file:/secrets/teams/webhooks//production
       # no title nor text specified, will use the default
 ```
 
