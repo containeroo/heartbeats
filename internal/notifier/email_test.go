@@ -284,7 +284,7 @@ func TestEmailConfig_Resolve(t *testing.T) {
 				From: "from@example.com",
 			},
 			EmailDetails: EmailDetails{
-				Cc: []string{"env:INVALID"},
+				CC: []string{"env:INVALID"},
 			},
 		}
 
@@ -302,7 +302,7 @@ func TestEmailConfig_Resolve(t *testing.T) {
 				From: "from@example.com",
 			},
 			EmailDetails: EmailDetails{
-				Bcc: []string{"env:INVALID"},
+				BCC: []string{"env:INVALID"},
 			},
 		}
 

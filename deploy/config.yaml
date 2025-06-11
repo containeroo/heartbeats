@@ -24,7 +24,7 @@ receivers:
           *Service:* {{ .Name }}
           *Status:* {{ .Status }}
           *Description:* {{ .Description }}
-          *Last ping:* {{ if isRecent .LastPing }}just now{{ else }}{{ ago .LastPing }} ago{{ end }}
+          *Last ping:* {{ if isRecent .LastBump }}just now{{ else }}{{ ago .LastBump }} ago{{ end }}
 
     email_configs:
       - smtp:
@@ -42,10 +42,12 @@ receivers:
             <h3>Service: {{ .Name }}</h3>
             <p>Status: <b>{{ .Status }}</b></p>
             <p>{{ .Description }}</p>
-            <p>Last ping: {{ .LastPing }}</p>
+            <p>Last bump: {{ .LastBump }}</p>
           to:
             - devops@platform.example.com
             - env:ALERT_FALLBACK_EMAIL
+          cc:
+            - devops@platform.example.com
 
   observability-team:
     slack_configs:
@@ -56,4 +58,4 @@ receivers:
           **Service:** {{ .Name }}
           **Status:** {{ .Status }}
           **Description:** {{ .Description }}
-          **Last ping:** {{ if isRecent .LastPing }}just now{{ else }}{{ ago .LastPing }} ago{{ end }}
+          **Last bump:** {{ if isRecent .LastBump }}just now{{ else }}{{ ago .LastBump }} ago{{ end }}

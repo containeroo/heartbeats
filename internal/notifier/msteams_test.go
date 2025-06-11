@@ -29,7 +29,6 @@ func TestMSTeamsConfig_Type(t *testing.T) {
 
 	t.Run("returns msteams", func(t *testing.T) {
 		t.Parallel()
-
 		assert.Equal(t, "msteams", NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).Type())
 	})
 }
@@ -39,29 +38,24 @@ func TestMSTeamsConfig_LastSent(t *testing.T) {
 
 	t.Run("returns last sent time", func(t *testing.T) {
 		t.Parallel()
-
 		assert.Equal(t, time.Time{}, NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).LastSent())
 	})
 }
 
 func TestMSTeamsConfig_LastErr(t *testing.T) {
 	t.Parallel()
-
 	t.Run("returns last error", func(t *testing.T) {
 		t.Parallel()
-
 		assert.Nil(t, NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).LastErr())
 	})
 }
 
 func TestMSTeamsConfig_Notify(t *testing.T) {
 	t.Parallel()
-
 	t.Run("fails on invalid template", func(t *testing.T) {
 		t.Parallel()
 
 		mock := &mockMSTeamsSender{}
-
 		config := &MSTeamsConfig{
 			WebhookURL: "https://example.com",
 			logger:     slog.New(slog.NewTextHandler(os.Stdout, nil)),
@@ -86,7 +80,6 @@ func TestMSTeamsConfig_Notify(t *testing.T) {
 		t.Parallel()
 
 		mock := &mockMSTeamsSender{err: fmt.Errorf("mock error")}
-
 		config := &MSTeamsConfig{
 			logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 			sender: mock,
@@ -106,8 +99,9 @@ func TestMSTeamsConfig_Notify(t *testing.T) {
 	})
 
 	t.Run("sends notification", func(t *testing.T) {
-		mock := &mockMSTeamsSender{}
+		t.Parallel()
 
+		mock := &mockMSTeamsSender{}
 		config := &MSTeamsConfig{
 			WebhookURL: "https://example.com",
 			logger:     slog.New(slog.NewTextHandler(os.Stdout, nil)),
@@ -138,6 +132,8 @@ func TestMSTeamsConfig_Resolve(t *testing.T) {
 	t.Setenv("TEAMS_TEXT", "Last seen at {{ ago .LastBump }}")
 
 	t.Run("resolves all fields", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &MSTeamsConfig{
 			WebhookURL: "env:TEAMS_URL",
 			TitleTmpl:  "env:TEAMS_TITLE",
@@ -152,6 +148,8 @@ func TestMSTeamsConfig_Resolve(t *testing.T) {
 	})
 
 	t.Run("fails on WebhookURL", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &MSTeamsConfig{
 			WebhookURL: "env:INVALID",
 		}
@@ -160,6 +158,8 @@ func TestMSTeamsConfig_Resolve(t *testing.T) {
 	})
 
 	t.Run("fails on TitleTmpl", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &MSTeamsConfig{
 			WebhookURL: "https://ok",
 			TitleTmpl:  "env:INVALID",
@@ -169,6 +169,8 @@ func TestMSTeamsConfig_Resolve(t *testing.T) {
 	})
 
 	t.Run("fails on TextTmpl", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &MSTeamsConfig{
 			WebhookURL: "https://ok",
 			TextTmpl:   "env:INVALID",
@@ -179,7 +181,11 @@ func TestMSTeamsConfig_Resolve(t *testing.T) {
 }
 
 func TestMSTeamsConfig_Validate(t *testing.T) {
+	t.Parallel()
+
 	t.Run("valid config", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &MSTeamsConfig{
 			WebhookURL: "https://hooks.example.com",
 			TitleTmpl:  "[{{ .ID }}]",
@@ -190,6 +196,8 @@ func TestMSTeamsConfig_Validate(t *testing.T) {
 	})
 
 	t.Run("fails with invalid template", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &MSTeamsConfig{
 			WebhookURL: "https://hooks.example.com",
 			TitleTmpl:  "{{ .", // invalid
@@ -199,6 +207,8 @@ func TestMSTeamsConfig_Validate(t *testing.T) {
 	})
 
 	t.Run("fails when URL is empty", func(t *testing.T) {
+		t.Parallel()
+
 		cfg := &MSTeamsConfig{
 			WebhookURL: "",
 			TitleTmpl:  "OK",
@@ -206,6 +216,18 @@ func TestMSTeamsConfig_Validate(t *testing.T) {
 		}
 		err := cfg.Validate()
 		assert.EqualError(t, err, "webhook URL cannot be empty")
+	})
+
+	t.Run("Invalid URL", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := &MSTeamsConfig{
+			WebhookURL: "::::",
+			TitleTmpl:  "OK",
+			TextTmpl:   "OK",
+		}
+		err := cfg.Validate()
+		assert.EqualError(t, err, "webhook URL is not a valid URL: parse \"::::\": missing protocol scheme")
 	})
 }
 

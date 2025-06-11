@@ -234,6 +234,10 @@ th[aria-sort="descending"]::after {
   color: #6c757d;
 }
 
+.preserve-newlines {
+  white-space: pre-line;
+}
+
 /* Footer */
 .footer {
   background-color: var(--bs-secondary);

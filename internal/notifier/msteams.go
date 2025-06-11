@@ -2,8 +2,10 @@ package notifier
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"time"
 
 	"github.com/containeroo/heartbeats/pkg/notify/msteams"
@@ -73,6 +75,7 @@ func (mc *MSTeamsConfig) Notify(ctx context.Context, data NotificationData) erro
 	return nil
 }
 
+// Resolve interpolates variables in the config.
 func (mc *MSTeamsConfig) Resolve() error {
 	webhookURL, err := resolver.ResolveVariable(mc.WebhookURL)
 	if err != nil {
@@ -95,13 +98,17 @@ func (mc *MSTeamsConfig) Resolve() error {
 	return nil
 }
 
+// Validate ensures required fields are set.
 func (mc *MSTeamsConfig) Validate() error {
 	dummydata := NotificationData{}
 	if _, err := mc.Format(dummydata); err != nil {
 		return err
 	}
 	if mc.WebhookURL == "" {
-		return fmt.Errorf("webhook URL cannot be empty")
+		return errors.New("webhook URL cannot be empty")
+	}
+	if _, err := url.Parse(mc.WebhookURL); err != nil {
+		return fmt.Errorf("webhook URL is not a valid URL: %w", err)
 	}
 	return nil
 }

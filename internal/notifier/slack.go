@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -89,19 +90,7 @@ func (sn *SlackConfig) Notify(ctx context.Context, data NotificationData) error 
 	return nil
 }
 
-// Validate ensures required fields are set.
-func (sn *SlackConfig) Validate() error {
-	if sn.Token == "" {
-		return fmt.Errorf("token cannot be empty")
-	}
-	if sn.Channel == "" {
-		return fmt.Errorf("channel cannot be empty")
-	}
-	sn.Channel = "#" + strings.TrimPrefix(sn.Channel, "#")
-	return nil
-}
-
-// Resolve interpolates env variables in the config.
+// Resolve interpolates variables in the config.
 func (sn *SlackConfig) Resolve() error {
 	var err error
 	if sn.Token, err = resolver.ResolveVariable(sn.Token); err != nil {
@@ -116,5 +105,17 @@ func (sn *SlackConfig) Resolve() error {
 	if sn.TextTmpl, err = resolver.ResolveVariable(sn.TextTmpl); err != nil {
 		return fmt.Errorf("resolve text template: %w", err)
 	}
+	return nil
+}
+
+// Validate ensures required fields are set.
+func (sn *SlackConfig) Validate() error {
+	if sn.Token == "" {
+		return errors.New("token cannot be empty")
+	}
+	if sn.Channel == "" {
+		return errors.New("channel cannot be empty")
+	}
+	sn.Channel = "#" + strings.TrimPrefix(sn.Channel, "#")
 	return nil
 }

@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"path"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
@@ -150,9 +149,10 @@ func renderReceivers(
 			case *notifier.SlackConfig:
 				rv.Destination = x.Channel
 			case *notifier.EmailConfig:
-				rv.Destination = strings.Join(x.EmailDetails.To, ", ")
+				rv.Destination = formatEmailRecipients(x.EmailDetails)
 			case *notifier.MSTeamsConfig:
-				rv.Destination = x.WebhookURL
+				rv.Destination = masqueradeURL(x.WebhookURL, 4)
+
 			}
 
 			views = append(views, rv)

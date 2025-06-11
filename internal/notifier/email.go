@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -31,8 +32,8 @@ type EmailConfig struct {
 // EmailDetails is a simplified version of the email.Message used by heartbeats.
 type EmailDetails struct {
 	To          []string `yaml:"to"`                        // List of recipients.
-	Cc          []string `yaml:"cc,omitempty"`              // List of CCs.
-	Bcc         []string `yaml:"bcc,omitempty"`             // List of BCCs.
+	CC          []string `yaml:"cc,omitempty"`              // List of CCs.
+	BCC         []string `yaml:"bcc,omitempty"`             // List of BCCs.
 	IsHTML      bool     `yaml:"isHTML,omitempty"`          // Whether to send as HTML.
 	SubjectTmpl string   `yaml:"subjectTemplate,omitempty"` // Subject template.
 	BodyTmpl    string   `yaml:"bodyTemplate,omitempty"`    // Body template.
@@ -71,8 +72,8 @@ func (en *EmailConfig) Notify(ctx context.Context, data NotificationData) error 
 
 	msg := email.Message{
 		To:      en.EmailDetails.To,
-		Cc:      en.EmailDetails.Cc,
-		Bcc:     en.EmailDetails.Bcc,
+		Cc:      en.EmailDetails.CC,
+		Bcc:     en.EmailDetails.BCC,
 		IsHTML:  en.EmailDetails.IsHTML,
 		Subject: formatted.Title,
 		Body:    formatted.Message,
@@ -87,6 +88,7 @@ func (en *EmailConfig) Notify(ctx context.Context, data NotificationData) error 
 	return nil
 }
 
+// Resolve interpolates variables in the config.
 func (ec *EmailConfig) Resolve() error {
 	var err error
 	if ec.SMTPConfig.Host, err = resolver.ResolveVariable(ec.SMTPConfig.Host); err != nil {
@@ -105,10 +107,10 @@ func (ec *EmailConfig) Resolve() error {
 	if ec.EmailDetails.To, err = resolver.ResolveSlice(ec.EmailDetails.To); err != nil {
 		return fmt.Errorf("failed to resolve email recipient: %w", err)
 	}
-	if ec.EmailDetails.Cc, err = resolver.ResolveSlice(ec.EmailDetails.Cc); err != nil {
+	if ec.EmailDetails.CC, err = resolver.ResolveSlice(ec.EmailDetails.CC); err != nil {
 		return fmt.Errorf("failed to resolve email cc: %w", err)
 	}
-	if ec.EmailDetails.Bcc, err = resolver.ResolveSlice(ec.EmailDetails.Bcc); err != nil {
+	if ec.EmailDetails.BCC, err = resolver.ResolveSlice(ec.EmailDetails.BCC); err != nil {
 		return fmt.Errorf("failed to resolve email bcc: %w", err)
 	}
 	if ec.EmailDetails.SubjectTmpl, err = resolver.ResolveVariable(ec.EmailDetails.SubjectTmpl); err != nil {
@@ -121,18 +123,19 @@ func (ec *EmailConfig) Resolve() error {
 	return nil
 }
 
+// Resolve interpolates env variables in the config.
 func (ec *EmailConfig) Validate() error {
 	if ec.SMTPConfig.Host == "" || ec.SMTPConfig.Port == 0 {
-		return fmt.Errorf("SMTP host and port must be specified")
+		return errors.New("SMTP host and port must be specified")
 	}
 	if ec.SMTPConfig.From == "" {
-		return fmt.Errorf("SMTP from must be specified")
+		return errors.New("SMTP from must be specified")
 	}
 	if _, err := ec.Format(NotificationData{}); err != nil {
 		return err
 	}
-	if len(ec.EmailDetails.To) == 0 && len(ec.EmailDetails.Cc) == 0 && len(ec.EmailDetails.Bcc) == 0 {
-		return fmt.Errorf("at least one recipient must be specified")
+	if len(ec.EmailDetails.To) == 0 && len(ec.EmailDetails.CC) == 0 && len(ec.EmailDetails.BCC) == 0 {
+		return errors.New("at least one recipient must be specified")
 	}
 	return nil
 }
