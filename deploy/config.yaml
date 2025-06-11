@@ -51,7 +51,7 @@ receivers:
 
   observability-team:
     slack_configs:
-      - token: file:/secrets/slack/tokens.txt//observability
+      - token: file:$PWD/deploy/webhooks.txt//observability
         channel: observability
         titleTemplate: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
         textTemplate: |
