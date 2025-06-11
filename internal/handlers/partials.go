@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
@@ -66,6 +67,8 @@ func PartialHandler(
 				"web/templates/history.html",
 			),
 	)
+
+	siteRoot = strings.TrimSuffix(siteRoot, "/") // remove trailing slash
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		section := path.Base(r.URL.Path)
