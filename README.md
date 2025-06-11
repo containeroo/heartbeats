@@ -94,7 +94,7 @@ receivers:
           password: env:MAIL_PASSWORD
   dev-crew-prod:
     msteams_configs:
-      webhookURL: file:/secrets/teams/webhooks//production
+      webhook_url: file:/secrets/teams/webhooks//production
       # no title nor text specified, will use the default
 ```
 
@@ -204,7 +204,7 @@ _Defaults:_
 
 ```yaml
 msteams_configs:
-  - webhookURL: file:/secrets/teams/webhook//prod
+  - webhook_url: file:/secrets/teams/webhook//prod
     # optional custom templates:
     titleTemplate: "[{{ upper .Status }}] {{ .ID }}"
     textTemplate: "{{ .ID }} status: {{ .Status }}"
