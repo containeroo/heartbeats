@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"net/http"
 
@@ -74,7 +75,7 @@ func New(opts ...Option) *Client {
 //
 // Returns:
 //   - string: Success text if response is HTTP 200.
-//   - error: If marshalling, sending, or decoding fails.
+//   - error: If marshalling, sending, or decoding fails or non-200 is returned.
 func (c *Client) Send(ctx context.Context, message MSTeams, webhookURL string) (string, error) {
 	// Serialize the message to JSON.
 	data, err := json.Marshal(message)
@@ -89,9 +90,12 @@ func (c *Client) Send(ctx context.Context, message MSTeams, webhookURL string) (
 	}
 	defer resp.Body.Close() // nolint:errcheck
 
+	// Read response body regardless of status
+	body, _ := io.ReadAll(resp.Body)
+
 	// Verify the HTTP status code is 200 OK.
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("received non-200 response: %d", resp.StatusCode)
+		return "", fmt.Errorf("received non-200 response: %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	return "Message sent successfully", nil
