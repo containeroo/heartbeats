@@ -168,6 +168,10 @@ receivers:
         skipTLS: true
 ```
 
+> **Note**
+> `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
+> The `Content-Type` header is also set to `application/json`.
+
 #### Email
 
 _Defaults:_
@@ -211,6 +215,10 @@ msteams_configs:
     # optional: override global skip TLS
     skipTLS: true
 ```
+
+> **Note** 
+> `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
+> The `Content-Type` header is also set to `application/json`.
 
 ## Deployment
 
