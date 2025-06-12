@@ -3,10 +3,10 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,7 +19,7 @@ import (
 func setupRouter(t *testing.T, hbName string, hist history.Store) http.Handler {
 	t.Helper()
 
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	heartbeats := heartbeat.HeartbeatConfigMap{
 		hbName: {
 			ID:          hbName,
@@ -30,7 +30,7 @@ func setupRouter(t *testing.T, hbName string, hist history.Store) http.Handler {
 		},
 	}
 
-	store := notifier.InitializeStore(nil, false, logger)
+	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 	mgr := heartbeat.NewManager(context.Background(), heartbeats, disp, hist, logger)
 	router := http.NewServeMux()

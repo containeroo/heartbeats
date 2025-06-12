@@ -29,21 +29,31 @@ func (s *ReceiverStore) getNotifiers(receiverID string) []Notifier {
 }
 
 // InitializeStore builds a store from the receiver configuration.
-func InitializeStore(cfg map[string]ReceiverConfig, globalSkipTLS bool, logger *slog.Logger) *ReceiverStore {
+func InitializeStore(cfg map[string]ReceiverConfig, globalSkipTLS bool, version string, logger *slog.Logger) *ReceiverStore {
+	baseHeaders := map[string]string{
+		"User-Agent":   "heartbeats/" + version,
+		"Content-Type": "application/json",
+	}
+
 	store := newReceiverStore()
 	for id, rc := range cfg {
 		for _, sc := range rc.SlackConfigs {
 			effectiveSkipTLS := resolveSkipTLS(sc.SkipTLS, globalSkipTLS)
-			store.addNotifier(id, NewSlackNotifier(id, sc, logger, slack.NewWithToken(sc.Token, effectiveSkipTLS)))
+			store.addNotifier(id,
+				NewSlackNotifier(id, sc, logger, slack.NewWithToken(sc.Token, slack.WithHeaders(baseHeaders), slack.WithInsecureTLS(effectiveSkipTLS))),
+			)
 		}
 		for _, ec := range rc.EmailConfigs {
 			effectiveSkipTLS := resolveSkipTLS(ec.SMTPConfig.SkipInsecureVerify, globalSkipTLS)
 			ec.SMTPConfig.SkipInsecureVerify = &effectiveSkipTLS
-			store.addNotifier(id, NewEmailNotifier(id, ec, logger, email.New(ec.SMTPConfig)))
+			store.addNotifier(id,
+				NewEmailNotifier(id, ec, logger, email.New(ec.SMTPConfig)))
 		}
 		for _, tc := range rc.MSTeamsConfigs {
 			effectiveSkipTLS := resolveSkipTLS(tc.SkipTLS, globalSkipTLS)
-			store.addNotifier(id, NewMSTeamsNotifier(id, tc, logger, msteams.New(nil, effectiveSkipTLS)))
+			store.addNotifier(id,
+				NewMSTeamsNotifier(id, tc, logger, msteams.New(msteams.WithHeaders(baseHeaders), msteams.WithInsecureTLS(effectiveSkipTLS))),
+			)
 		}
 	}
 	return store

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
-	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/internal/notifier"
 
 	"github.com/stretchr/testify/assert"
@@ -42,10 +42,8 @@ func TestNewRouter(t *testing.T) {
 			Receivers:   []string{"r1"},
 		},
 	}
-	var logBuffer strings.Builder
-	logger := logging.SetupLogger(logging.LogFormatText, false, &logBuffer)
-
-	store := notifier.InitializeStore(nil, false, logger)
+	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	disp := notifier.NewDispatcher(store, logger, nil, 0, 0)
 	hist := history.NewRingStore(10)
 

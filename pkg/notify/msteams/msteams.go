@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 
 	"github.com/containeroo/heartbeats/pkg/notify/utils"
@@ -19,14 +20,7 @@ type MSTeams struct {
 type Sender interface {
 	// Send transmits the message to the given MS Teams webhook.
 	//
-	// Parameters:
-	//   - ctx: Context for timeout or cancellation.
-	//   - message: Structured payload with title and text.
-	//   - webhookURL: Microsoft Teams webhook destination.
-	//
-	// Returns:
-	//   - string: Success confirmation message.
-	//   - error: If sending or response fails.
+	// Returns a confirmation or error on failure.
 	Send(ctx context.Context, message MSTeams, webhookURL string) (string, error)
 }
 
@@ -35,18 +29,40 @@ type Client struct {
 	HttpClient utils.HTTPDoer // HttpClient executes the underlying HTTP request.
 }
 
-// New creates a new MS Teams client with optional headers and TLS control.
-//
-// Parameters:
-//   - headers: Optional HTTP headers (e.g. Authorization, Content-Type).
-//   - skipTLS: If true, disables TLS certificate validation.
-//
-// Returns:
-//   - *Client: A ready-to-use Teams sender.
-func New(headers map[string]string, skipTLS bool) *Client {
-	return &Client{
-		HttpClient: utils.NewHttpClient(headers, skipTLS),
+// Option configures a MSTeams client.
+type Option func(*Client)
+
+// WithHeaders sets additional HTTP headers for the MS Teams client.
+func WithHeaders(headers map[string]string) Option {
+	return func(c *Client) {
+		hc := c.HttpClient.(*utils.HttpClient)
+		if hc.Headers == nil {
+			hc.Headers = make(map[string]string)
+		}
+		maps.Copy(hc.Headers, headers)
 	}
+}
+
+// WithInsecureTLS sets whether to skip TLS certificate verification.
+func WithInsecureTLS(skipInsecure bool) Option {
+	return func(c *Client) {
+		if hc, ok := c.HttpClient.(*utils.HttpClient); ok {
+			hc.SkipInsecure = skipInsecure
+		}
+	}
+}
+
+// New creates a new MS Teams client with functional options.
+//
+// Use options like WithHeaders or WithInsecureTLS to customize behavior.
+func New(opts ...Option) *Client {
+	client := &Client{
+		HttpClient: utils.NewHttpClient(nil, false),
+	}
+	for _, opt := range opts {
+		opt(client)
+	}
+	return client
 }
 
 // Send delivers the provided message to the specified Teams webhook URL.

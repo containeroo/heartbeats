@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 
 	"github.com/containeroo/heartbeats/pkg/notify/utils"
@@ -49,33 +50,55 @@ type Client struct {
 	HttpClient utils.HTTPDoer // HttpClient is used to send HTTP requests (mockable for testing).
 }
 
-// New creates a new Slack API client with optional headers and TLS settings.
-//
-// Parameters:
-//   - headers: Custom HTTP headers, including the Authorization bearer token.
-//   - skipTLS: Whether to skip TLS certificate validation.
-//
-// Returns:
-//   - *Client: A configured Slack client implementing the Sender interface.
-func New(headers map[string]string, skipTLS bool) *Client {
-	return &Client{
-		HttpClient: utils.NewHttpClient(headers, skipTLS),
+// Option configures a Slack client.
+type Option func(*Client)
+
+// WithHeaders sets additional HTTP headers for the Slack client.
+func WithHeaders(headers map[string]string) Option {
+	return func(c *Client) {
+		hc := c.HttpClient.(*utils.HttpClient)
+		if hc.Headers == nil {
+			hc.Headers = make(map[string]string)
+		}
+		maps.Copy(hc.Headers, headers)
 	}
 }
 
-// NewWithToken returns a Slack API client using the provided bearer token.
+// WithInsecureTLS sets whether to skip TLS certificate verification.
+func WithInsecureTLS(skipInsecure bool) Option {
+	return func(c *Client) {
+		c.HttpClient.(*utils.HttpClient).SkipInsecure = skipInsecure
+	}
+}
+
+// New creates a Slack API client with optional configuration.
 //
-// Parameters:
-//   - token: Slack API token to use for authentication.
-//   - skipTLS: If true, disables TLS certificate verification.
+// Options can be used to set headers or disable TLS verification.
+func New(opts ...Option) *Client {
+	// start with empty headers + default TLS settings
+	client := &Client{
+		HttpClient: utils.NewHttpClient(make(map[string]string), false),
+	}
+
+	for _, opt := range opts {
+		opt(client)
+	}
+
+	return client
+}
+
+// NewWithToken returns a Slack client configured with the given bearer token.
 //
-// Returns:
-//   - *Client: A configured Slack client ready to send messages.
-func NewWithToken(token string, skipTLS bool) *Client {
-	return New(map[string]string{
+// Options can be passed to customize behavior (e.g. headers, TLS).
+//   - token: Slack API token for authentication.
+//   - opts: Optional functional options (e.g. WithInsecureTLS, WithHeaders).
+func NewWithToken(token string, opts ...Option) *Client {
+	headers := map[string]string{
 		"Authorization": "Bearer " + token,
 		"Content-Type":  "application/json",
-	}, skipTLS)
+	}
+
+	return New(append([]Option{WithHeaders(headers)}, opts...)...)
 }
 
 // Send posts a message to the Slack chat.postMessage endpoint.

@@ -37,19 +37,15 @@ func TestInitializeStore(t *testing.T) {
 	t.Run("empty config returns empty store", func(t *testing.T) {
 		t.Parallel()
 
-		var logBuffer strings.Builder
-		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
-
-		store := InitializeStore(nil, false, logger)
+		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+		store := InitializeStore(nil, false, "0.0.0", logger)
 		assert.Empty(t, store.getNotifiers("any"))
 	})
 
 	t.Run("single receiver with all notifier types", func(t *testing.T) {
 		t.Parallel()
 
-		var logBuffer strings.Builder
-		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
-
+		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		cfg := map[string]ReceiverConfig{
 			"r1": {
 				SlackConfigs: []SlackConfig{
@@ -64,7 +60,7 @@ func TestInitializeStore(t *testing.T) {
 			},
 		}
 
-		store := InitializeStore(cfg, false, logger)
+		store := InitializeStore(cfg, false, "0.0.0", logger)
 
 		notifiers := store.getNotifiers("r1")
 		assert.Len(t, notifiers, 3)
@@ -86,7 +82,8 @@ func TestInitializeStore(t *testing.T) {
 			},
 		}
 
-		store := InitializeStore(cfg, false, slog.Default())
+		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+		store := InitializeStore(cfg, false, "0.0.0", logger)
 
 		r1 := store.getNotifiers("r1")
 		r2 := store.getNotifiers("r2")

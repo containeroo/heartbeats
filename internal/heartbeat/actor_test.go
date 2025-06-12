@@ -19,10 +19,9 @@ func TestActor_Run_Smoke(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		var logBuffer strings.Builder
-		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(20)
-		store := notifier.InitializeStore(nil, false, logger)
+		store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 		disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 		actor := NewActor(
@@ -79,10 +78,9 @@ func TestActor_Run_Smoke(t *testing.T) {
 		t.Parallel()
 
 		ctx := t.Context()
-		var logBuffer strings.Builder
-		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(20)
-		store := notifier.InitializeStore(nil, false, logger)
+		store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 		disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 		actor := NewActor(

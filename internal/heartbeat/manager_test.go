@@ -17,10 +17,9 @@ func TestManager_HandleReceive(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	var logBuffer strings.Builder
-	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(20)
-	store := notifier.InitializeStore(nil, false, logger)
+	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 	t.Run("sends receive to known actor", func(t *testing.T) {
@@ -56,10 +55,9 @@ func TestManager_HandleFail(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	var logBuffer strings.Builder
-	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(20)
-	store := notifier.InitializeStore(nil, false, logger)
+	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 	t.Run("sends fail to known actor", func(t *testing.T) {
@@ -95,10 +93,9 @@ func TestManager_List(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	var logBuffer strings.Builder
-	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(20)
-	store := notifier.InitializeStore(nil, false, logger)
+	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	disp := notifier.NewDispatcher(store, logger, hist, 0, 0)
 
 	cfg := map[string]heartbeat.HeartbeatConfig{

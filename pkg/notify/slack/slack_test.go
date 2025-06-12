@@ -23,13 +23,17 @@ func (m *mockHTTPClient) DoRequest(ctx context.Context, method, url string, body
 }
 
 func TestNew(t *testing.T) {
-	slack := New(map[string]string{"Authorization": "Bearer my-token"}, true)
-	assert.IsType(t, slack, &Client{}, slack)
+	t.Parallel()
+
+	client := New(WithHeaders(map[string]string{"Authorization": "Bearer my-token"}), WithInsecureTLS(true))
+	assert.IsType(t, &Client{}, client)
 }
 
 func TestNewWithToken(t *testing.T) {
-	slack := NewWithToken("my-token", true)
-	assert.IsType(t, slack, &Client{}, slack)
+	t.Parallel()
+
+	client := NewWithToken("my-token", WithInsecureTLS(true))
+	assert.IsType(t, &Client{}, client)
 }
 
 func TestClient_Send_Success(t *testing.T) {
@@ -53,8 +57,8 @@ func TestClient_Send_Success(t *testing.T) {
 	}
 
 	client := &Client{HttpClient: mock}
-
 	resp, err := client.Send(context.Background(), slackPayload)
+
 	assert.NoError(t, err)
 	assert.True(t, resp.Ok)
 	assert.Contains(t, string(mock.Capture), "Everything is operational.")
@@ -72,6 +76,7 @@ func TestClient_Send_Non200(t *testing.T) {
 
 	client := &Client{HttpClient: mock}
 	_, err := client.Send(context.Background(), Slack{})
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "received non-200 response")
 }
@@ -88,6 +93,7 @@ func TestClient_Send_ErrorDecoding(t *testing.T) {
 
 	client := &Client{HttpClient: mock}
 	_, err := client.Send(context.Background(), Slack{})
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error decoding response")
 }
@@ -104,6 +110,7 @@ func TestClient_Send_ErrorAPIResponse(t *testing.T) {
 
 	client := &Client{HttpClient: mock}
 	_, err := client.Send(context.Background(), Slack{})
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Slack API error: invalid_auth")
 }

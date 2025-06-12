@@ -23,9 +23,7 @@ func TestDispatcher_Dispatch(t *testing.T) {
 		store.addNotifier("r1", n)
 		hist := history.NewRingStore(10)
 
-		var logBuffer strings.Builder
-		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
-
+		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		dispatcher := NewDispatcher(store, logger, hist, 1, 1)
 
 		data := NotificationData{
@@ -52,9 +50,7 @@ func TestDispatcher_Dispatch(t *testing.T) {
 	t.Run("logs and skips unknown receiver", func(t *testing.T) {
 		t.Parallel()
 
-		var logBuffer strings.Builder
-		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
-
+		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		store := newReceiverStore()
 		hist := history.NewRingStore(10)
 		dispatcher := NewDispatcher(store, logger, hist, 1, 1)
@@ -71,8 +67,7 @@ func TestDispatcher_Dispatch(t *testing.T) {
 func TestDispatcher_ListAndGet(t *testing.T) {
 	t.Parallel()
 
-	var logBuffer strings.Builder
-	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 
 	store := newReceiverStore()
 	n1 := &MockNotifier{}

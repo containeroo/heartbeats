@@ -58,7 +58,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	history := history.NewRingStore(flags.HistorySize)
 
 	// Inizalize notification
-	store := notifier.InitializeStore(cfg.Receivers, false, logger)
+	store := notifier.InitializeStore(cfg.Receivers, flags.SkipTLS, version, logger)
 	dispatcher := notifier.NewDispatcher(
 		store,
 		logger,

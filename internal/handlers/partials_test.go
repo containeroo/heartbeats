@@ -53,7 +53,7 @@ func TestPartialHandler(t *testing.T) {
 		UserAgent:   "Go-http-client",
 	})
 
-	store := notifier.InitializeStore(nil, false, logger)
+	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 	mgr := heartbeat.NewManager(context.Background(), map[string]heartbeat.HeartbeatConfig{
@@ -124,7 +124,8 @@ func TestRenderHeartbeats(t *testing.T) {
 	tmpl := loadTestTemplate(t, "heartbeats", `{{define "heartbeats"}}{{range .Heartbeats}}{{.ID}}:{{.Status}};{{end}}{{end}}`)
 
 	hist := history.NewRingStore(10)
-	store := notifier.InitializeStore(nil, false, nil)
+	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	disp := notifier.NewDispatcher(store, nil, hist, 1, 1)
 	mgr := heartbeat.NewManager(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"b": {
@@ -162,7 +163,8 @@ func TestRenderReceivers(t *testing.T) {
 	}
 	rc := map[string]notifier.ReceiverConfig{"r": r}
 
-	store := notifier.InitializeStore(rc, false, nil)
+	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+	store := notifier.InitializeStore(rc, false, "0.0.0", logger)
 	disp := notifier.NewDispatcher(store, nil, nil, 1, 1)
 
 	var buf bytes.Buffer
