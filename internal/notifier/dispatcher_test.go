@@ -19,8 +19,8 @@ func TestDispatcher_Dispatch(t *testing.T) {
 		t.Parallel()
 
 		n := &MockNotifier{}
-		store := newReceiverStore()
-		store.addNotifier("r1", n)
+		store := NewReceiverStore()
+		store.Register("r1", n) // nolint:errcheck
 		hist := history.NewRingStore(10)
 
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
@@ -51,7 +51,7 @@ func TestDispatcher_Dispatch(t *testing.T) {
 		t.Parallel()
 
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-		store := newReceiverStore()
+		store := NewReceiverStore()
 		hist := history.NewRingStore(10)
 		dispatcher := NewDispatcher(store, logger, hist, 1, 1)
 
@@ -69,13 +69,13 @@ func TestDispatcher_ListAndGet(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 
-	store := newReceiverStore()
+	store := NewReceiverStore()
 	n1 := &MockNotifier{}
 	n2 := &MockNotifier{}
 
-	store.addNotifier("a", n1)
-	store.addNotifier("a", n2)
-	store.addNotifier("b", n1)
+	store.Register("a", n1) // nolint:errcheck
+	store.Register("a", n2) // nolint:errcheck
+	store.Register("b", n1) // nolint:errcheck
 
 	hist := history.NewRingStore(10)
 	d := NewDispatcher(store, logger, hist, 1, 1)
@@ -88,6 +88,7 @@ func TestDispatcher_ListAndGet(t *testing.T) {
 		assert.Len(t, list["a"], 2)
 		assert.Len(t, list["b"], 1)
 	})
+
 	t.Run("Gets all notifiers for a receiver", func(t *testing.T) {
 		t.Parallel()
 
@@ -107,8 +108,8 @@ func (m *mockHistory) GetEventsByID(id string) []history.Event                { 
 func TestDispatcher_LogsErrorFromNotifier(t *testing.T) {
 	t.Parallel()
 
-	store := newReceiverStore()
-	store.addNotifier("receiver1", &MockNotifier{
+	store := NewReceiverStore()
+	store.Register("receiver1", &MockNotifier{
 		NotifyFunc: func(ctx context.Context, data NotificationData) error {
 			return fmt.Errorf("fail!")
 		},

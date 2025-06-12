@@ -137,7 +137,7 @@ heartbeats:
 			"--listen-address", ":8070",
 			"--debug",
 			"--retry-count", "2",
-			"retry-delay", "1s",
+			"--retry-delay", "1s",
 		}
 
 		go func() {

@@ -14,6 +14,7 @@ func FuncMap() template.FuncMap {
 		"upper":      strings.ToUpper,
 		"lower":      strings.ToLower,
 		"formatTime": func(t time.Time, format string) string { return t.Format(format) },
+		"isRecent":   func(t time.Time) bool { return time.Since(t).Truncate(time.Second).Seconds() < 2 },
 		"ago": func(t time.Time) string {
 			if t.IsZero() {
 				return "never"

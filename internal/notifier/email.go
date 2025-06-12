@@ -13,7 +13,7 @@ import (
 
 const (
 	defaultEmailSubjectTmpl string = "[HEARTBEATS]: {{ .ID }} {{ upper .Status }}"
-	defaultEmailBodyTmpl    string = "<b>Description:</b><br>{{ .Description }}.<br>Last ping: {{ ago .LastBump }}"
+	defaultEmailBodyTmpl    string = "<b>Description:</b><br>{{ .Description }}.<br>Last bump: {{ ago .LastBump }}"
 )
 
 // EmailConfig holds the configuration for sending email notifications.
@@ -46,6 +46,7 @@ func NewEmailNotifier(id string, cfg EmailConfig, logger *slog.Logger, sender em
 		SMTPConfig:   cfg.SMTPConfig,
 		EmailDetails: cfg.EmailDetails,
 		logger:       logger,
+		sender:       sender,
 	}
 }
 

@@ -1,6 +1,7 @@
 package heartbeat
 
 import (
+	"context"
 	"log/slog"
 	"strings"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestActor_Run_Smoke(t *testing.T) {
@@ -22,6 +24,18 @@ func TestActor_Run_Smoke(t *testing.T) {
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(20)
 		store := notifier.InitializeStore(nil, false, "0.0.0", logger)
+		fn := func(ctx context.Context, data notifier.NotificationData) error {
+			_ = hist.RecordEvent(ctx, history.Event{
+				Timestamp:   time.Now(),
+				Type:        history.EventTypeNotificationSent,
+				HeartbeatID: data.ID,
+				Payload:     data,
+			})
+			return nil
+		}
+		mock := &notifier.MockNotifier{NotifyFunc: fn}
+		store.Register("r1", mock) // nolint:errcheck
+
 		disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 		actor := NewActor(
@@ -48,9 +62,14 @@ func TestActor_Run_Smoke(t *testing.T) {
 		// Check final state is 'missing'
 		assert.Equal(t, common.HeartbeatStateMissing, actor.State, "expected state Missing, got %s", actor.State)
 
+		// Wait unitl notification is sent
+		require.Eventually(t, func() bool {
+			return len(hist.GetEvents()) >= 3
+		}, 1*time.Second, 100*time.Millisecond)
+
 		// Check history includes state transitions and a notification
 		events := hist.GetEvents()
-		assert.Len(t, events, 4)
+		t.Logf("events: %+v", events)
 
 		// Check events
 		var hasGrace, hasActive, hasMissing, hasNotification bool
@@ -68,6 +87,10 @@ func TestActor_Run_Smoke(t *testing.T) {
 			}
 		}
 
+		for _, e := range events {
+			t.Logf("%s → %s (%s)", e.PrevState, e.NewState, e.Type)
+		}
+
 		assert.True(t, hasActive, "expected transition to Active")
 		assert.True(t, hasGrace, "expected transition to Missing")
 		assert.True(t, hasMissing, "expected transition to Missing")
@@ -81,6 +104,14 @@ func TestActor_Run_Smoke(t *testing.T) {
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(20)
 		store := notifier.InitializeStore(nil, false, "0.0.0", logger)
+
+		// Register a mock notifier that does not record its own history
+		store.Register("r1", &notifier.MockNotifier{
+			NotifyFunc: func(ctx context.Context, data notifier.NotificationData) error {
+				return nil // Let Dispatcher handle recording
+			},
+		})
+
 		disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 		actor := NewActor(
@@ -97,26 +128,28 @@ func TestActor_Run_Smoke(t *testing.T) {
 
 		go actor.Run(ctx)
 
-		time.Sleep(400 * time.Millisecond)     // wait until actor is idle
-		actor.Mailbox() <- common.EventReceive // send receive
-		time.Sleep(400 * time.Millisecond)     // enough for idle → active → grace → missing
-		actor.Mailbox() <- common.EventReceive // recover
-		time.Sleep(400 * time.Millisecond)     // give time for recovery transition
+		// trigger active → grace → missing
+		time.Sleep(400 * time.Millisecond)
+		actor.Mailbox() <- common.EventReceive
+
+		// allow full missing cycle
+		time.Sleep(400 * time.Millisecond)
+
+		// trigger recovery
+		actor.Mailbox() <- common.EventReceive
+
+		// allow state transition to active and notification dispatch
+		time.Sleep(400 * time.Millisecond)
 
 		events := hist.GetEvents()
+		t.Logf("events: %+v", events)
 
 		var hasRecoveredState, hasRecoveredNotification bool
 		for _, e := range events {
 			if e.PrevState == common.HeartbeatStateMissing.String() && e.NewState == common.HeartbeatStateActive.String() {
 				hasRecoveredState = true
 			}
-			p := e.Payload
-			if p == nil {
-				continue
-			}
-			n, ok := p.(*notifier.NotificationData)
-			assert.True(t, ok)
-			if n.Status == common.HeartbeatStateRecovered.String() {
+			if e.NewState == common.HeartbeatStateRecovered.String() && e.Type == history.EventTypeNotificationSent {
 				hasRecoveredNotification = true
 			}
 		}

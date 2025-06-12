@@ -277,6 +277,52 @@ func TestConfigValidate(t *testing.T) {
 		assert.EqualError(t, err, "receiver \"r\" MSTeams config error: failed to resolve WebhookURL: environment variable 'INVALID' not found")
 	})
 
+	t.Run("invalid teams graph config - validate", func(t *testing.T) {
+		t.Parallel()
+
+		rc := notifier.ReceiverConfig{
+			MSTeamsGraphConfig: []notifier.MSTeamsGraphConfig{{Token: ""}},
+		}
+
+		cfg := &Config{
+			Receivers: map[string]notifier.ReceiverConfig{"r": rc},
+			Heartbeats: map[string]heartbeat.HeartbeatConfig{
+				"hb": {
+					Interval:  1 * time.Second,
+					Grace:     1 * time.Second,
+					Receivers: []string{"r"},
+				},
+			},
+		}
+
+		err := cfg.Validate()
+		assert.Error(t, err)
+		assert.EqualError(t, err, "receiver \"r\" MSTeams Graph config error: token cannot be empty")
+	})
+
+	t.Run("invalid teams graph config - resolve error", func(t *testing.T) {
+		t.Parallel()
+
+		rc := notifier.ReceiverConfig{
+			MSTeamsGraphConfig: []notifier.MSTeamsGraphConfig{{Token: "env:INVALID"}},
+		}
+
+		cfg := &Config{
+			Receivers: map[string]notifier.ReceiverConfig{"r": rc},
+			Heartbeats: map[string]heartbeat.HeartbeatConfig{
+				"hb": {
+					Interval:  1 * time.Second,
+					Grace:     1 * time.Second,
+					Receivers: []string{"r"},
+				},
+			},
+		}
+
+		err := cfg.Validate()
+		assert.Error(t, err)
+		assert.EqualError(t, err, "receiver \"r\" MSTeams Graph config error: resolve token: environment variable 'INVALID' not found")
+	})
+
 	t.Run("No heartbeats", func(t *testing.T) {
 		t.Parallel()
 

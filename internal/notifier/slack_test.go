@@ -125,7 +125,7 @@ func TestSlackConfig_Notify(t *testing.T) {
 		assert.Len(t, mock.payload.Attachments, 1)
 		assert.Equal(t, "#devops", mock.payload.Channel)
 		assert.Equal(t, "[RECOVERED] api-check", mock.payload.Attachments[0].Title)
-		assert.Equal(t, "api-check is recovered (last Ping: 10m0s)", mock.payload.Attachments[0].Text)
+		assert.Equal(t, "api-check is recovered (last bump: 10m0s)", mock.payload.Attachments[0].Text)
 		assert.Nil(t, cfg.lastErr)
 		assert.WithinDuration(t, time.Now(), cfg.lastSent, time.Second)
 	})
@@ -267,5 +267,5 @@ func TestSlackConfig_Format(t *testing.T) {
 	out, err := cfg.Format(data)
 	assert.NoError(t, err)
 	assert.Equal(t, "[ACTIVE] health-check", out.Title)
-	assert.Equal(t, "health-check is active (last Ping: 3m0s)", out.Message)
+	assert.Equal(t, "health-check is active (last bump: 3m0s)", out.Message)
 }

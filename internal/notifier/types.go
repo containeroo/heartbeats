@@ -7,9 +7,10 @@ import (
 
 // ReceiverConfig holds receiver-specific configurations.
 type ReceiverConfig struct {
-	SlackConfigs   []SlackConfig   `yaml:"slack_configs,omitempty"`   // SlackConfigs is the list of Slack configurations.
-	EmailConfigs   []EmailConfig   `yaml:"email_configs,omitempty"`   // EmailConfigs is the list of email configurations.
-	MSTeamsConfigs []MSTeamsConfig `yaml:"msteams_configs,omitempty"` // MSTeamsConfigs is the list of MSTeams configurations.
+	SlackConfigs       []SlackConfig        `yaml:"slack_configs,omitempty"`        // SlackConfigs is the list of Slack configurations.
+	EmailConfigs       []EmailConfig        `yaml:"email_configs,omitempty"`        // EmailConfigs is the list of email configurations.
+	MSTeamsConfigs     []MSTeamsConfig      `yaml:"msteams_configs,omitempty"`      // MSTeamsConfigs is the list of MSTeams configurations.
+	MSTeamsGraphConfig []MSTeamsGraphConfig `yaml:"msteamsgraph_configs,omitempty"` // MSTeamsGraphConfigs is the list of MSTeamsGraph configurations.
 }
 
 // NotificationData is the payload for alerts.
