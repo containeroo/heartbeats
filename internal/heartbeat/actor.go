@@ -120,12 +120,6 @@ func (a *Actor) onReceive() {
 			Receivers:   a.Receivers,
 		}
 		a.dispatcher.Dispatch(a.ctx, data)
-		_ = a.hist.RecordEvent(a.ctx, history.Event{
-			Timestamp:   now,
-			Type:        history.EventTypeNotificationSent,
-			HeartbeatID: a.ID,
-			Payload:     &data,
-		})
 	}
 
 	newState := common.HeartbeatStateActive
@@ -171,12 +165,6 @@ func (a *Actor) onFail() {
 		Receivers:   a.Receivers,
 	}
 	a.dispatcher.Dispatch(a.ctx, data)
-	_ = a.hist.RecordEvent(a.ctx, history.Event{
-		Timestamp:   now,
-		Type:        history.EventTypeNotificationSent,
-		HeartbeatID: a.ID,
-		Payload:     &data,
-	})
 
 	newState := common.HeartbeatStateFailed
 	a.logger.Info("state change",
@@ -253,11 +241,5 @@ func (a *Actor) onGraceTimeout() {
 		Receivers:   a.Receivers,
 	}
 	a.dispatcher.Dispatch(a.ctx, data)
-	_ = a.hist.RecordEvent(a.ctx, history.Event{
-		Timestamp:   now,
-		Type:        history.EventTypeNotificationSent,
-		HeartbeatID: a.ID,
-		Payload:     &data,
-	})
 	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
 }
