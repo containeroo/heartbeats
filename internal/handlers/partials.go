@@ -68,7 +68,7 @@ func PartialHandler(
 			),
 	)
 
-	siteRoot = strings.TrimSuffix(siteRoot, "/") // remove trailing slash
+	bumpURL := strings.TrimSuffix(siteRoot, "/") + "/bump/" // remove trailing slash
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		section := path.Base(r.URL.Path)
@@ -76,7 +76,7 @@ func PartialHandler(
 
 		switch section {
 		case "heartbeats":
-			err = renderHeartbeats(w, tmpl, siteRoot, mgr, hist)
+			err = renderHeartbeats(w, tmpl, bumpURL, mgr, hist)
 		case "receivers":
 			err = renderReceivers(w, tmpl, disp)
 		case "history":
@@ -97,7 +97,7 @@ func PartialHandler(
 func renderHeartbeats(
 	w io.Writer,
 	tmpl *template.Template,
-	siteRoot string,
+	bumpURL string,
 	mgr *heartbeat.Manager,
 	hist history.Store,
 ) error {
@@ -114,7 +114,7 @@ func renderHeartbeats(
 			IntervalSeconds: a.Interval.Seconds(),
 			Grace:           a.Grace.String(),
 			LastBump:        a.LastBump,
-			URL:             siteRoot + id,
+			URL:             bumpURL + id,
 			Receivers:       a.Receivers,
 			HasHistory:      len(evs) > 0,
 		})
