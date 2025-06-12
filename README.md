@@ -174,7 +174,6 @@ receivers:
         skipTLS: true
 ```
 
-> **Note**
 > `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
 > The `Content-Type` header is also set to `application/json`.
 
@@ -222,7 +221,6 @@ msteams_configs:
     skipTLS: true
 ```
 
-> **Note**
 > `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
 > The `Content-Type` header is also set to `application/json`.
 
@@ -243,7 +241,6 @@ msteamsgraph_configs:
     skipTLS: true
 ```
 
-> **Note**
 > `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
 > The `Content-Type` header is also set to `application/json`.
 
