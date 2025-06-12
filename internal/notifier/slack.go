@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	defaultSlackTitleTmpl = "[{{ upper .Status }}] {{ .ID }}"
-	defaultSlackTextTmpl  = "{{ .ID }} is {{ .Status }} (last Ping: {{ ago .LastBump }})"
+	defaultSlackTitleTmpl string = "[{{ upper .Status }}] {{ .ID }}"
+	defaultSlackTextTmpl  string = "{{ .ID }} is {{ .Status }} (last Ping: {{ ago .LastBump }})"
 )
 
 // SlackConfig sends notifications to Slack.

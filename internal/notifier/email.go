@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	defaultEmailSubjectTmpl = "[HEARTBEATS]: {{ .ID }} {{ upper .Status }}"
-	defaultEmailBodyTmpl    = "<b>Description:</b><br>{{ .Description }}.<br>Last ping: {{ ago .LastBump }}"
+	defaultEmailSubjectTmpl string = "[HEARTBEATS]: {{ .ID }} {{ upper .Status }}"
+	defaultEmailBodyTmpl    string = "<b>Description:</b><br>{{ .Description }}.<br>Last ping: {{ ago .LastBump }}"
 )
 
 // EmailConfig holds the configuration for sending email notifications.
