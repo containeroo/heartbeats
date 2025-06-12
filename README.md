@@ -94,8 +94,13 @@ receivers:
           password: env:MAIL_PASSWORD
   dev-crew-prod:
     msteams_configs:
-      webhook_url: file:/secrets/teams/webhooks//production
-      # no title nor text specified, will use the default
+      - webhook_url: file:/secrets/teams/webhooks//production
+        # no title nor text specified, will use the default
+    msteamsgraph_configs:
+      - token: env:MSTEAMSGRAPH_TOKEN
+        teamID: env:MSTEAMSGRAPH_TEAM_ID
+        channelID: env:MSTEAMSGRAPH_CHANNEL_ID
+        # no title nor text specified, will use the default
 ```
 
 ### Heartbeats
@@ -135,6 +140,7 @@ You may use any template variable from the heartbeat (e.g. `{{ .ID }}`, `{{ .Sta
 - **`lower`**: `{{ lower .ID }}`
 - **`formatTime`**: `{{ formatTime .LastBump "2006-01-02 15:04:05" }}`
 - **`ago`**: `{{ ago .LastBump }}`
+- **`isRecent`**: `{{ isRecent .LastBump }}` // isRecent returns true if the last bump was less than 2 seconds ago
 - **`join`**: `{{ join .Tags ", " }}`
 
 #### Variable Resolution
@@ -153,7 +159,7 @@ Resolver supports:
 _Defaults:_
 
 - SubjectTemplate: `[{{ upper .Status }}] {{ .ID }}"`
-- TextTemplate: `{{ .ID }} is {{ .Status }} (last Ping: {{ ago .LastBump }})"`
+- TextTemplate: `{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
 
 ```yaml
 receivers:
@@ -168,8 +174,7 @@ receivers:
         skipTLS: true
 ```
 
-> **Note**
-> `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
+> **Note** > `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
 > The `Content-Type` header is also set to `application/json`.
 
 #### Email
@@ -196,10 +201,10 @@ email_configs:
       to: ["ops@example.com"]
       # optional custom templates:
       subjectTemplate: "[HB] {{ .ID }} {{ upper .Status }}"
-      bodyTemplate: "Last ping: {{ ago .LastBump }}"
+      bodyTemplate: "Last bump: {{ ago .LastBump }}"
 ```
 
-#### MS Teams
+#### MS Teams (incomming webhook)
 
 _Defaults:_
 
@@ -216,8 +221,27 @@ msteams_configs:
     skipTLS: true
 ```
 
-> **Note** 
-> `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
+> **Note** > `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
+> The `Content-Type` header is also set to `application/json`.
+
+#### MS Teams (Graph API) (NOT TESTED)
+
+_Defaults:_
+
+- TitleTemplate: `"[{{ upper .Status }}] {{ .ID }}"`
+- TextTemplate: `"{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
+
+```yaml
+msteamsgraph_configs:
+  - webhook_url: file:/secrets/teams/webhook//graph
+    # optional custom templates:
+    titleTemplate: "[{{ upper .Status }}] {{ .ID }}"
+    textTemplate: "{{ .ID }} status: {{ .Status }}"
+    # optional: override global skip TLS
+    skipTLS: true
+```
+
+> **Note** > `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
 > The `Content-Type` header is also set to `application/json`.
 
 ## Deployment

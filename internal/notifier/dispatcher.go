@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/common"
 	"github.com/containeroo/heartbeats/internal/history"
 )
 
@@ -66,6 +67,7 @@ func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Not
 	event := history.Event{
 		Timestamp:   time.Now(),
 		Type:        history.EventTypeNotificationSent,
+		NewState:    common.HeartbeatStateRecovered.String(),
 		HeartbeatID: data.ID,
 		Payload:     data,
 	}

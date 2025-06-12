@@ -57,6 +57,15 @@ func (c *Config) Validate() error {
 				return fmt.Errorf("receiver %q MSTeams config error: %w", receiverID, err)
 			}
 		}
+		for i := range rc.MSTeamsGraphConfig {
+			if err := rc.MSTeamsGraphConfig[i].Resolve(); err != nil {
+				return fmt.Errorf("receiver %q MSTeams Graph config error: %w", receiverID, err)
+			}
+			if err := rc.MSTeamsGraphConfig[i].Validate(); err != nil {
+				return fmt.Errorf("receiver %q MSTeams Graph config error: %w", receiverID, err)
+			}
+		}
+
 		c.Receivers[receiverID] = rc // Write back updated receiver config.
 	}
 

@@ -15,7 +15,7 @@ import (
 
 const (
 	defaultMSTeamsTitleTmpl string = "[{{ upper .Status }}] {{ .ID }}"
-	defaultMSTeamsTextTmpl  string = "{{ .ID }} is {{ .Status }} (last Ping: {{ ago .LastBump }})"
+	defaultMSTeamsTextTmpl  string = "{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"
 )
 
 // MSTeamsConfig sends notifications to MSTeams.

@@ -15,7 +15,7 @@ func TestReceiverStore_addAndGet(t *testing.T) {
 	t.Run("add and retrieve mock notifier", func(t *testing.T) {
 		t.Parallel()
 
-		store := newReceiverStore()
+		store := NewReceiverStore()
 
 		mock := &MockNotifier{
 			TypeName: "mock",
@@ -23,7 +23,7 @@ func TestReceiverStore_addAndGet(t *testing.T) {
 			lastErr:  nil,
 		}
 
-		store.addNotifier("r1", mock)
+		store.Register("r1", mock) // nolint:errcheck
 
 		result := store.getNotifiers("r1")
 		assert.Len(t, result, 1)
@@ -57,13 +57,20 @@ func TestInitializeStore(t *testing.T) {
 				MSTeamsConfigs: []MSTeamsConfig{
 					{WebhookURL: "https://teams.example.com"},
 				},
+				MSTeamsGraphConfig: []MSTeamsGraphConfig{
+					{
+						Token:     "graph-token",
+						TeamID:    "team-id",
+						ChannelID: "channel-id",
+					},
+				},
 			},
 		}
 
 		store := InitializeStore(cfg, false, "0.0.0", logger)
 
 		notifiers := store.getNotifiers("r1")
-		assert.Len(t, notifiers, 3)
+		assert.Len(t, notifiers, 4)
 
 		assert.IsType(t, &SlackConfig{}, notifiers[0])
 		assert.IsType(t, &EmailConfig{}, notifiers[1])
