@@ -2,6 +2,7 @@ package flag
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -23,7 +24,7 @@ func TestParseFlags(t *testing.T) {
 	t.Run("use defaults", func(t *testing.T) {
 		t.Parallel()
 
-		cfg, err := ParseFlags([]string{}, "vX.Y.Z")
+		cfg, err := ParseFlags([]string{}, "vX.Y.Z", os.Getenv)
 		assert.NoError(t, err)
 		assert.Equal(t, "config.yaml", cfg.ConfigPath, "default config path")
 		assert.Equal(t, ":8080", cfg.ListenAddr, "default listen address")
@@ -37,7 +38,7 @@ func TestParseFlags(t *testing.T) {
 	t.Run("show version", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := ParseFlags([]string{"--version"}, "1.2.3")
+		_, err := ParseFlags([]string{"--version"}, "1.2.3", os.Getenv)
 		assert.Error(t, err)
 		helpErr, ok := err.(*HelpRequested)
 		assert.True(t, ok, "should return HelpRequested")
@@ -48,7 +49,7 @@ func TestParseFlags(t *testing.T) {
 	t.Run("show help", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := ParseFlags([]string{"--help"}, "")
+		_, err := ParseFlags([]string{"--help"}, "", os.Getenv)
 		assert.Error(t, err)
 		helpErr, ok := err.(*HelpRequested)
 		assert.True(t, ok, "should return HelpRequested")
@@ -67,7 +68,7 @@ func TestParseFlags(t *testing.T) {
 			"-d",
 			"-l", "text",
 		}
-		cfg, err := ParseFlags(args, "")
+		cfg, err := ParseFlags(args, "0.0.0", os.Getenv)
 		assert.NoError(t, err)
 		assert.Equal(t, "myconf.yml", cfg.ConfigPath)
 		assert.Equal(t, "127.0.0.1:9000", cfg.ListenAddr)
@@ -80,7 +81,7 @@ func TestParseFlags(t *testing.T) {
 	t.Run("parsing error", func(t *testing.T) {
 		t.Parallel()
 		args := []string{"--invalid"}
-		_, err := ParseFlags(args, "")
+		_, err := ParseFlags(args, "", os.Getenv)
 
 		assert.Error(t, err)
 		assert.EqualError(t, err, "unknown flag: --invalid")

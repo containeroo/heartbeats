@@ -29,19 +29,19 @@ A lightweight HTTP service for monitoring periodic “heartbeat” pings (“bum
 
 ### Flags
 
-| Flag                       | Shorthand | Default                 | Description                                                                 |
-| :------------------------- | :-------- | :---------------------- | :-------------------------------------------------------------------------- |
-| `--config`, `-c`           | `-c`      | `config.yaml`           | Path to configuration file                                                  |
-| `--listen-address`, `-a`   | `-a`      | `:8080`                 | Address to listen on                                                        |
-| `--site-root`, `-r`        | `-r`      | `http://localhost:8080` | Base URL for dashboard links                                                |
-| `--history-size`, `-s`     | `-s`      | `10000`                 | Maximum history buffer size                                                 |
-| `--skip-tls`               | —         | `false`                 | Skip TLS verification for all receivers (can be overridden per receiver)    |
-| `--debug`, `-d`            | `-d`      | `false`                 | Enable debug-level logging                                                  |
-| `--log-format`, `-l`       | `-l`      | `json`                  | Log format (`json` or `text`)                                               |
-| `--retry-count` `int`      | —         | `3`                     | How many times to retry a failed notification. Use -1 for infinite retries. |
-| `--retry-delay` `duration` | —         | `5s`                    | Delay between retries. Must be >= 1s.                                       |
-| `--help`, `-h`             | `-h`      | —                       | Show help & exit                                                            |
-| `--version`                | —         | —                       | Print version & exit                                                        |
+| Flag               | Shorthand | Default                 | Environment Variable        | Description                                                              |
+| :----------------- | :-------- | :---------------------- | :-------------------------- | :----------------------------------------------------------------------- |
+| `--config`         | `-c`      | `heartbeats.yml`        | `HEARTBEATS_CONFIG`         | Path to configuration file                                               |
+| `--listen-address` | `-a`      | `:8080`                 | `HEARTBEATS_LISTEN_ADDRESS` | Address to listen on (host:port)                                         |
+| `--site-root`      | `-r`      | `http://localhost:8080` | `HEARTBEATS_SITE_ROOT`      | Base URL for dashboard and link rendering                                |
+| `--history-size`   | `-s`      | `10000`                 | `HEARTBEATS_HISTORY_SIZE`   | Maximum number of historical heartbeat events to retain                  |
+| `--skip-tls`       | —         | `false`                 | `HEARTBEATS_SKIP_TLS`       | Skip TLS verification for all receivers (can be overridden per receiver) |
+| `--debug`          | `-d`      | `false`                 | `HEARTBEATS_DEBUG`          | Enable debug-level logging                                               |
+| `--log-format`     | `-l`      | `text`                  | `HEARTBEATS_LOG_FORMAT`     | Log format (`json` or `text`)                                            |
+| `--retry-count`    | —         | `3`                     | `HEARTBEATS_RETRY_COUNT`    | Number of times to retry a failed notification. Use `-1` for infinite.   |
+| `--retry-delay`    | —         | `2s`                    | `HEARTBEATS_RETRY_DELAY`    | Delay between retries. Must be ≥ 1s.                                     |
+| `--help`           | `-h`      | —                       | —                           | Show help and exit                                                       |
+| `--version`        | —         | —                       | —                           | Print version and exit                                                   |
 
 #### Proxy Environment Variables
 
