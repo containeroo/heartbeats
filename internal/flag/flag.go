@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/envflag"
 	"github.com/containeroo/heartbeats/internal/logging"
 
 	flag "github.com/spf13/pflag"
@@ -34,32 +35,56 @@ type Options struct {
 	RetryDelay  time.Duration     // Delay between retries
 }
 
-// ParseFlags parses command-line flags.
-func ParseFlags(args []string, version string) (Options, error) {
+// must panics on err and is used to keep config assembly clean.
+func must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// buildOptions resolves all values from flags, env, or defaults.
+func buildOptions(fs *flag.FlagSet) (opts Options, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("failed to parse flags: %v", r)
+			opts = Options{} // zero value
+		}
+	}()
+	return Options{
+		ConfigPath:  must(envflag.String(fs, "config", "HEARTBEATS_CONFIG")),
+		ListenAddr:  must(envflag.HostPort(fs, "listen-address", "HEARTBEATS_LISTEN_ADDRESS")),
+		SiteRoot:    must(envflag.URL(fs, "site-root", "HEARTBEATS_SITE_ROOT")),
+		HistorySize: must(envflag.Int(fs, "history-size", "HEARTBEATS_HISTORY_SIZE")),
+		Debug:       must(envflag.Bool(fs, "debug", "HEARTBEATS_DEBUG")),
+		SkipTLS:     must(envflag.Bool(fs, "skip-tls", "HEARTBEATS_SKIP_TLS")),
+		RetryCount:  must(envflag.Int(fs, "retry-count", "HEARTBEATS_RETRY_COUNT")),
+		RetryDelay:  must(envflag.Duration(fs, "retry-delay", "HEARTBEATS_RETRY_DELAY")),
+		LogFormat:   logging.LogFormat(must(envflag.String(fs, "log-format", "HEARTBEATS_LOG_FORMAT"))),
+	}, nil
+}
+
+// ParseFlags parses flags and environment variables.
+func ParseFlags(args []string, version string, getEnv func(string) string) (Options, error) {
 	fs := flag.NewFlagSet("Heartbeats", flag.ContinueOnError)
 	fs.SortFlags = false
 
-	// Server settings
-	configPath := fs.StringP("config", "c", "config.yaml", "Path to configuration file")
-	listenAddress := fs.StringP("listen-address", "a", ":8080", "Address to listen on")
-	siteRoot := fs.StringP("site-root", "r", "http://localhost:8080", "Site root URL")
-	historySize := fs.IntP("history-size", "s", 10000, "Size of the history")
-	skipTLS := fs.Bool("skip-tls", false, "Skip TLS verification for all receivers (can be overridden per receiver)")
+	// Register flags
+	fs.StringP("config", "c", "config.yaml", "Path to configuration file (env: HEARTBEATS_CONFIG)")
+	fs.StringP("listen-address", "a", ":8080", "Address to listen on (env: HEARTBEATS_LISTEN_ADDRESS)")
+	fs.StringP("site-root", "r", "http://localhost:8080", "Site root URL (env: HEARTBEATS_SITE_ROOT)")
+	fs.IntP("history-size", "s", 10000, "Size of the history (env: HEARTBEATS_HISTORY_SIZE)")
+	fs.Bool("skip-tls", false, "Skip TLS verification (env: HEARTBEATS_SKIP_TLS)")
+	fs.BoolP("debug", "d", false, "Enable debug logging (env: HEARTBEATS_DEBUG)")
+	fs.StringP("log-format", "l", "json", "Log format: json | text (env: HEARTBEATS_LOG_FORMAT)")
+	fs.Int("retry-count", 3, "Retries for failed notifications (-1 = infinite) (env: HEARTBEATS_RETRY_COUNT)")
+	fs.Duration("retry-delay", 2*time.Second, "Delay between retries (env: HEARTBEATS_RETRY_DELAY)")
 
-	// Application logging.
-	debug := fs.BoolP("debug", "d", false, "Enable debug logging (default: false)")
-	logFormat := fs.StringP("log-format", "l", "json", "Log format (json | text)")
-
-	// Retry settings
-	retryCount := fs.Int("retry-count", 3, "How many times to retry a failed notification. Use -1 for infinite retries.")
-	retryDelay := fs.Duration("retry-delay", 2*time.Second, "Delay between retries. Must be >= 1s.")
-
-	// Meta
+	// Meta flags
 	var showHelp, showVersion bool
 	fs.BoolVarP(&showHelp, "help", "h", false, "Show help and exit")
 	fs.BoolVar(&showVersion, "version", false, "Print version and exit")
 
-	// Custom usage message.
 	fs.Usage = func() {
 		fmt.Fprintf(fs.Output(), "Usage: %s [flags]\n\nFlags:\n", strings.ToLower(fs.Name())) // nolint:errcheck
 		fs.PrintDefaults()
@@ -68,32 +93,20 @@ func ParseFlags(args []string, version string) (Options, error) {
 	if err := fs.Parse(args); err != nil {
 		return Options{}, err
 	}
-
 	if showVersion {
 		return Options{}, &HelpRequested{Message: fmt.Sprintf("%s version %s\n", fs.Name(), version)}
 	}
 	if showHelp {
-		// Capture custom usage output into buffer
 		var buf bytes.Buffer
 		fs.SetOutput(&buf)
 		fs.Usage()
 		return Options{}, &HelpRequested{Message: buf.String()}
 	}
 
-	return Options{
-		ConfigPath:  *configPath,
-		ListenAddr:  *listenAddress,
-		SiteRoot:    *siteRoot,
-		HistorySize: *historySize,
-		Debug:       *debug,
-		LogFormat:   logging.LogFormat(*logFormat),
-		SkipTLS:     *skipTLS,
-		RetryCount:  *retryCount,
-		RetryDelay:  *retryDelay,
-	}, nil
+	return buildOptions(fs)
 }
 
-// Validate checks whether the Config is semantically valid.
+// Validate checks whether the Options are valid.
 func (c *Options) Validate() error {
 	if c.RetryCount == 0 || c.RetryCount < -1 {
 		return fmt.Errorf("retry count must be -1 (infinite) or >= 1, got %d", c.RetryCount)

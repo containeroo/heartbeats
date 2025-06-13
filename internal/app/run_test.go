@@ -32,7 +32,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--help"}, &out)
+		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--help"}, &out, os.Getenv)
 
 		assert.NoError(t, err)
 		assert.Contains(t, out.String(), "Usage:")
@@ -42,7 +42,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), webFS, "v1.2.3", "deadbeef", []string{"--version"}, &out)
+		err := app.Run(context.Background(), webFS, "v1.2.3", "deadbeef", []string{"--version"}, &out, os.Getenv)
 
 		assert.NoError(t, err)
 		assert.Equal(t, "Heartbeats version v1.2.3\n", out.String())
@@ -52,7 +52,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--log-format", "xml"}, &out)
+		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--log-format", "xml"}, &out, os.Getenv)
 
 		assert.EqualError(t, err, "invalid CLI flags: invalid log format: 'xml'")
 	})
@@ -61,7 +61,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--retry-delay", "foo"}, &out)
+		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--retry-delay", "foo"}, &out, os.Getenv)
 
 		assert.EqualError(t, err, "parsing error: invalid argument \"foo\" for \"--retry-delay\" flag: time: invalid duration \"foo\"")
 	})
@@ -70,7 +70,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--retry-count", "0"}, &out)
+		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--retry-count", "0"}, &out, os.Getenv)
 
 		assert.EqualError(t, err, "invalid CLI flags: retry count must be -1 (infinite) or >= 1, got 0")
 	})
@@ -79,7 +79,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--retry-delay", "200ms"}, &out)
+		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--retry-delay", "200ms"}, &out, os.Getenv)
 
 		assert.EqualError(t, err, "invalid CLI flags: retry delay must be at least 1s, got 200ms")
 	})
@@ -88,7 +88,7 @@ func TestRun(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--config", "nope.yaml"}, &out)
+		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--config", "nope.yaml"}, &out, os.Getenv)
 
 		assert.EqualError(t, err, "failed to load config: open nope.yaml: no such file or directory")
 	})
@@ -103,7 +103,7 @@ func TestRun(t *testing.T) {
 		defer cancel()
 
 		var out bytes.Buffer
-		err := app.Run(ctx, webFS, "dev", "abc", []string{"--config", tmpFile}, &out)
+		err := app.Run(ctx, webFS, "dev", "abc", []string{"--config", tmpFile}, &out, os.Getenv)
 
 		assert.EqualError(t, err, "invalid YAML config: at least one heartbeat must be defined")
 	})
@@ -141,7 +141,7 @@ heartbeats:
 		}
 
 		go func() {
-			_ = app.Run(ctx, webFS, "dev", "abc", args, &buf)
+			_ = app.Run(ctx, webFS, "dev", "abc", args, &buf, os.Getenv)
 		}()
 
 		time.Sleep(200 * time.Millisecond)
