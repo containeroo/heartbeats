@@ -115,8 +115,8 @@ func TestDispatcher_LogsErrorFromNotifier(t *testing.T) {
 		},
 	})
 
-	var logBuffer strings.Builder
-	logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+	var logBuf strings.Builder
+	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 
 	d := &Dispatcher{
 		store:   store,
@@ -130,5 +130,5 @@ func TestDispatcher_LogsErrorFromNotifier(t *testing.T) {
 	d.Dispatch(context.Background(), data)
 	time.Sleep(10 * time.Millisecond) // allow goroutine to finish
 
-	assert.Contains(t, logBuffer.String(), "notification error")
+	assert.Contains(t, logBuf.String(), "notification error")
 }

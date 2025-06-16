@@ -18,8 +18,8 @@ func TestRun(t *testing.T) {
 	t.Run("Start and stop server lifecycle", func(t *testing.T) {
 		//		t.Parallel()
 
-		var logBuffer strings.Builder
-		logger := slog.New(slog.NewTextHandler(&logBuffer, nil))
+		var logBuf strings.Builder
+		logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
@@ -38,7 +38,7 @@ func TestRun(t *testing.T) {
 		wg.Wait()
 
 		// Validate log messages
-		logOutput := logBuffer.String()
+		logOutput := logBuf.String()
 		assert.Contains(t, logOutput, "starting server", "Log should contain 'starting server'")
 		assert.Contains(t, logOutput, "shutting down server", "Log should contain 'shutting down server'")
 	})
