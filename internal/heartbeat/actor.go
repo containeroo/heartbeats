@@ -12,6 +12,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+// transitionDelay is the fixed buffer between a timer expiry and the actual state transition.
+// It absorbs jitter by giving late-arriving heartbeats a chance to be processed first.
+const transitionDelay time.Duration = 1 * time.Second
+
 // Actor handles a single heartbeat’s lifecycle.
 type Actor struct {
 	ctx         context.Context       // context for cancellation and timeouts
@@ -160,7 +164,7 @@ func (a *Actor) onFail() {
 
 // onCheckTimeout transitions from Active → Grace with a short delay to absorb jitter.
 func (a *Actor) onCheckTimeout() {
-	a.delayed(time.Second, func() {
+	a.delayed(transitionDelay, func() {
 		if a.State != common.HeartbeatStateActive {
 			return
 		}
@@ -176,7 +180,7 @@ func (a *Actor) onCheckTimeout() {
 
 // onGraceTimeout transitions from Grace → Missing with a short delay to absorb jitter.
 func (a *Actor) onGraceTimeout() {
-	a.delayed(time.Second, func() {
+	a.delayed(transitionDelay, func() {
 		if a.State != common.HeartbeatStateGrace {
 			return
 		}
