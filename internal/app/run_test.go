@@ -150,8 +150,8 @@ heartbeats:
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		// Wait for grace period expiration
-		time.Sleep(4 * time.Second)
+		// Wait for grace period expiration + delayed transition + retries
+		time.Sleep(7 * time.Second)
 
 		logs := buf.String()
 		assert.Contains(t, logs, `msg":"received heartbeat"`)

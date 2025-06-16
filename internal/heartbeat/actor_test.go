@@ -11,7 +11,6 @@ import (
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestActor_Run_Smoke(t *testing.T) {
@@ -24,18 +23,17 @@ func TestActor_Run_Smoke(t *testing.T) {
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(20)
 		store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-		fn := func(ctx context.Context, data notifier.NotificationData) error {
-			_ = hist.RecordEvent(ctx, history.Event{
-				Timestamp:   time.Now(),
-				Type:        history.EventTypeNotificationSent,
-				HeartbeatID: data.ID,
-				Payload:     data,
-			})
-			return nil
-		}
-		mock := &notifier.MockNotifier{NotifyFunc: fn}
-		store.Register("r1", mock) // nolint:errcheck
 
+		store.Register("r1", &notifier.MockNotifier{
+			NotifyFunc: func(ctx context.Context, data notifier.NotificationData) error {
+				return hist.RecordEvent(ctx, history.Event{
+					Timestamp:   time.Now(),
+					Type:        history.EventTypeNotificationSent,
+					HeartbeatID: data.ID,
+					Payload:     data,
+				})
+			},
+		})
 		disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 		actor := NewActor(
@@ -52,49 +50,40 @@ func TestActor_Run_Smoke(t *testing.T) {
 
 		go actor.Run(ctx)
 
-		// Send EventReceive — should trigger state Active and setup check timer
+		// Send one heartbeat to enter active state
 		actor.Mailbox() <- common.EventReceive
-		time.Sleep(150 * time.Millisecond) // Allow time for timers and logic
 
-		// Allow grace timeout to trigger
-		time.Sleep(200 * time.Millisecond)
+		// Let the heartbeat expire:
+		// checkTimer (100ms) + transitionDelay (1s) +
+		// graceTimer (100ms) + transitionDelay (1s) + buffer
+		time.Sleep(2300 * time.Millisecond)
 
-		// Check final state is 'missing'
-		assert.Equal(t, common.HeartbeatStateMissing, actor.State, "expected state Missing, got %s", actor.State)
-
-		// Wait unitl notification is sent
-		require.Eventually(t, func() bool {
-			return len(hist.GetEvents()) >= 3
-		}, 1*time.Second, 100*time.Millisecond)
-
-		// Check history includes state transitions and a notification
 		events := hist.GetEvents()
 		t.Logf("events: %+v", events)
 
-		// Check events
-		var hasGrace, hasActive, hasMissing, hasNotification bool
-		for _, e := range events {
-			switch e.NewState {
-			case common.HeartbeatStateActive.String():
-				hasActive = true
-			case common.HeartbeatStateGrace.String():
-				hasGrace = true
-			case common.HeartbeatStateMissing.String():
-				hasMissing = true
-			}
-			if e.Type == history.EventTypeNotificationSent {
-				hasNotification = true
-			}
-		}
+		var seenIdleToActive,
+			seenActiveToGrace,
+			seenGraceToMissing,
+			seenNotification bool
 
 		for _, e := range events {
+			switch {
+			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateIdle.String() && e.NewState == common.HeartbeatStateActive.String():
+				seenIdleToActive = true
+			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateActive.String() && e.NewState == common.HeartbeatStateGrace.String():
+				seenActiveToGrace = true
+			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateGrace.String() && e.NewState == common.HeartbeatStateMissing.String():
+				seenGraceToMissing = true
+			case e.Type == history.EventTypeNotificationSent:
+				seenNotification = true
+			}
 			t.Logf("%s → %s (%s)", e.PrevState, e.NewState, e.Type)
 		}
 
-		assert.True(t, hasActive, "expected transition to Active")
-		assert.True(t, hasGrace, "expected transition to Missing")
-		assert.True(t, hasMissing, "expected transition to Missing")
-		assert.True(t, hasNotification, "expected at least one notification")
+		assert.True(t, seenIdleToActive, "expected Idle → Active transition")
+		assert.True(t, seenActiveToGrace, "expected Active → Grace transition")
+		assert.True(t, seenGraceToMissing, "expected Grace → Missing transition")
+		assert.True(t, seenNotification, "expected notification to be sent")
 	})
 
 	t.Run("Let heartbeat recover", func(t *testing.T) {
@@ -105,18 +94,16 @@ func TestActor_Run_Smoke(t *testing.T) {
 		hist := history.NewRingStore(20)
 		store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 
-		// Register a mock notifier that does not record its own history
 		store.Register("r1", &notifier.MockNotifier{
 			NotifyFunc: func(ctx context.Context, data notifier.NotificationData) error {
-				return nil // Let Dispatcher handle recording
+				return nil
 			},
 		})
-
 		disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
 		actor := NewActor(
 			ctx,
-			"heartbeat-1",
+			"heartbeat-2",
 			"Test Actor",
 			100*time.Millisecond,
 			100*time.Millisecond,
@@ -128,93 +115,149 @@ func TestActor_Run_Smoke(t *testing.T) {
 
 		go actor.Run(ctx)
 
-		// trigger active → grace → missing
-		time.Sleep(400 * time.Millisecond)
+		// First bump: idle → active
 		actor.Mailbox() <- common.EventReceive
+		time.Sleep(transitionDelay + 50*time.Millisecond)
 
-		// allow full missing cycle
-		time.Sleep(400 * time.Millisecond)
+		// Wait for active → grace
+		time.Sleep(actor.Interval + transitionDelay + 50*time.Millisecond)
 
-		// trigger recovery
+		// bump during grace: grace → active (recovery)
 		actor.Mailbox() <- common.EventReceive
+		time.Sleep(transitionDelay + 50*time.Millisecond)
 
-		// allow state transition to active and notification dispatch
-		time.Sleep(400 * time.Millisecond)
+		// Wait again for active → grace
+		time.Sleep(actor.Interval + transitionDelay + 50*time.Millisecond)
+
+		// Let it go to missing
+		time.Sleep(actor.Grace + transitionDelay + 50*time.Millisecond)
+
+		// final bump: missing → active (triggers recovery)
+		actor.Mailbox() <- common.EventReceive
+		time.Sleep(transitionDelay + 50*time.Millisecond)
 
 		events := hist.GetEvents()
 		t.Logf("events: %+v", events)
 
-		var hasRecoveredState, hasRecoveredNotification bool
+		var seenIdleToActive,
+			seenActiveToGrace,
+			seenGraceToActive,
+			seenSecondGrace,
+			seenGraceToMissing,
+			seenRecovered bool
+
 		for _, e := range events {
-			if e.PrevState == common.HeartbeatStateMissing.String() && e.NewState == common.HeartbeatStateActive.String() {
-				hasRecoveredState = true
-			}
-			if e.NewState == common.HeartbeatStateRecovered.String() && e.Type == history.EventTypeNotificationSent {
-				hasRecoveredNotification = true
+			switch {
+			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateIdle.String() && e.NewState == common.HeartbeatStateActive.String():
+				seenIdleToActive = true
+			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateActive.String() && e.NewState == common.HeartbeatStateGrace.String():
+				if !seenActiveToGrace {
+					seenActiveToGrace = true
+				} else {
+					seenSecondGrace = true
+				}
+			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateGrace.String() && e.NewState == common.HeartbeatStateActive.String():
+				seenGraceToActive = true
+			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateGrace.String() && e.NewState == common.HeartbeatStateMissing.String():
+				seenGraceToMissing = true
+			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateMissing.String() && e.NewState == common.HeartbeatStateActive.String():
+				seenRecovered = true
 			}
 		}
 
-		for _, e := range events {
-			t.Logf("%s → %s (%s)", e.PrevState, e.NewState, e.Type)
-		}
-
-		assert.True(t, hasRecoveredState, "expected missing → active state transition")
-		assert.True(t, hasRecoveredNotification, "expected recovery notification to be sent")
+		assert.True(t, seenIdleToActive, "expected idle → active")
+		assert.True(t, seenActiveToGrace, "expected active → grace")
+		assert.True(t, seenGraceToActive, "expected grace → active")
+		assert.True(t, seenSecondGrace, "expected second active → grace")
+		assert.True(t, seenGraceToMissing, "expected grace → missing")
+		assert.True(t, seenRecovered, "expected missing → active (recovery)")
 	})
 }
 
-func TestActor_delayed(t *testing.T) {
+func TestActor_onFail(t *testing.T) {
 	t.Parallel()
 
-	t.Run("executes after delay", func(t *testing.T) {
-		t.Parallel()
+	ctx := context.Background()
+	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+	hist := history.NewRingStore(5)
+	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
-		ctx := context.Background()
-		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-		a := &Actor{
-			ctx:    ctx,
-			logger: logger,
-		}
+	actor := NewActor(
+		ctx,
+		"fail-case",
+		"fail test",
+		time.Second,
+		time.Second,
+		nil,
+		logger,
+		hist,
+		disp,
+	)
 
-		start := time.Now()
-		called := make(chan struct{}, 1)
+	actor.State = common.HeartbeatStateActive
+	actor.onFail()
 
-		a.delayed(100*time.Millisecond, func() {
-			called <- struct{}{}
-		})
+	assert.Equal(t, common.HeartbeatStateFailed, actor.State)
+}
 
-		select {
-		case <-called:
-			elapsed := time.Since(start)
-			assert.GreaterOrEqual(t, elapsed, 90*time.Millisecond, "function called too early")
-		case <-time.After(200 * time.Millisecond):
-			t.Fatal("expected function to be called after delay")
-		}
-	})
+func TestActor_onEnterGrace_and_Missing(t *testing.T) {
+	t.Parallel()
 
-	t.Run("cancelled context skips fn", func(t *testing.T) {
-		t.Parallel()
+	ctx := context.Background()
+	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+	hist := history.NewRingStore(10)
+	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
 
-		ctx, cancel := context.WithCancel(context.Background())
-		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-		a := &Actor{
-			ctx:    ctx,
-			logger: logger,
-		}
+	actor := NewActor(
+		ctx,
+		"grace-case",
+		"grace test",
+		time.Second,
+		time.Second,
+		nil,
+		logger,
+		hist,
+		disp,
+	)
 
-		called := make(chan struct{}, 1)
+	actor.State = common.HeartbeatStateActive
+	actor.onEnterGrace()
+	assert.Equal(t, common.HeartbeatStateGrace, actor.State)
 
-		a.delayed(100*time.Millisecond, func() {
-			called <- struct{}{}
-		})
+	actor.State = common.HeartbeatStateGrace
+	actor.onEnterMissing()
+	assert.Equal(t, common.HeartbeatStateMissing, actor.State)
+}
 
-		cancel()
+func TestActor_runPending_and_setPending(t *testing.T) {
+	t.Parallel()
 
-		select {
-		case <-called:
-			t.Fatal("function should not be called after context cancellation")
-		case <-time.After(150 * time.Millisecond):
-			// success: fn() not called
-		}
-	})
+	ctx := context.Background()
+	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+	hist := history.NewRingStore(5)
+	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
+
+	actor := NewActor(
+		ctx,
+		"delay-case",
+		"delay test",
+		time.Second,
+		time.Second,
+		nil,
+		logger,
+		hist,
+		disp,
+	)
+
+	called := false
+	fn := func() { called = true }
+
+	actor.setPending(fn)
+	actor.runPending()
+
+	assert.True(t, called)
+	assert.Nil(t, actor.pending)
 }

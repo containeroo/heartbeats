@@ -32,6 +32,13 @@ func stopTimer(t **time.Timer) {
 	*t = nil
 }
 
+// stopAllTimers stops any running timers.
+func (a *Actor) stopAllTimers() {
+	stopTimer(&a.checkTimer)
+	stopTimer(&a.graceTimer)
+	stopTimer(&a.delayTimer)
+}
+
 // recordStateChange logs and records a state change if it actually changed.
 func (a *Actor) recordStateChange(prev, next common.HeartbeatState) {
 	if prev == next {
