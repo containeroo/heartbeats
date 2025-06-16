@@ -1,6 +1,11 @@
 package heartbeat
 
-import "time"
+import (
+	"time"
+
+	"github.com/containeroo/heartbeats/internal/common"
+	"github.com/containeroo/heartbeats/internal/history"
+)
 
 // stopTimer stops a running timer and ensures its channel is drained.
 // If the timer has already fired, Stop() will return false, indicating that
@@ -25,4 +30,30 @@ func stopTimer(t **time.Timer) {
 		}
 	}
 	*t = nil
+}
+
+// recordStateChange logs and records a state change if it actually changed.
+func (a *Actor) recordStateChange(prev, next common.HeartbeatState) {
+	if prev == next {
+		// avoid noisy logs when state hasn’t changed (e.g. repeated heartbeats in active state)
+		return
+	}
+
+	now := time.Now()
+	from := prev.String()
+	to := next.String()
+
+	a.logger.Info("state change",
+		"heartbeat", a.ID,
+		"from", from,
+		"to", to,
+	)
+
+	_ = a.hist.RecordEvent(a.ctx, history.Event{
+		Timestamp:   now,
+		Type:        history.EventTypeStateChanged,
+		HeartbeatID: a.ID,
+		PrevState:   from,
+		NewState:    to,
+	})
 }

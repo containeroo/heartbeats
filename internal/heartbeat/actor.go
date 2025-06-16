@@ -62,7 +62,7 @@ func (a *Actor) Mailbox() chan<- common.EventType { return a.mailbox }
 // Run starts the actor’s event loop, listening for pings, failures, and timer ticks.
 func (a *Actor) Run(ctx context.Context) {
 	for {
-		// prepare channels from timers if set
+		// prepare active channels
 		var checkCh, graceCh <-chan time.Time
 		if a.checkTimer != nil {
 			checkCh = a.checkTimer.C
@@ -77,7 +77,7 @@ func (a *Actor) Run(ctx context.Context) {
 			return
 
 		case ev := <-a.mailbox:
-			// incoming EventReceive or EventFail
+			// handle heartbeat or manual failure
 			switch ev {
 			case common.EventReceive:
 				a.onReceive()
@@ -86,13 +86,13 @@ func (a *Actor) Run(ctx context.Context) {
 			}
 
 		case <-checkCh:
-			// check timeout expired: start grace period
+			// missed heartbeat interval: enter grace
 			if a.State == common.HeartbeatStateActive {
 				a.onCheckTimeout()
 			}
 
 		case <-graceCh:
-			// grace timeout expired: trigger missing alert
+			// grace expired: declare missing
 			if a.State == common.HeartbeatStateGrace {
 				a.onGraceTimeout()
 			}
@@ -101,145 +101,85 @@ func (a *Actor) Run(ctx context.Context) {
 }
 
 // onReceive handles a heartbeat ping.
-// Stops any existing timers, transitions to Active (or Recovered), records history, and starts next check.
 func (a *Actor) onReceive() {
 	now := time.Now()
 	prev := a.State
 
-	// stop prior timers to avoid leaks or stale ticks
+	// stop any active timers
 	stopTimer(&a.checkTimer)
 	stopTimer(&a.graceTimer)
 
-	// if recovering from missing, send a recovered notification
+	// if recovering from missing, send recovery notice
 	if prev == common.HeartbeatStateMissing {
-		data := notifier.NotificationData{
+		a.dispatcher.Dispatch(a.ctx, notifier.NotificationData{
 			ID:          a.ID,
 			Description: a.ID,
 			LastBump:    now,
 			Status:      common.HeartbeatStateRecovered.String(),
 			Receivers:   a.Receivers,
-		}
-		a.dispatcher.Dispatch(a.ctx, data)
+		})
 	}
 
+	// move to active and restart interval timer
 	newState := common.HeartbeatStateActive
-	// log and record the state change
-	a.logger.Info("state change",
-		"heartbeat", a.ID,
-		"from", prev.String(),
-		"to", newState.String(),
-	)
-	_ = a.hist.RecordEvent(a.ctx, history.Event{
-		Timestamp:   now,
-		Type:        history.EventTypeStateChanged,
-		HeartbeatID: a.ID,
-		PrevState:   prev.String(),
-		NewState:    newState.String(),
-	})
-
-	// update internal state and last bump time, then start the check timer
 	a.State = newState
+	a.recordStateChange(prev, newState)
 	a.LastBump = now
 	a.checkTimer = time.NewTimer(a.Interval)
 
-	// update prometheus metric
 	metrics.TotalHeartbeats.With(prometheus.Labels{"heartbeat": a.ID}).Inc()
 	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.UP)
 }
 
 // onFail handles a manual failure event.
-// Cancels timers, sends an immediate missing alert, and records the state change.
 func (a *Actor) onFail() {
 	now := time.Now()
 	prev := a.State
 
+	// stop any active timers
 	stopTimer(&a.checkTimer)
 	stopTimer(&a.graceTimer)
 
-	// send manual failure notification
-	data := notifier.NotificationData{
+	// send immediate failure notification
+	a.dispatcher.Dispatch(a.ctx, notifier.NotificationData{
 		ID:          a.ID,
 		Description: a.ID,
 		LastBump:    now,
 		Status:      common.HeartbeatStateMissing.String(),
 		Receivers:   a.Receivers,
-	}
-	a.dispatcher.Dispatch(a.ctx, data)
-
-	newState := common.HeartbeatStateFailed
-	a.logger.Info("state change",
-		"heartbeat", a.ID,
-		"from", prev.String(),
-		"to", newState.String(),
-	)
-	_ = a.hist.RecordEvent(a.ctx, history.Event{
-		Timestamp:   now,
-		Type:        history.EventTypeStateChanged,
-		HeartbeatID: a.ID,
-		PrevState:   prev.String(),
-		NewState:    newState.String(),
 	})
 
-	// update to Failed state (no new timer)
+	// mark as failed and update status
+	newState := common.HeartbeatStateFailed
 	a.State = newState
+	a.recordStateChange(prev, newState)
 
-	// update prometheus metric
 	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
 }
 
-// onCheckTimeout transitions from Active → Grace and records the change.
+// onCheckTimeout transitions from Active → Grace.
 func (a *Actor) onCheckTimeout() {
-	now := time.Now()
 	prev := a.State
 	newState := common.HeartbeatStateGrace
-
-	a.logger.Info("state change",
-		"heartbeat", a.ID,
-		"from", prev.String(),
-		"to", newState.String(),
-	)
-	_ = a.hist.RecordEvent(a.ctx, history.Event{
-		Timestamp:   now,
-		Type:        history.EventTypeStateChanged,
-		HeartbeatID: a.ID,
-		PrevState:   prev.String(),
-		NewState:    newState.String(),
-	})
-
 	a.State = newState
-	// start the grace timer
+	a.recordStateChange(prev, newState)
+
 	a.graceTimer = time.NewTimer(a.Grace)
 }
 
-// onGraceTimeout transitions from Grace → Missing, sends an overdue alert, and records both.
+// onGraceTimeout transitions from Grace → Missing.
 func (a *Actor) onGraceTimeout() {
-	now := time.Now()
 	prev := a.State
-
-	// record the grace-to-missing state change
 	newState := common.HeartbeatStateMissing
-	a.logger.Info("state change",
-		"heartbeat", a.ID,
-		"from", prev.String(),
-		"to", newState.String(),
-	)
-	_ = a.hist.RecordEvent(a.ctx, history.Event{
-		Timestamp:   now,
-		Type:        history.EventTypeStateChanged,
-		HeartbeatID: a.ID,
-		PrevState:   prev.String(),
-		NewState:    newState.String(),
-	})
 	a.State = newState
+	a.recordStateChange(prev, newState)
 
-	// send overdue notification
-	data := notifier.NotificationData{
+	a.dispatcher.Dispatch(a.ctx, notifier.NotificationData{
 		ID:          a.ID,
 		Description: a.ID,
 		LastBump:    a.LastBump,
 		Status:      common.HeartbeatStateMissing.String(),
 		Receivers:   a.Receivers,
-	}
-	a.dispatcher.Dispatch(a.ctx, data)
+	})
 	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
 }
