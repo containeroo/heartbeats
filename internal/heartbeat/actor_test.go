@@ -162,3 +162,59 @@ func TestActor_Run_Smoke(t *testing.T) {
 		assert.True(t, hasRecoveredNotification, "expected recovery notification to be sent")
 	})
 }
+
+func TestActor_delayed(t *testing.T) {
+	t.Parallel()
+
+	t.Run("executes after delay", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := context.Background()
+		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+		a := &Actor{
+			ctx:    ctx,
+			logger: logger,
+		}
+
+		start := time.Now()
+		called := make(chan struct{}, 1)
+
+		a.delayed(100*time.Millisecond, func() {
+			called <- struct{}{}
+		})
+
+		select {
+		case <-called:
+			elapsed := time.Since(start)
+			assert.GreaterOrEqual(t, elapsed, 90*time.Millisecond, "function called too early")
+		case <-time.After(200 * time.Millisecond):
+			t.Fatal("expected function to be called after delay")
+		}
+	})
+
+	t.Run("cancelled context skips fn", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+		a := &Actor{
+			ctx:    ctx,
+			logger: logger,
+		}
+
+		called := make(chan struct{}, 1)
+
+		a.delayed(100*time.Millisecond, func() {
+			called <- struct{}{}
+		})
+
+		cancel()
+
+		select {
+		case <-called:
+			t.Fatal("function should not be called after context cancellation")
+		case <-time.After(150 * time.Millisecond):
+			// success: fn() not called
+		}
+	})
+}

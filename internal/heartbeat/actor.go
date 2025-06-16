@@ -124,6 +124,7 @@ func (a *Actor) onReceive() {
 	newState := common.HeartbeatStateActive
 	a.State = newState
 	a.recordStateChange(prev, newState)
+
 	a.LastBump = now
 	a.checkTimer = time.NewTimer(a.Interval)
 
@@ -157,29 +158,57 @@ func (a *Actor) onFail() {
 	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
 }
 
-// onCheckTimeout transitions from Active → Grace.
+// onCheckTimeout transitions from Active → Grace with a short delay to absorb jitter.
 func (a *Actor) onCheckTimeout() {
-	prev := a.State
-	newState := common.HeartbeatStateGrace
-	a.State = newState
-	a.recordStateChange(prev, newState)
+	a.delayed(time.Second, func() {
+		if a.State != common.HeartbeatStateActive {
+			return
+		}
 
-	a.graceTimer = time.NewTimer(a.Grace)
+		prev := a.State
+		newState := common.HeartbeatStateGrace
+		a.State = newState
+		a.recordStateChange(prev, newState)
+
+		a.graceTimer = time.NewTimer(a.Grace)
+	})
 }
 
-// onGraceTimeout transitions from Grace → Missing.
+// onGraceTimeout transitions from Grace → Missing with a short delay to absorb jitter.
 func (a *Actor) onGraceTimeout() {
-	prev := a.State
-	newState := common.HeartbeatStateMissing
-	a.State = newState
-	a.recordStateChange(prev, newState)
+	a.delayed(time.Second, func() {
+		if a.State != common.HeartbeatStateGrace {
+			return
+		}
 
-	a.dispatcher.Dispatch(a.ctx, notifier.NotificationData{
-		ID:          a.ID,
-		Description: a.ID,
-		LastBump:    a.LastBump,
-		Status:      common.HeartbeatStateMissing.String(),
-		Receivers:   a.Receivers,
+		prev := a.State
+		newState := common.HeartbeatStateMissing
+		a.State = newState
+		a.recordStateChange(prev, newState)
+
+		a.dispatcher.Dispatch(a.ctx, notifier.NotificationData{
+			ID:          a.ID,
+			Description: a.ID,
+			LastBump:    a.LastBump,
+			Status:      common.HeartbeatStateMissing.String(),
+			Receivers:   a.Receivers,
+		})
+		metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
 	})
-	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
+}
+
+// delayed executes fn after the given delay in a separate goroutine.
+// This is used to defer state transitions (e.g. to grace or missing)
+// without blocking the actor's main event loop. It avoids race conditions
+// caused by heartbeat pings arriving shortly after a timeout fires,
+// while still allowing the actor to continue processing other events.
+// The execution is skipped if the actor's context is cancelled before the delay elapses.
+func (a *Actor) delayed(delay time.Duration, fn func()) {
+	go func() {
+		select {
+		case <-time.After(delay):
+			fn()
+		case <-a.ctx.Done():
+		}
+	}()
 }
