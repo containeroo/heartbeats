@@ -178,18 +178,21 @@ func renderHistory(
 ) error {
 	raw := hist.GetEvents()
 
-	// build our slice of HistoryView
 	views := make([]HistoryView, 0, len(raw))
 	for _, e := range raw {
-
-		// pick Details
 		var det string
 		switch {
 		case e.Payload != nil:
-			det = "Notification Sent"
+			if p, ok := e.Payload.(notifier.NotificationInfo); ok {
+				if p.Error != nil {
+					det = fmt.Sprintf("Notification to %s failed: %s", p.Receiver, p.Error)
+				} else {
+					det = fmt.Sprintf("Notification sent to %s", p.Receiver)
+				}
+			}
 		case e.PrevState != "":
 			det = e.PrevState + " → " + e.NewState
-		case e.Type == history.EventTypeHeartbeatReceived, e.Type == history.EventTypeHeartbeatFailed:
+		case e.Type == history.EventTypeHeartbeatReceived || e.Type == history.EventTypeHeartbeatFailed:
 			det = fmt.Sprintf("%s from %s with %s", e.Method, e.Source, e.UserAgent)
 		}
 
@@ -201,13 +204,9 @@ func renderHistory(
 		})
 	}
 
-	// sort oldest first
 	sort.Slice(views, func(i, j int) bool {
 		return views[i].Timestamp.Before(views[j].Timestamp)
 	})
 
-	// execute template
-	data := struct{ Events []HistoryView }{Events: views}
-
-	return tmpl.ExecuteTemplate(w, "history", data)
+	return tmpl.ExecuteTemplate(w, "history", struct{ Events []HistoryView }{Events: views})
 }

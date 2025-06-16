@@ -25,6 +25,12 @@ type NotificationData struct {
 	Message     string    `json:"message"`     // rendered notification body
 }
 
+// NotificationInfo contains the outcome of a notification attempt.
+type NotificationInfo struct {
+	Receiver string // target receiver ID
+	Error    error  // nil if successful, otherwise contains the send error
+}
+
 // Notifier defines methods for sending notifications.
 type Notifier interface {
 	Notify(ctx context.Context, data NotificationData) error // Notify sends a notification.
