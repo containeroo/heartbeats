@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"html/template"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -10,6 +9,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
@@ -185,9 +185,9 @@ func renderHistory(
 		case e.Payload != nil:
 			if p, ok := e.Payload.(notifier.NotificationInfo); ok {
 				if p.Error != nil {
-					det = fmt.Sprintf("Notification to %s failed: %s", p.Receiver, p.Error)
+					det = fmt.Sprintf("Notification to %q failed: %s", p.Receiver, p.Error)
 				} else {
-					det = fmt.Sprintf("Notification sent to %s", p.Receiver)
+					det = fmt.Sprintf("Notification sent to %q", p.Receiver)
 				}
 			}
 		case e.PrevState != "":

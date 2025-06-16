@@ -3,13 +3,13 @@ package handlers
 import (
 	"bytes"
 	"context"
-	"html/template"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"testing/fstest"
+	"text/template"
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
@@ -186,11 +186,9 @@ func TestRenderHistory(t *testing.T) {
 		Method:      "GET",
 		Source:      "127.0.0.1",
 		UserAgent:   "Go-http-client",
-		Payload: &notifier.NotificationData{
-			ID:          "r1",
-			Name:        "r1",
-			Description: "desc-1",
-			LastBump:    time.Now(),
+		Payload: notifier.NotificationInfo{
+			Receiver: "r1",
+			Error:    nil, // or errors.New(...) to test failure
 		},
 	})
 
@@ -208,6 +206,7 @@ func TestRenderHistory(t *testing.T) {
 	var buf bytes.Buffer
 	err := renderHistory(&buf, tmpl, hist)
 
+	t.Log(buf.String())
 	assert.NoError(t, err)
-	assert.Equal(t, "HeartbeatReceived:missing → received;HeartbeatReceived:Notification Sent;", buf.String())
+	assert.Equal(t, "HeartbeatReceived:missing → received;HeartbeatReceived:Notification sent to \"r1\";", buf.String())
 }
