@@ -106,6 +106,7 @@ receivers:
 ### Heartbeats
 
 A **heartbeat** waits for periodic pings (“bumps”). If no bump arrives within `interval + grace`, notifications are sent.
+
 To reduce noise from race conditions (e.g. pings arriving milliseconds after grace timeout), Heartbeats adds a short internal delay before transitioning to `grace` or `missing`. This ensures smoother handling of near-expiry bumps without affecting responsiveness.
 
 | Key           | Type       | Description                                                                     |
