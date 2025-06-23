@@ -68,7 +68,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		flags.RetryDelay,
 		bufferSize,
 	)
-	go dispatcher.Run(ctx) // Run dispatcher in background
+	go dispatcher.Run(ctx)
 
 	// Create Heartbeat Manager
 	mgr := heartbeat.NewManager(
