@@ -10,29 +10,56 @@ import (
 	"github.com/containeroo/heartbeats/internal/history"
 )
 
-// Dispatcher sends alerts to all Notifiers in the ReceiverStore.
+// Dispatcher handles queued notifications via mailbox.
 type Dispatcher struct {
-	store   *ReceiverStore // maps receiver IDs → []Notifier
-	history history.Store  // stores notifications
-	logger  *slog.Logger   // logs any notify errors
-	retries int            // number of retries for notifications
-	delay   time.Duration  // delay between retries
+	store   *ReceiverStore        // maps receiver IDs → []Notifier
+	history history.Store         // stores notifications
+	logger  *slog.Logger          // logs any notify errors
+	retries int                   // number of retries for notifications
+	delay   time.Duration         // delay between retries
+	mailbox chan NotificationData // channel for receiving notifications
 }
 
 // NewDispatcher returns a Dispatcher backed by the given store.
-func NewDispatcher(store *ReceiverStore, logger *slog.Logger, hist history.Store, retries int, delay time.Duration) *Dispatcher {
+func NewDispatcher(
+	store *ReceiverStore,
+	logger *slog.Logger,
+	hist history.Store,
+	retries int,
+	delay time.Duration,
+	bufferSize int,
+) *Dispatcher {
 	return &Dispatcher{
 		store:   store,
 		logger:  logger,
 		history: hist,
 		retries: retries,
 		delay:   delay,
+		mailbox: make(chan NotificationData, bufferSize),
 	}
 }
 
 // Dispatch looks up each receiver’s Notifiers and fires them in parallel,
 // recording the outcome in d.states.
-func (d *Dispatcher) Dispatch(ctx context.Context, data NotificationData) {
+// Run processes NotificationData from the mailbox.
+func (d *Dispatcher) Run(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case data := <-d.mailbox:
+			d.dispatch(ctx, data)
+		}
+	}
+}
+
+// Mailbox returns the channel to send NotificationData.
+func (d *Dispatcher) Mailbox() chan<- NotificationData {
+	return d.mailbox
+}
+
+// dispatch looks up receivers and sends notifications in parallel.
+func (d *Dispatcher) dispatch(ctx context.Context, data NotificationData) {
 	for _, rid := range data.Receivers {
 		notifiers := d.store.getNotifiers(rid)
 		if len(notifiers) == 0 {
@@ -49,17 +76,17 @@ func (d *Dispatcher) Dispatch(ctx context.Context, data NotificationData) {
 	}
 }
 
-// List returns all configured notifier.
+// List returns all configured notifiers.
 func (d *Dispatcher) List() map[string][]Notifier {
 	return d.store.notifiers
 }
 
-// Get returns one notifier’s info by ID.
+// Get returns notifiers for a receiver.
 func (d *Dispatcher) Get(id string) []Notifier {
 	return d.store.notifiers[id]
 }
 
-// sendWithRetry retries a notification and records its outcome in the event history.
+// sendWithRetry retries a notification and records its outcome.
 func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Notifier, data NotificationData) {
 	info := NotificationInfo{Receiver: receiverID}
 	eventType := history.EventTypeNotificationSent
@@ -80,7 +107,7 @@ func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Not
 	})
 }
 
-// retryNotify tries sending a notification up to `retries` times with delay between attempts.
+// retryNotify retries sending notification.
 func retryNotify(
 	ctx context.Context,
 	notifier Notifier,

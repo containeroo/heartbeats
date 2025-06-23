@@ -17,22 +17,22 @@ const transitionDelay time.Duration = 1 * time.Second
 
 // Actor handles a single heartbeat’s lifecycle.
 type Actor struct {
-	ctx         context.Context       // context for cancellation and timeouts
-	ID          string                // unique heartbeat identifier
-	Interval    time.Duration         // expected interval between pings
-	Description string                // human‐friendly description of this heartbeat
-	Grace       time.Duration         // grace period before triggering an alert
-	Receivers   []string              // list of receiver IDs to notify upon alerts
-	mailbox     chan common.EventType // incoming event channel for this actor
-	logger      *slog.Logger          // structured logger scoped to this actor
-	hist        history.Store         // history store for recording events
-	dispatcher  *notifier.Dispatcher  // dispatches notifications to receivers
-	LastBump    time.Time             // timestamp of the last received heartbeat
-	checkTimer  *time.Timer           // timer waiting for the next heartbeat
-	graceTimer  *time.Timer           // timer for the grace period countdown
-	delayTimer  *time.Timer           // timer for deferring transitions (e.g. active → grace)
-	pending     func()                // next transition to run after delay
-	State       common.HeartbeatState // current state (idle, active, grace, missing, etc.)
+	ctx         context.Context                  // context for cancellation and timeouts
+	ID          string                           // unique heartbeat identifier
+	Interval    time.Duration                    // expected interval between pings
+	Description string                           // human‐friendly description of this heartbeat
+	Grace       time.Duration                    // grace period before triggering an alert
+	Receivers   []string                         // list of receiver IDs to notify upon alerts
+	mailbox     chan common.EventType            // incoming event channel for this actor
+	logger      *slog.Logger                     // structured logger scoped to this actor
+	hist        history.Store                    // history store for recording events
+	dispatchCh  chan<- notifier.NotificationData // sends notifications to the dispatcher
+	LastBump    time.Time                        // timestamp of the last received heartbeat
+	checkTimer  *time.Timer                      // timer waiting for the next heartbeat
+	graceTimer  *time.Timer                      // timer for the grace period countdown
+	delayTimer  *time.Timer                      // timer for deferring transitions (e.g. active → grace)
+	pending     func()                           // next transition to run after delay
+	State       common.HeartbeatState            // current state (idle, active, grace, missing, etc.)
 }
 
 // NewActor creates a new heartbeat actor.
@@ -44,7 +44,7 @@ func NewActor(
 	receivers []string,
 	logger *slog.Logger,
 	hist history.Store,
-	dispatcher *notifier.Dispatcher,
+	dispatchCh chan<- notifier.NotificationData,
 ) *Actor {
 	return &Actor{
 		ctx:         ctx,
@@ -56,7 +56,7 @@ func NewActor(
 		mailbox:     make(chan common.EventType, 1),
 		logger:      logger,
 		hist:        hist,
-		dispatcher:  dispatcher,
+		dispatchCh:  dispatchCh,
 		State:       common.HeartbeatStateIdle,
 	}
 }
@@ -123,13 +123,13 @@ func (a *Actor) onReceive() {
 
 	// if recovering from missing, send recovery notice
 	if prev == common.HeartbeatStateMissing {
-		a.dispatcher.Dispatch(a.ctx, notifier.NotificationData{
+		a.dispatchCh <- notifier.NotificationData{
 			ID:          a.ID,
-			Description: a.ID,
+			Description: a.Description,
 			LastBump:    now,
 			Status:      common.HeartbeatStateRecovered.String(),
 			Receivers:   a.Receivers,
-		})
+		}
 	}
 
 	a.State = common.HeartbeatStateActive
@@ -152,13 +152,13 @@ func (a *Actor) onFail() {
 	a.pending = nil // clear pending state change
 
 	// send immediate failure notification
-	a.dispatcher.Dispatch(a.ctx, notifier.NotificationData{
+	a.dispatchCh <- notifier.NotificationData{
 		ID:          a.ID,
-		Description: a.ID,
+		Description: a.Description,
 		LastBump:    now,
 		Status:      common.HeartbeatStateMissing.String(),
 		Receivers:   a.Receivers,
-	})
+	}
 
 	a.State = common.HeartbeatStateFailed
 	a.recordStateChange(prev, a.State)
@@ -188,13 +188,13 @@ func (a *Actor) onEnterMissing() {
 	a.State = common.HeartbeatStateMissing
 	a.recordStateChange(prev, a.State)
 
-	a.dispatcher.Dispatch(a.ctx, notifier.NotificationData{
+	a.dispatchCh <- notifier.NotificationData{
 		ID:          a.ID,
-		Description: a.ID,
+		Description: a.Description,
 		LastBump:    a.LastBump,
 		Status:      common.HeartbeatStateMissing.String(),
 		Receivers:   a.Receivers,
-	})
+	}
 	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
 }
 

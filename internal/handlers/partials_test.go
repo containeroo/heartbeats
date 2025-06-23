@@ -54,7 +54,7 @@ func TestPartialHandler(t *testing.T) {
 	})
 
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
 
 	mgr := heartbeat.NewManager(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"hb1": {
@@ -63,7 +63,7 @@ func TestPartialHandler(t *testing.T) {
 			Grace:       5 * time.Second,
 			Receivers:   []string{"r1"},
 		},
-	}, disp, hist, logger)
+	}, disp.Mailbox(), hist, logger)
 
 	t.Run("not found", func(t *testing.T) {
 		t.Parallel()
@@ -126,7 +126,7 @@ func TestRenderHeartbeats(t *testing.T) {
 	hist := history.NewRingStore(10)
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, nil, hist, 1, 1)
+	disp := notifier.NewDispatcher(store, nil, hist, 1, 1, 10)
 	mgr := heartbeat.NewManager(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"b": {
 			Description: "b-desc",
@@ -140,7 +140,7 @@ func TestRenderHeartbeats(t *testing.T) {
 			Grace:       1 * time.Second,
 			Receivers:   []string{"r1"},
 		},
-	}, disp, hist, nil)
+	}, disp.Mailbox(), hist, nil)
 
 	var buf bytes.Buffer
 	a := mgr.Get("b")
@@ -165,7 +165,7 @@ func TestRenderReceivers(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	store := notifier.InitializeStore(rc, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, nil, nil, 1, 1)
+	disp := notifier.NewDispatcher(store, nil, nil, 1, 1, 10)
 
 	var buf bytes.Buffer
 	err := renderReceivers(&buf, tmpl, disp)

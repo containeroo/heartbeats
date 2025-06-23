@@ -20,7 +20,7 @@ func TestManager_HandleReceive(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(20)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
 
 	t.Run("sends receive to known actor", func(t *testing.T) {
 		t.Parallel()
@@ -34,7 +34,7 @@ func TestManager_HandleReceive(t *testing.T) {
 			},
 		}
 
-		mgr := heartbeat.NewManager(ctx, cfg, disp, hist, logger)
+		mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
 		err := mgr.HandleReceive("a1")
 		assert.NoError(t, err)
 	})
@@ -44,7 +44,7 @@ func TestManager_HandleReceive(t *testing.T) {
 
 		cfg := map[string]heartbeat.HeartbeatConfig{}
 
-		mgr := heartbeat.NewManager(ctx, cfg, disp, hist, logger)
+		mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
 		err := mgr.HandleReceive("a1")
 		assert.Error(t, err)
 		assert.EqualError(t, err, "unknown heartbeat id \"a1\"")
@@ -58,7 +58,7 @@ func TestManager_HandleFail(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(20)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
 
 	t.Run("sends fail to known actor", func(t *testing.T) {
 		t.Parallel()
@@ -72,7 +72,7 @@ func TestManager_HandleFail(t *testing.T) {
 			},
 		}
 
-		mgr := heartbeat.NewManager(ctx, cfg, disp, hist, logger)
+		mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
 		err := mgr.HandleFail("a1")
 		assert.NoError(t, err)
 	})
@@ -82,7 +82,7 @@ func TestManager_HandleFail(t *testing.T) {
 
 		cfg := map[string]heartbeat.HeartbeatConfig{}
 
-		mgr := heartbeat.NewManager(ctx, cfg, disp, hist, logger)
+		mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
 		err := mgr.HandleFail("a1")
 		assert.Error(t, err)
 		assert.EqualError(t, err, "unknown heartbeat id \"a1\"")
@@ -96,7 +96,7 @@ func TestManager_List(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(20)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 0, 0)
+	disp := notifier.NewDispatcher(store, logger, hist, 0, 0, 10)
 
 	cfg := map[string]heartbeat.HeartbeatConfig{
 		"a1": {
@@ -113,7 +113,7 @@ func TestManager_List(t *testing.T) {
 		},
 	}
 
-	mgr := heartbeat.NewManager(ctx, cfg, disp, hist, logger)
+	mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
 
 	t.Run("List", func(t *testing.T) {
 		t.Parallel()

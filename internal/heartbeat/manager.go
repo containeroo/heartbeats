@@ -20,7 +20,7 @@ type Manager struct {
 func NewManager(
 	ctx context.Context,
 	cfg map[string]HeartbeatConfig,
-	dispatcher *notifier.Dispatcher,
+	dispatchCh chan<- notifier.NotificationData,
 	hist history.Store,
 	logger *slog.Logger,
 ) *Manager {
@@ -35,7 +35,7 @@ func NewManager(
 			c.Receivers,
 			logger,
 			hist,
-			dispatcher,
+			dispatchCh,
 		)
 		m.actors[id] = act
 		go act.Run(ctx)
@@ -44,14 +44,10 @@ func NewManager(
 }
 
 // List returns all configured heartbeats.
-func (m *Manager) List() map[string]*Actor {
-	return m.actors
-}
+func (m *Manager) List() map[string]*Actor { return m.actors }
 
 // Get returns one heartbeat’s info by ID.
-func (m *Manager) Get(id string) *Actor {
-	return m.actors[id]
-}
+func (m *Manager) Get(id string) *Actor { return m.actors[id] }
 
 // HandleReceive pings the Actor or logs unknown ID.
 func (m *Manager) HandleReceive(id string) error {

@@ -24,6 +24,11 @@ func (s *ReceiverStore) Register(receiverID string, n Notifier) {
 	s.notifiers[receiverID] = append(s.notifiers[receiverID], n)
 }
 
+// List returns all configured notifiers.
+func (s *ReceiverStore) List() map[string][]Notifier {
+	return s.notifiers
+}
+
 // getNotifiers retrieves the Notifiers for a given receiver ID.
 func (s *ReceiverStore) getNotifiers(receiverID string) []Notifier {
 	return s.notifiers[receiverID]

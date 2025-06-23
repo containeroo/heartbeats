@@ -59,19 +59,22 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 
 	// Inizalize notification
 	store := notifier.InitializeStore(cfg.Receivers, flags.SkipTLS, version, logger)
+	bufferSize := len(cfg.Heartbeats) // 1 slot per actor; each heartbeat sends max 1 notification concurrently
 	dispatcher := notifier.NewDispatcher(
 		store,
 		logger,
 		history,
 		flags.RetryCount,
 		flags.RetryDelay,
+		bufferSize,
 	)
+	go dispatcher.Run(ctx) // Run dispatcher in background
 
 	// Create Heartbeat Manager
 	mgr := heartbeat.NewManager(
 		ctx,
 		cfg.Heartbeats,
-		dispatcher,
+		dispatcher.Mailbox(),
 		history,
 		logger,
 	)

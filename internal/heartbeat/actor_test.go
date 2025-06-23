@@ -19,7 +19,9 @@ func TestActor_Run_Smoke(t *testing.T) {
 	t.Run("Let heartbeat expire", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(20)
 		store := notifier.InitializeStore(nil, false, "0.0.0", logger)
@@ -34,7 +36,8 @@ func TestActor_Run_Smoke(t *testing.T) {
 				})
 			},
 		})
-		disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
+		disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+		go disp.Run(ctx)
 
 		actor := NewActor(
 			ctx,
@@ -45,7 +48,7 @@ func TestActor_Run_Smoke(t *testing.T) {
 			[]string{"r1"},
 			logger,
 			hist,
-			disp,
+			disp.Mailbox(),
 		)
 
 		go actor.Run(ctx)
@@ -89,7 +92,9 @@ func TestActor_Run_Smoke(t *testing.T) {
 	t.Run("Let heartbeat recover", func(t *testing.T) {
 		t.Parallel()
 
-		ctx := t.Context()
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(20)
 		store := notifier.InitializeStore(nil, false, "0.0.0", logger)
@@ -99,7 +104,8 @@ func TestActor_Run_Smoke(t *testing.T) {
 				return nil
 			},
 		})
-		disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
+		disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+		go disp.Run(ctx)
 
 		actor := NewActor(
 			ctx,
@@ -110,7 +116,7 @@ func TestActor_Run_Smoke(t *testing.T) {
 			[]string{"r1"},
 			logger,
 			hist,
-			disp,
+			disp.Mailbox(),
 		)
 
 		go actor.Run(ctx)
@@ -181,7 +187,7 @@ func TestActor_onFail(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(5)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
 
 	actor := NewActor(
 		ctx,
@@ -192,7 +198,7 @@ func TestActor_onFail(t *testing.T) {
 		nil,
 		logger,
 		hist,
-		disp,
+		disp.Mailbox(),
 	)
 
 	actor.State = common.HeartbeatStateActive
@@ -208,7 +214,7 @@ func TestActor_onEnterGrace_and_Missing(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
 
 	actor := NewActor(
 		ctx,
@@ -219,7 +225,7 @@ func TestActor_onEnterGrace_and_Missing(t *testing.T) {
 		nil,
 		logger,
 		hist,
-		disp,
+		disp.Mailbox(),
 	)
 
 	actor.State = common.HeartbeatStateActive
@@ -238,7 +244,7 @@ func TestActor_runPending_and_setPending(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(5)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
 
 	actor := NewActor(
 		ctx,
@@ -249,7 +255,7 @@ func TestActor_runPending_and_setPending(t *testing.T) {
 		nil,
 		logger,
 		hist,
-		disp,
+		disp.Mailbox(),
 	)
 
 	called := false
