@@ -13,9 +13,7 @@ const (
 )
 
 // String returns the HeartbeatState as string.
-func (h HeartbeatState) String() string {
-	return string(h)
-}
+func (h HeartbeatState) String() string { return string(h) }
 
 // EventType represents a heartbeat event.
 type EventType int
