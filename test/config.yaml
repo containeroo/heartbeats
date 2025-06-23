@@ -5,10 +5,10 @@ heartbeats:
     interval: 3s
     grace: 1s
     receivers:
-      - platform-team
+      - test-receiver
 
 receivers:
-  test:
+  test-receiver:
     email_configs:
       - smtp:
           host: env:MAIL_HOST
