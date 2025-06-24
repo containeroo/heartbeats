@@ -56,7 +56,7 @@ func TestPartialHandler(t *testing.T) {
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
 
-	mgr := heartbeat.NewManager(context.Background(), map[string]heartbeat.HeartbeatConfig{
+	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"hb1": {
 			Description: "desc",
 			Interval:    10 * time.Second,
@@ -127,7 +127,7 @@ func TestRenderHeartbeats(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	disp := notifier.NewDispatcher(store, nil, hist, 1, 1, 10)
-	mgr := heartbeat.NewManager(context.Background(), map[string]heartbeat.HeartbeatConfig{
+	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"b": {
 			Description: "b-desc",
 			Interval:    1 * time.Second,

@@ -38,17 +38,17 @@ func TestActor_Run_Smoke(t *testing.T) {
 		disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
 		go disp.Run(ctx)
 
-		actor := NewActor(
-			ctx,
-			"heartbeat-1",
-			"Test Actor",
-			100*time.Millisecond,
-			100*time.Millisecond,
-			[]string{"r1"},
-			logger,
-			hist,
-			disp.Mailbox(),
-		)
+		actor := NewActorFromConfig(ActorConfig{
+			Ctx:         ctx,
+			ID:          "heartbeat-1",
+			Description: "Test Actor",
+			Interval:    100 * time.Millisecond,
+			Grace:       100 * time.Millisecond,
+			Receivers:   []string{"r1"},
+			Logger:      logger,
+			History:     hist,
+			DispatchCh:  disp.Mailbox(),
+		})
 
 		go actor.Run(ctx)
 
@@ -105,17 +105,17 @@ func TestActor_Run_Smoke(t *testing.T) {
 		disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
 		go disp.Run(ctx)
 
-		actor := NewActor(
-			ctx,
-			"heartbeat-2",
-			"Test Actor",
-			100*time.Millisecond,
-			100*time.Millisecond,
-			[]string{"r1"},
-			logger,
-			hist,
-			disp.Mailbox(),
-		)
+		actor := NewActorFromConfig(ActorConfig{
+			Ctx:         ctx,
+			ID:          "heartbeat-2",
+			Description: "Test Actor",
+			Interval:    100 * time.Millisecond,
+			Grace:       100 * time.Millisecond,
+			Receivers:   []string{"r1"},
+			Logger:      logger,
+			History:     hist,
+			DispatchCh:  disp.Mailbox(),
+		})
 
 		go actor.Run(ctx)
 

@@ -34,7 +34,7 @@ func TestManager_HandleReceive(t *testing.T) {
 			},
 		}
 
-		mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
+		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
 		err := mgr.HandleReceive("a1")
 		assert.NoError(t, err)
 	})
@@ -44,7 +44,7 @@ func TestManager_HandleReceive(t *testing.T) {
 
 		cfg := map[string]heartbeat.HeartbeatConfig{}
 
-		mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
+		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
 		err := mgr.HandleReceive("a1")
 		assert.Error(t, err)
 		assert.EqualError(t, err, "unknown heartbeat id \"a1\"")
@@ -72,7 +72,7 @@ func TestManager_HandleFail(t *testing.T) {
 			},
 		}
 
-		mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
+		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
 		err := mgr.HandleFail("a1")
 		assert.NoError(t, err)
 	})
@@ -82,7 +82,7 @@ func TestManager_HandleFail(t *testing.T) {
 
 		cfg := map[string]heartbeat.HeartbeatConfig{}
 
-		mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
+		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
 		err := mgr.HandleFail("a1")
 		assert.Error(t, err)
 		assert.EqualError(t, err, "unknown heartbeat id \"a1\"")
@@ -113,7 +113,7 @@ func TestManager_List(t *testing.T) {
 		},
 	}
 
-	mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
+	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
 
 	t.Run("List", func(t *testing.T) {
 		t.Parallel()

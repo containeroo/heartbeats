@@ -35,28 +35,32 @@ type Actor struct {
 	State       common.HeartbeatState            // current state (idle, active, grace, missing, etc.)
 }
 
-// NewActor creates a new heartbeat actor.
-func NewActor(
-	ctx context.Context,
-	id string,
-	description string,
-	interval, grace time.Duration,
-	receivers []string,
-	logger *slog.Logger,
-	hist history.Store,
-	dispatchCh chan<- notifier.NotificationData,
-) *Actor {
+// ActorConfig holds all parameters required to construct a heartbeat Actor.
+type ActorConfig struct {
+	Ctx         context.Context                  // context for cancellation and lifecycle control
+	ID          string                           // unique heartbeat identifier
+	Description string                           // human-readable description of the heartbeat
+	Interval    time.Duration                    // expected interval between heartbeat pings
+	Grace       time.Duration                    // grace period after a missed ping before triggering an alert
+	Receivers   []string                         // list of receiver IDs to notify on failure
+	Logger      *slog.Logger                     // logger scoped to this actor
+	History     history.Store                    // store to persist heartbeat and notification events
+	DispatchCh  chan<- notifier.NotificationData // channel to send notifications through the dispatcher
+}
+
+// NewActorFromConfig creates a new heartbeat actor.
+func NewActorFromConfig(cfg ActorConfig) *Actor {
 	return &Actor{
-		ctx:         ctx,
-		ID:          id,
-		Description: description,
-		Interval:    interval,
-		Grace:       grace,
-		Receivers:   receivers,
+		ctx:         cfg.Ctx,
+		ID:          cfg.ID,
+		Description: cfg.Description,
+		Interval:    cfg.Interval,
+		Grace:       cfg.Grace,
+		Receivers:   cfg.Receivers,
 		mailbox:     make(chan common.EventType, 1),
-		logger:      logger,
-		hist:        hist,
-		dispatchCh:  dispatchCh,
+		logger:      cfg.Logger,
+		hist:        cfg.History,
+		dispatchCh:  cfg.DispatchCh,
 		State:       common.HeartbeatStateIdle,
 	}
 }

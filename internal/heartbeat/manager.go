@@ -16,29 +16,29 @@ type Manager struct {
 	logger *slog.Logger
 }
 
-// NewManager constructs and starts all Actors.
-func NewManager(
+// NewManagerFromHeartbeatMap creates a Manager from heartbeat config and launches all actors.
+func NewManagerFromHeartbeatMap(
 	ctx context.Context,
-	cfg map[string]HeartbeatConfig,
+	heartbeatConfigs HeartbeatConfigMap,
 	dispatchCh chan<- notifier.NotificationData,
 	hist history.Store,
 	logger *slog.Logger,
 ) *Manager {
-	m := &Manager{actors: make(map[string]*Actor), logger: logger}
-	for id, c := range cfg {
-		act := NewActor(
-			ctx,
-			id,
-			c.Description,
-			c.Interval,
-			c.Grace,
-			c.Receivers,
-			logger,
-			hist,
-			dispatchCh,
-		)
-		m.actors[id] = act
-		go act.Run(ctx)
+	m := &Manager{actors: make(map[string]*Actor, len(heartbeatConfigs)), logger: logger}
+	for id, hb := range heartbeatConfigs {
+		actor := NewActorFromConfig(ActorConfig{
+			Ctx:         ctx,
+			ID:          id,
+			Description: hb.Description,
+			Interval:    hb.Interval,
+			Grace:       hb.Grace,
+			Receivers:   hb.Receivers,
+			Logger:      logger,
+			History:     hist,
+			DispatchCh:  dispatchCh,
+		})
+		m.actors[id] = actor
+		go actor.Run(ctx)
 	}
 	return m
 }

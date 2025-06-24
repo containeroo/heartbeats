@@ -47,7 +47,7 @@ func TestNewRouter(t *testing.T) {
 	disp := notifier.NewDispatcher(store, logger, nil, 0, 0, 10)
 	hist := history.NewRingStore(10)
 
-	mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
+	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
 
 	router := NewRouter(webFS, siteRoot, version, mgr, hist, disp, logger, true)
 
