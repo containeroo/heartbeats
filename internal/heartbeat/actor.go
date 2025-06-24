@@ -123,6 +123,7 @@ func (a *Actor) onReceive() {
 
 	// if recovering from missing, send recovery notice
 	if prev == common.HeartbeatStateMissing {
+		// send notification
 		a.dispatchCh <- notifier.NotificationData{
 			ID:          a.ID,
 			Description: a.Description,
@@ -188,6 +189,7 @@ func (a *Actor) onEnterMissing() {
 	a.State = common.HeartbeatStateMissing
 	a.recordStateChange(prev, a.State)
 
+	// send notification
 	a.dispatchCh <- notifier.NotificationData{
 		ID:          a.ID,
 		Description: a.Description,

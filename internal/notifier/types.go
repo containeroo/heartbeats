@@ -28,6 +28,8 @@ type NotificationData struct {
 // NotificationInfo contains the outcome of a notification attempt.
 type NotificationInfo struct {
 	Receiver string // target receiver ID
+	Target   string // target of the notification
+	Type     string // type of the notification
 	Error    error  // nil if successful, otherwise contains the send error
 }
 
@@ -39,5 +41,6 @@ type Notifier interface {
 	Resolve() error                                          // Resolve performs any necessary resolution (e.g., secrets, tokens).
 	LastErr() error                                          // LastError reports whether the last notification attempt succeeded.
 	Type() string                                            // Type returns the notifier's type, e.g., "slack", "email", "teams".
+	Target() string                                          // Target returns the notifier's target, e.g., "slack-channel", "email-address",
 	LastSent() time.Time                                     // LastSent returns the timestamp of the last notification attempt.
 }

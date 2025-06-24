@@ -51,6 +51,7 @@ func NewEmailNotifier(id string, cfg EmailConfig, logger *slog.Logger, sender em
 }
 
 func (en *EmailConfig) Type() string        { return "email" }
+func (en *EmailConfig) Target() string      { return FormatEmailRecipients(en.EmailDetails) }
 func (en *EmailConfig) LastSent() time.Time { return en.lastSent }
 func (en *EmailConfig) LastErr() error      { return en.lastErr }
 func (ec *EmailConfig) Format(data NotificationData) (NotificationData, error) {
@@ -85,7 +86,11 @@ func (en *EmailConfig) Notify(ctx context.Context, data NotificationData) error 
 		return fmt.Errorf("cannot send Email notification: %w", err)
 	}
 
-	en.logger.Info("Email notification sent", "receiver", en.id, "to", en.EmailDetails.To)
+	en.logger.Info("Notification sent",
+		"receiver", en.id,
+		"type", en.Type(),
+		"target", en.EmailDetails.To,
+	)
 	return nil
 }
 

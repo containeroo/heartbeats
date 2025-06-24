@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/common"
 	"github.com/containeroo/heartbeats/internal/history"
 )
 
@@ -54,9 +53,7 @@ func (d *Dispatcher) Run(ctx context.Context) {
 }
 
 // Mailbox returns the channel to send NotificationData.
-func (d *Dispatcher) Mailbox() chan<- NotificationData {
-	return d.mailbox
-}
+func (d *Dispatcher) Mailbox() chan<- NotificationData { return d.mailbox }
 
 // dispatch looks up receivers and sends notifications in parallel.
 func (d *Dispatcher) dispatch(ctx context.Context, data NotificationData) {
@@ -88,52 +85,57 @@ func (d *Dispatcher) Get(id string) []Notifier {
 
 // sendWithRetry retries a notification and records its outcome.
 func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Notifier, data NotificationData) {
-	info := NotificationInfo{Receiver: receiverID}
+	info := NotificationInfo{
+		Receiver: receiverID,
+		Type:     n.Type(),
+		Target:   n.Target(),
+	}
 	eventType := history.EventTypeNotificationSent
 
-	err := retryNotify(ctx, n, data, d.retries, d.delay, receiverID, d.logger)
+	err := d.retryNotify(ctx, n, data, receiverID)
 	if err != nil {
-		d.logger.Error("notification error", "receiver", receiverID, "error", err)
 		info.Error = err
 		eventType = history.EventTypeNotificationFailed
+
+		d.logger.Error("notification error",
+			"receiver", receiverID,
+			"type", n.Type(),
+			"target", n.Target(),
+			"error", err,
+		)
 	}
 
 	_ = d.history.RecordEvent(ctx, history.Event{
 		Timestamp:   time.Now(),
 		Type:        eventType,
-		NewState:    common.HeartbeatStateRecovered.String(),
 		HeartbeatID: data.ID,
 		Payload:     info,
 	})
 }
 
 // retryNotify retries sending notification.
-func retryNotify(
+func (d *Dispatcher) retryNotify(
 	ctx context.Context,
-	notifier Notifier,
+	n Notifier,
 	data NotificationData,
-	retries int,
-	delay time.Duration,
 	receiverID string,
-	logger *slog.Logger,
 ) error {
 	var err error
-	for i := range retries {
-		err = notifier.Notify(ctx, data)
+	for i := 0; i < d.retries; i++ {
+		err = n.Notify(ctx, data)
 		if err == nil {
 			return nil // success
 		}
 
-		logger.Debug("retrying", "attempt", i+1, "receiver", receiverID)
-
+		d.logger.Debug("retrying", "attempt", i+1, "receiver", receiverID)
 		// Wait unless it's the last attempt
-		if i < retries-1 {
+		if i < d.retries-1 {
 			select {
 			case <-ctx.Done():
 				return ctx.Err() // context cancelled
-			case <-time.After(delay): // wait before next retry
+			case <-time.After(d.delay): // wait before next retry
 			}
 		}
 	}
-	return fmt.Errorf("notification failed after %d retries: %w", retries, err)
+	return fmt.Errorf("notification failed after %d retries: %w", d.retries, err)
 }
