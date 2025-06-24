@@ -99,7 +99,7 @@ func TestRun(t *testing.T) {
 		tmpFile := filepath.Join(t.TempDir(), "bad.yaml")
 		assert.NoError(t, os.WriteFile(tmpFile, []byte("receivers:"), 0644))
 
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 		defer cancel()
 
 		var out bytes.Buffer
@@ -128,7 +128,7 @@ heartbeats:
 `
 		assert.NoError(t, os.WriteFile(tmpFile, []byte(config), 0644))
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 		defer cancel()
 
 		var buf bytes.Buffer

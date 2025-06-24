@@ -45,6 +45,7 @@ func NewSlackNotifier(id string, cfg SlackConfig, logger *slog.Logger, sender sl
 
 // Type returns the type of the notifier
 func (sn *SlackConfig) Type() string        { return "slack" }
+func (sn *SlackConfig) Target() string      { return sn.Channel }
 func (sn *SlackConfig) LastSent() time.Time { return sn.lastSent }
 func (sn *SlackConfig) LastErr() error      { return sn.lastErr }
 func (sn *SlackConfig) Format(data NotificationData) (NotificationData, error) {
@@ -86,7 +87,11 @@ func (sn *SlackConfig) Notify(ctx context.Context, data NotificationData) error 
 		return fmt.Errorf("send Slack notification: %w", err)
 	}
 
-	sn.logger.Info("Slack notification sent", "receiver", sn.id, "channel", sn.Channel)
+	sn.logger.Info("Notification sent",
+		"receiver", sn.id,
+		"type", sn.Type(),
+		"target", sn.Target(),
+	)
 	return nil
 }
 

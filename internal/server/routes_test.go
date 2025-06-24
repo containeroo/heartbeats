@@ -44,10 +44,10 @@ func TestNewRouter(t *testing.T) {
 	}
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, nil, 0, 0)
+	disp := notifier.NewDispatcher(store, logger, nil, 0, 0, 10)
 	hist := history.NewRingStore(10)
 
-	mgr := heartbeat.NewManager(ctx, cfg, disp, hist, logger)
+	mgr := heartbeat.NewManager(ctx, cfg, disp.Mailbox(), hist, logger)
 
 	router := NewRouter(webFS, siteRoot, version, mgr, hist, disp, logger, true)
 

@@ -31,8 +31,8 @@ func setupRouter(t *testing.T, hbName string, hist history.Store) http.Handler {
 	}
 
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1)
-	mgr := heartbeat.NewManager(context.Background(), heartbeats, disp, hist, logger)
+	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+	mgr := heartbeat.NewManager(context.Background(), heartbeats, disp.Mailbox(), hist, logger)
 	router := http.NewServeMux()
 	router.Handle("GET /no-id/", BumpHandler(mgr, hist, logger))
 	router.Handle("GET /no-id/fail", FailHandler(mgr, hist, logger))

@@ -91,7 +91,6 @@ receivers:
         email:
           isHTML: true
           subjectTemplate: "[HEARTBEATS] {{ .Name }} {{ upper .Status }}"
-          password: env:MAIL_PASSWORD
   dev-crew-prod:
     msteams_configs:
       - webhook_url: file:/secrets/teams/webhooks//production

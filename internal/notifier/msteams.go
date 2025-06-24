@@ -42,6 +42,7 @@ func NewMSTeamsNotifier(id string, cfg MSTeamsConfig, logger *slog.Logger, sende
 }
 
 func (mc *MSTeamsConfig) Type() string        { return "msteams" }
+func (mc *MSTeamsConfig) Target() string      { return mc.WebhookURL }
 func (mc *MSTeamsConfig) LastSent() time.Time { return mc.lastSent }
 func (mc *MSTeamsConfig) LastErr() error      { return mc.lastErr }
 func (mc *MSTeamsConfig) Format(data NotificationData) (NotificationData, error) {
@@ -71,7 +72,11 @@ func (mc *MSTeamsConfig) Notify(ctx context.Context, data NotificationData) erro
 		return fmt.Errorf("cannot send MSTeams notification. %w", err)
 	}
 
-	mc.logger.Info("MSTeams notification sent", "receiver", mc.id)
+	mc.logger.Info("Notification sent",
+		"receiver", mc.id,
+		"type", mc.Type(),
+		"target", MasqueradeURL(mc.WebhookURL, 4),
+	)
 	return nil
 }
 

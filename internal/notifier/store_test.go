@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestReceiverStore_addAndGet(t *testing.T) {
+func TestReceiverStore_getNotifiers(t *testing.T) {
 	t.Parallel()
 
 	t.Run("add and retrieve mock notifier", func(t *testing.T) {
@@ -28,6 +28,30 @@ func TestReceiverStore_addAndGet(t *testing.T) {
 		result := store.getNotifiers("r1")
 		assert.Len(t, result, 1)
 		assert.Equal(t, mock, result[0])
+	})
+}
+
+func TestReceiverStoreList(t *testing.T) {
+	t.Parallel()
+
+	t.Run("List", func(t *testing.T) {
+		t.Parallel()
+
+		store := NewReceiverStore()
+
+		mock := &MockNotifier{
+			TypeName: "mock",
+			Sent:     time.Now(),
+			lastErr:  nil,
+		}
+
+		store.Register("r1", mock)
+
+		result := store.List()
+
+		assert.Len(t, result, 1)
+		assert.Len(t, result["r1"], 1)
+		assert.Equal(t, mock, result["r1"][0])
 	})
 }
 

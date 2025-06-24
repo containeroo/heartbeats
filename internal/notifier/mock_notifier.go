@@ -12,6 +12,7 @@ type MockNotifier struct {
 	called     bool                                                   // true if Notify was called
 	last       NotificationData                                       // holds the last NotificationData passed to Notify
 	TypeName   string                                                 // optional custom type name returned by Type()
+	TargetName string                                                 // optional custom target name returned by Target()
 	Sent       time.Time                                              // mock timestamp returned by LastSent()
 	lastErr    error                                                  // mock error returned by LastErr()
 	FormatFunc func(NotificationData) (NotificationData, error)       // optional override for Format behavior
@@ -46,6 +47,13 @@ func (m *MockNotifier) LastErr() error      { return m.lastErr }
 func (m *MockNotifier) Type() string {
 	if m.TypeName != "" {
 		return m.TypeName
+	}
+	return "mock"
+}
+
+func (m *MockNotifier) Target() string {
+	if m.TargetName != "" {
+		return m.TargetName
 	}
 	return "mock"
 }

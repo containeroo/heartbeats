@@ -31,6 +31,14 @@ func TestMSTeamsGraphConfig_Type(t *testing.T) {
 	assert.Equal(t, "msteamsgraph", NewMSTeamsGraphNotifier("id", MSTeamsGraphConfig{}, nil, nil).Type())
 }
 
+func TestMSTeamsGraphConfig_Target(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, "mock-team-id/mock-channel-id", NewMSTeamsGraphNotifier("id", MSTeamsGraphConfig{
+		TeamID:    "mock-team-id",
+		ChannelID: "mock-channel-id",
+	}, nil, nil).Target())
+}
+
 func TestMSTeamsGraphConfig_LastSent(t *testing.T) {
 	t.Parallel()
 	assert.Equal(t, time.Time{}, NewMSTeamsGraphNotifier("id", MSTeamsGraphConfig{}, nil, nil).LastSent())

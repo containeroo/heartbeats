@@ -1,0 +1,26 @@
+---
+heartbeats:
+  test:
+    description: Test AlertManager health check
+    interval: 3s
+    grace: 1s
+    receivers:
+      - test-receiver
+
+receivers:
+  test-receiver:
+    email_configs:
+      - smtp:
+          host: env:MAIL_HOST
+          port: 587
+          from: env:MAIL_FROM
+          username: env:MAIL_USERNAME
+          password: env:MAIL_PASSWORD
+          startTLS: true
+        email:
+          to: [env:HEARTBEATS_EMAIL_TO]
+    slack_configs:
+      - channel: env:HEARTBEATS_SLACK_CHANNEL
+        token: env:HEARTBEATS_SLACK_TOKEN
+      - channel: env:HEARTBEATS_SLACK_CHANNEL
+        token: env:HEARTBEATS_SLACK_TOKEN

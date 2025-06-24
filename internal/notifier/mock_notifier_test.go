@@ -80,6 +80,14 @@ func TestMockNotifier(t *testing.T) {
 		assert.Equal(t, "mock", mock.Type())
 	})
 
+	t.Run("Target returns default when unset", func(t *testing.T) {
+		t.Parallel()
+
+		mock := &MockNotifier{}
+
+		assert.Equal(t, "mock", mock.Target())
+	})
+
 	t.Run("LastSent and LastErr return configured values", func(t *testing.T) {
 		t.Parallel()
 

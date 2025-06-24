@@ -152,9 +152,9 @@ func renderReceivers(
 			case *notifier.SlackConfig:
 				rv.Destination = x.Channel
 			case *notifier.EmailConfig:
-				rv.Destination = formatEmailRecipients(x.EmailDetails)
+				rv.Destination = notifier.FormatEmailRecipients(x.EmailDetails)
 			case *notifier.MSTeamsConfig:
-				rv.Destination = masqueradeURL(x.WebhookURL, 4)
+				rv.Destination = notifier.MasqueradeURL(x.WebhookURL, 4)
 
 			}
 
@@ -185,9 +185,18 @@ func renderHistory(
 		case e.Payload != nil:
 			if p, ok := e.Payload.(notifier.NotificationInfo); ok {
 				if p.Error != nil {
-					det = fmt.Sprintf("Notification to %q failed: %s", p.Receiver, p.Error)
+					det = fmt.Sprintf("Notification to %q via %s (%s) failed: %s",
+						p.Receiver,
+						p.Type,
+						p.Target,
+						p.Error,
+					)
 				} else {
-					det = fmt.Sprintf("Notification sent to %q", p.Receiver)
+					det = fmt.Sprintf("Notification sent to %q via %s (%s)",
+						p.Receiver,
+						p.Type,
+						p.Target,
+					)
 				}
 			}
 		case e.PrevState != "":
