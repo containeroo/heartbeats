@@ -22,3 +22,5 @@ receivers:
     slack_configs:
       - channel: env:HEARTBEATS_SLACK_CHANNEL
         token: env:HEARTBEATS_SLACK_TOKEN
+      - channel: env:HEARTBEATS_SLACK_CHANNEL
+        token: env:HEARTBEATS_SLACK_TOKEN

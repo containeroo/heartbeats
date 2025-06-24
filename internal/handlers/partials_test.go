@@ -188,6 +188,8 @@ func TestRenderHistory(t *testing.T) {
 		UserAgent:   "Go-http-client",
 		Payload: notifier.NotificationInfo{
 			Receiver: "r1",
+			Type:     "mock-type",
+			Target:   "mock-target",
 			Error:    nil, // or errors.New(...) to test failure
 		},
 	})
@@ -208,5 +210,5 @@ func TestRenderHistory(t *testing.T) {
 
 	t.Log(buf.String())
 	assert.NoError(t, err)
-	assert.Equal(t, "HeartbeatReceived:missing → received;HeartbeatReceived:Notification sent to \"r1\";", buf.String())
+	assert.Equal(t, "HeartbeatReceived:missing → received;HeartbeatReceived:Notification sent to \"r1\" via mock-type (mock-target);", buf.String())
 }

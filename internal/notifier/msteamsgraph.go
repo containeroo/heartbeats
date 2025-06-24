@@ -43,6 +43,7 @@ func NewMSTeamsGraphNotifier(id string, cfg MSTeamsGraphConfig, logger *slog.Log
 }
 
 func (c *MSTeamsGraphConfig) Type() string        { return "msteamsgraph" }
+func (c *MSTeamsGraphConfig) Target() string      { return c.TeamID + "/" + c.ChannelID }
 func (c *MSTeamsGraphConfig) LastSent() time.Time { return c.lastSent }
 func (c *MSTeamsGraphConfig) LastErr() error      { return c.lastErr }
 
@@ -77,7 +78,11 @@ func (c *MSTeamsGraphConfig) Notify(ctx context.Context, data NotificationData) 
 		return fmt.Errorf("send MS Teams message: %w", err)
 	}
 
-	c.logger.Info("MS Teams channel message sent", "receiver", c.id, "team", c.TeamID, "channel", c.ChannelID)
+	c.logger.Info("Notification sent",
+		"receiver", c.id,
+		"type", c.Type(),
+		"target", c.Target(),
+	)
 	return nil
 }
 

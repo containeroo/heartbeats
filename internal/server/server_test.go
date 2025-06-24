@@ -21,7 +21,7 @@ func TestRun(t *testing.T) {
 		var logBuf strings.Builder
 		logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 		defer cancel()
 
 		mux := http.NewServeMux()

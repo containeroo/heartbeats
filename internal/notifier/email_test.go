@@ -26,32 +26,27 @@ func (m *mockEmailSender) Send(ctx context.Context, msg email.Message) error {
 
 func TestEmailConfig_Type(t *testing.T) {
 	t.Parallel()
+	assert.Equal(t, "email", NewEmailNotifier("id", EmailConfig{}, nil, nil).Type())
+}
 
-	t.Run("returns email", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, "email", NewEmailNotifier("id", EmailConfig{}, nil, nil).Type())
-	})
+func TestEmailConfig_Target(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, "To: test@exampl.com", NewEmailNotifier(
+		"id",
+		EmailConfig{EmailDetails: EmailDetails{To: []string{"test@exampl.com"}}},
+		nil,
+		nil,
+	).Target())
 }
 
 func TestEmailConfig_LastSent(t *testing.T) {
 	t.Parallel()
-
-	t.Run("returns last sent time", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Equal(t, time.Time{}, NewEmailNotifier("id", EmailConfig{}, nil, nil).LastSent())
-	})
+	assert.Equal(t, time.Time{}, NewEmailNotifier("id", EmailConfig{}, nil, nil).LastSent())
 }
 
 func TestEmailConfig_LastErr(t *testing.T) {
 	t.Parallel()
-
-	t.Run("returns last error", func(t *testing.T) {
-		t.Parallel()
-
-		assert.Nil(t, NewEmailNotifier("id", EmailConfig{}, nil, nil).LastErr())
-	})
+	assert.Nil(t, NewEmailNotifier("id", EmailConfig{}, nil, nil).LastErr())
 }
 
 func TestEmailConfig_Notify(t *testing.T) {

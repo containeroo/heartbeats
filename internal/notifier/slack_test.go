@@ -28,26 +28,22 @@ func (m *mockSlackSender) Send(ctx context.Context, msg slack.Slack) (*slack.Res
 
 func TestSlackConfig_Type(t *testing.T) {
 	t.Parallel()
-	t.Run("returns slack", func(t *testing.T) {
-		t.Parallel()
-		assert.Equal(t, "slack", NewSlackNotifier("id", SlackConfig{}, nil, nil).Type())
-	})
+	assert.Equal(t, "slack", NewSlackNotifier("id", SlackConfig{}, nil, nil).Type())
+}
+
+func TestSlackConfig_Target(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, "mock-channel", NewSlackNotifier("id", SlackConfig{Channel: "mock-channel"}, nil, nil).Target())
 }
 
 func TestSlackConfig_LastSent(t *testing.T) {
 	t.Parallel()
-	t.Run("returns last sent time", func(t *testing.T) {
-		t.Parallel()
-		assert.Equal(t, time.Time{}, NewSlackNotifier("id", SlackConfig{}, nil, nil).LastSent())
-	})
+	assert.Equal(t, time.Time{}, NewSlackNotifier("id", SlackConfig{}, nil, nil).LastSent())
 }
 
 func TestSlackConfig_LastErr(t *testing.T) {
 	t.Parallel()
-	t.Run("returns last error", func(t *testing.T) {
-		t.Parallel()
-		assert.Nil(t, NewSlackNotifier("id", SlackConfig{}, nil, nil).LastErr())
-	})
+	assert.Nil(t, NewSlackNotifier("id", SlackConfig{}, nil, nil).LastErr())
 }
 
 func TestSlackConfig_Notify(t *testing.T) {

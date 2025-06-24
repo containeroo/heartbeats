@@ -142,8 +142,7 @@ func TestDispatcher_LogsErrorFromNotifier(t *testing.T) {
 	)
 
 	// Start dispatcher loop
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	go dispatcher.Run(ctx)
 
 	// Push notification

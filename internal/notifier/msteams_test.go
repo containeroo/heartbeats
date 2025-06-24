@@ -26,28 +26,22 @@ func (m *mockMSTeamsSender) Send(ctx context.Context, msg msteams.MSTeams, webho
 
 func TestMSTeamsConfig_Type(t *testing.T) {
 	t.Parallel()
+	assert.Equal(t, "msteams", NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).Type())
+}
 
-	t.Run("returns msteams", func(t *testing.T) {
-		t.Parallel()
-		assert.Equal(t, "msteams", NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).Type())
-	})
+func TestMSTeamsConfig_Target(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, "http://example.com", NewMSTeamsNotifier("id", MSTeamsConfig{WebhookURL: "http://example.com"}, nil, nil).Target())
 }
 
 func TestMSTeamsConfig_LastSent(t *testing.T) {
 	t.Parallel()
-
-	t.Run("returns last sent time", func(t *testing.T) {
-		t.Parallel()
-		assert.Equal(t, time.Time{}, NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).LastSent())
-	})
+	assert.Equal(t, time.Time{}, NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).LastSent())
 }
 
 func TestMSTeamsConfig_LastErr(t *testing.T) {
 	t.Parallel()
-	t.Run("returns last error", func(t *testing.T) {
-		t.Parallel()
-		assert.Nil(t, NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).LastErr())
-	})
+	assert.Nil(t, NewMSTeamsNotifier("id", MSTeamsConfig{}, nil, nil).LastErr())
 }
 
 func TestMSTeamsConfig_Notify(t *testing.T) {
