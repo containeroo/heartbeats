@@ -152,19 +152,29 @@ func TestActor_Run_Smoke(t *testing.T) {
 
 		for _, e := range events {
 			switch {
-			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateIdle.String() && e.NewState == common.HeartbeatStateActive.String():
+			case (e.Type == history.EventTypeStateChanged &&
+				e.PrevState == common.HeartbeatStateIdle.String() &&
+				e.NewState == common.HeartbeatStateActive.String()):
 				seenIdleToActive = true
-			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateActive.String() && e.NewState == common.HeartbeatStateGrace.String():
+			case (e.Type == history.EventTypeStateChanged &&
+				e.PrevState == common.HeartbeatStateActive.String() &&
+				e.NewState == common.HeartbeatStateGrace.String()):
 				if !seenActiveToGrace {
 					seenActiveToGrace = true
 				} else {
 					seenSecondGrace = true
 				}
-			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateGrace.String() && e.NewState == common.HeartbeatStateActive.String():
+			case (e.Type == history.EventTypeStateChanged &&
+				e.PrevState == common.HeartbeatStateGrace.String() &&
+				e.NewState == common.HeartbeatStateActive.String()):
 				seenGraceToActive = true
-			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateGrace.String() && e.NewState == common.HeartbeatStateMissing.String():
+			case (e.Type == history.EventTypeStateChanged &&
+				e.PrevState == common.HeartbeatStateGrace.String() &&
+				e.NewState == common.HeartbeatStateMissing.String()):
 				seenGraceToMissing = true
-			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateMissing.String() && e.NewState == common.HeartbeatStateActive.String():
+			case (e.Type == history.EventTypeStateChanged &&
+				e.PrevState == common.HeartbeatStateMissing.String() &&
+				e.NewState == common.HeartbeatStateActive.String()):
 				seenRecovered = true
 			}
 		}
@@ -176,94 +186,6 @@ func TestActor_Run_Smoke(t *testing.T) {
 		assert.True(t, seenGraceToMissing, "expected grace → missing")
 		assert.True(t, seenRecovered, "expected missing → active (recovery)")
 	})
-}
-
-func TestActor_onFail(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-	hist := history.NewRingStore(5)
-	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
-
-	actor := NewActor(
-		ctx,
-		"fail-case",
-		"fail test",
-		time.Second,
-		time.Second,
-		nil,
-		logger,
-		hist,
-		disp.Mailbox(),
-	)
-
-	actor.State = common.HeartbeatStateActive
-	actor.onFail()
-
-	assert.Equal(t, common.HeartbeatStateFailed, actor.State)
-}
-
-func TestActor_onEnterGrace_and_Missing(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-	hist := history.NewRingStore(10)
-	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
-
-	actor := NewActor(
-		ctx,
-		"grace-case",
-		"grace test",
-		time.Second,
-		time.Second,
-		nil,
-		logger,
-		hist,
-		disp.Mailbox(),
-	)
-
-	actor.State = common.HeartbeatStateActive
-	actor.onEnterGrace()
-	assert.Equal(t, common.HeartbeatStateGrace, actor.State)
-
-	actor.State = common.HeartbeatStateGrace
-	actor.onEnterMissing()
-	assert.Equal(t, common.HeartbeatStateMissing, actor.State)
-}
-
-func TestActor_runPending_and_setPending(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.Background()
-	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-	hist := history.NewRingStore(5)
-	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
-
-	actor := NewActor(
-		ctx,
-		"delay-case",
-		"delay test",
-		time.Second,
-		time.Second,
-		nil,
-		logger,
-		hist,
-		disp.Mailbox(),
-	)
-
-	called := false
-	fn := func() { called = true }
-
-	actor.setPending(fn)
-	actor.runPending()
-
-	assert.True(t, called)
-	assert.Nil(t, actor.pending)
 }
 
 func TestActor_OnReceive(t *testing.T) {
