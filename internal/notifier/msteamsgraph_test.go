@@ -33,7 +33,7 @@ func TestMSTeamsGraphConfig_Type(t *testing.T) {
 
 func TestMSTeamsGraphConfig_Target(t *testing.T) {
 	t.Parallel()
-	assert.Equal(t, "mock-team-id/mock-channel-id", NewMSTeamsGraphNotifier("id", MSTeamsGraphConfig{
+	assert.Equal(t, "********m-id/***********l-id", NewMSTeamsGraphNotifier("id", MSTeamsGraphConfig{
 		TeamID:    "mock-team-id",
 		ChannelID: "mock-channel-id",
 	}, nil, nil).Target())

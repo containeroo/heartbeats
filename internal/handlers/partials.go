@@ -142,20 +142,11 @@ func renderReceivers(
 	for rid, nots := range raw {
 		for _, n := range nots {
 			rv := ReceiverView{
-				ID:       rid,
-				Type:     n.Type(),
-				LastSent: n.LastSent(),
-				LastErr:  n.LastErr(),
-			}
-			// Derive the destination field based on concrete Notifier type.
-			switch x := n.(type) {
-			case *notifier.SlackConfig:
-				rv.Destination = x.Channel
-			case *notifier.EmailConfig:
-				rv.Destination = notifier.FormatEmailRecipients(x.EmailDetails)
-			case *notifier.MSTeamsConfig:
-				rv.Destination = notifier.MasqueradeURL(x.WebhookURL, 4)
-
+				ID:          rid,
+				Type:        n.Type(),
+				Destination: n.Target(),
+				LastSent:    n.LastSent(),
+				LastErr:     n.LastErr(),
 			}
 
 			views = append(views, rv)

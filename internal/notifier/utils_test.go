@@ -224,3 +224,43 @@ func TestMasqueradeURL(t *testing.T) {
 		assert.Equal(t, "<invalid-url>", masked)
 	})
 }
+
+func TestMaskedTail(t *testing.T) {
+	t.Parallel()
+
+	t.Run("exact length", func(t *testing.T) {
+		t.Parallel()
+		result := MaskedTail("abcdef", 6)
+		assert.Equal(t, "abcdef", result)
+	})
+
+	t.Run("too short", func(t *testing.T) {
+		t.Parallel()
+		result := MaskedTail("abc", 10)
+		assert.Equal(t, "abc", result)
+	})
+
+	t.Run("zero visible", func(t *testing.T) {
+		t.Parallel()
+		result := MaskedTail("secret", 0)
+		assert.Equal(t, "******", result)
+	})
+
+	t.Run("negative visible", func(t *testing.T) {
+		t.Parallel()
+		result := MaskedTail("topsecret", -3)
+		assert.Equal(t, "*********", result)
+	})
+
+	t.Run("partial mask", func(t *testing.T) {
+		t.Parallel()
+		result := MaskedTail("sensitive", 3)
+		assert.Equal(t, "******ive", result)
+	})
+
+	t.Run("empty input", func(t *testing.T) {
+		t.Parallel()
+		result := MaskedTail("", 3)
+		assert.Equal(t, "", result)
+	})
+}

@@ -41,24 +41,24 @@ func NewMSTeamsNotifier(id string, cfg MSTeamsConfig, logger *slog.Logger, sende
 	return &cfg
 }
 
-func (mc *MSTeamsConfig) Type() string        { return "msteams" }
-func (mc *MSTeamsConfig) Target() string      { return mc.WebhookURL }
-func (mc *MSTeamsConfig) LastSent() time.Time { return mc.lastSent }
-func (mc *MSTeamsConfig) LastErr() error      { return mc.lastErr }
-func (mc *MSTeamsConfig) Format(data NotificationData) (NotificationData, error) {
-	return formatNotification(data, mc.TitleTmpl, mc.TextTmpl, defaultMSTeamsTitleTmpl, defaultMSTeamsTextTmpl)
+func (m *MSTeamsConfig) Type() string        { return "msteams" }
+func (m *MSTeamsConfig) Target() string      { return MasqueradeURL(m.WebhookURL, 4) }
+func (m *MSTeamsConfig) LastSent() time.Time { return m.lastSent }
+func (m *MSTeamsConfig) LastErr() error      { return m.lastErr }
+func (m *MSTeamsConfig) Format(data NotificationData) (NotificationData, error) {
+	return formatNotification(data, m.TitleTmpl, m.TextTmpl, defaultMSTeamsTitleTmpl, defaultMSTeamsTextTmpl)
 }
 
-func (mc *MSTeamsConfig) Notify(ctx context.Context, data NotificationData) error {
+func (m *MSTeamsConfig) Notify(ctx context.Context, data NotificationData) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	mc.lastSent = time.Now()
-	mc.lastErr = nil
+	m.lastSent = time.Now()
+	m.lastErr = nil
 
-	formatted, err := mc.Format(data)
+	formatted, err := m.Format(data)
 	if err != nil {
-		mc.lastErr = err
+		m.lastErr = err
 		return fmt.Errorf("failed to format notification: %w", err)
 	}
 
@@ -67,52 +67,52 @@ func (mc *MSTeamsConfig) Notify(ctx context.Context, data NotificationData) erro
 		Text:  formatted.Message,
 	}
 
-	if _, err := mc.sender.Send(ctx, msg, mc.WebhookURL); err != nil {
-		mc.lastErr = err
+	if _, err := m.sender.Send(ctx, msg, m.WebhookURL); err != nil {
+		m.lastErr = err
 		return fmt.Errorf("cannot send MSTeams notification. %w", err)
 	}
 
-	mc.logger.Info("Notification sent",
-		"receiver", mc.id,
-		"type", mc.Type(),
-		"target", MasqueradeURL(mc.WebhookURL, 4),
+	m.logger.Info("Notification sent",
+		"receiver", m.id,
+		"type", m.Type(),
+		"webhook_url", m.Target(),
 	)
 	return nil
 }
 
 // Resolve interpolates variables in the config.
-func (mc *MSTeamsConfig) Resolve() error {
-	webhookURL, err := resolver.ResolveVariable(mc.WebhookURL)
+func (m *MSTeamsConfig) Resolve() error {
+	webhookURL, err := resolver.ResolveVariable(m.WebhookURL)
 	if err != nil {
 		return fmt.Errorf("failed to resolve WebhookURL: %w", err)
 	}
-	mc.WebhookURL = webhookURL
+	m.WebhookURL = webhookURL
 
-	titleTmpl, err := resolver.ResolveVariable(mc.TitleTmpl)
+	titleTmpl, err := resolver.ResolveVariable(m.TitleTmpl)
 	if err != nil {
 		return fmt.Errorf("failed to resolve title template: %w", err)
 	}
-	mc.TitleTmpl = titleTmpl
+	m.TitleTmpl = titleTmpl
 
-	textTmpl, err := resolver.ResolveVariable(mc.TextTmpl)
+	textTmpl, err := resolver.ResolveVariable(m.TextTmpl)
 	if err != nil {
 		return fmt.Errorf("failed to resolve text template: %w", err)
 	}
-	mc.TextTmpl = textTmpl
+	m.TextTmpl = textTmpl
 
 	return nil
 }
 
 // Validate ensures required fields are set.
-func (mc *MSTeamsConfig) Validate() error {
+func (m *MSTeamsConfig) Validate() error {
 	dummydata := NotificationData{}
-	if _, err := mc.Format(dummydata); err != nil {
+	if _, err := m.Format(dummydata); err != nil {
 		return err
 	}
-	if mc.WebhookURL == "" {
+	if m.WebhookURL == "" {
 		return errors.New("webhook URL cannot be empty")
 	}
-	if _, err := url.Parse(mc.WebhookURL); err != nil {
+	if _, err := url.Parse(m.WebhookURL); err != nil {
 		return fmt.Errorf("webhook URL is not a valid URL: %w", err)
 	}
 	return nil

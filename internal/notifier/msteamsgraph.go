@@ -42,26 +42,28 @@ func NewMSTeamsGraphNotifier(id string, cfg MSTeamsGraphConfig, logger *slog.Log
 	return &cfg
 }
 
-func (c *MSTeamsGraphConfig) Type() string        { return "msteamsgraph" }
-func (c *MSTeamsGraphConfig) Target() string      { return c.TeamID + "/" + c.ChannelID }
-func (c *MSTeamsGraphConfig) LastSent() time.Time { return c.lastSent }
-func (c *MSTeamsGraphConfig) LastErr() error      { return c.lastErr }
+func (m *MSTeamsGraphConfig) Type() string { return "msteamsgraph" }
+func (m *MSTeamsGraphConfig) Target() string {
+	return MaskedTail(m.TeamID, 4) + "/" + MaskedTail(m.ChannelID, 4)
+}
+func (m *MSTeamsGraphConfig) LastSent() time.Time { return m.lastSent }
+func (m *MSTeamsGraphConfig) LastErr() error      { return m.lastErr }
 
-func (c *MSTeamsGraphConfig) Format(data NotificationData) (NotificationData, error) {
-	return formatNotification(data, c.TitleTmpl, c.TextTmpl, defaultTeamsTitleTmpl, defaultTeamsTextTmpl)
+func (m *MSTeamsGraphConfig) Format(data NotificationData) (NotificationData, error) {
+	return formatNotification(data, m.TitleTmpl, m.TextTmpl, defaultTeamsTitleTmpl, defaultTeamsTextTmpl)
 }
 
 // Notify sends a channel message via Microsoft Graph API.
-func (c *MSTeamsGraphConfig) Notify(ctx context.Context, data NotificationData) error {
+func (m *MSTeamsGraphConfig) Notify(ctx context.Context, data NotificationData) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	c.lastSent = time.Now()
-	c.lastErr = nil
+	m.lastSent = time.Now()
+	m.lastErr = nil
 
-	formatted, err := c.Format(data)
+	formatted, err := m.Format(data)
 	if err != nil {
-		c.lastErr = err
+		m.lastErr = err
 		return fmt.Errorf("format notification: %w", err)
 	}
 
@@ -73,49 +75,50 @@ func (c *MSTeamsGraphConfig) Notify(ctx context.Context, data NotificationData) 
 		Body: body,
 	}
 
-	if _, err := c.sender.SendChannel(ctx, c.TeamID, c.ChannelID, msg); err != nil {
-		c.lastErr = err
+	if _, err := m.sender.SendChannel(ctx, m.TeamID, m.ChannelID, msg); err != nil {
+		m.lastErr = err
 		return fmt.Errorf("send MS Teams message: %w", err)
 	}
 
-	c.logger.Info("Notification sent",
-		"receiver", c.id,
-		"type", c.Type(),
-		"target", c.Target(),
+	m.logger.Info("Notification sent",
+		"receiver", m.id,
+		"type", m.Type(),
+		"team", MaskedTail(m.TeamID, 4),
+		"channel", MaskedTail(m.ChannelID, 4),
 	)
 	return nil
 }
 
 // Resolve resolves templated fields and credentials using a variable resolver.
-func (c *MSTeamsGraphConfig) Resolve() error {
+func (m *MSTeamsGraphConfig) Resolve() error {
 	var err error
-	if c.Token, err = resolver.ResolveVariable(c.Token); err != nil {
+	if m.Token, err = resolver.ResolveVariable(m.Token); err != nil {
 		return fmt.Errorf("resolve token: %w", err)
 	}
-	if c.TeamID, err = resolver.ResolveVariable(c.TeamID); err != nil {
+	if m.TeamID, err = resolver.ResolveVariable(m.TeamID); err != nil {
 		return fmt.Errorf("resolve teamID: %w", err)
 	}
-	if c.ChannelID, err = resolver.ResolveVariable(c.ChannelID); err != nil {
+	if m.ChannelID, err = resolver.ResolveVariable(m.ChannelID); err != nil {
 		return fmt.Errorf("resolve channelID: %w", err)
 	}
-	if c.TitleTmpl, err = resolver.ResolveVariable(c.TitleTmpl); err != nil {
+	if m.TitleTmpl, err = resolver.ResolveVariable(m.TitleTmpl); err != nil {
 		return fmt.Errorf("resolve title template: %w", err)
 	}
-	if c.TextTmpl, err = resolver.ResolveVariable(c.TextTmpl); err != nil {
+	if m.TextTmpl, err = resolver.ResolveVariable(m.TextTmpl); err != nil {
 		return fmt.Errorf("resolve text template: %w", err)
 	}
 	return nil
 }
 
 // Validate ensures required configuration fields are set correctly.
-func (c *MSTeamsGraphConfig) Validate() error {
-	if strings.TrimSpace(c.Token) == "" {
+func (m *MSTeamsGraphConfig) Validate() error {
+	if strings.TrimSpace(m.Token) == "" {
 		return errors.New("token cannot be empty")
 	}
-	if strings.TrimSpace(c.TeamID) == "" {
+	if strings.TrimSpace(m.TeamID) == "" {
 		return errors.New("teamID cannot be empty")
 	}
-	if strings.TrimSpace(c.ChannelID) == "" {
+	if strings.TrimSpace(m.ChannelID) == "" {
 		return errors.New("channelID cannot be empty")
 	}
 	return nil

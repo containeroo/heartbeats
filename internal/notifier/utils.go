@@ -101,3 +101,14 @@ func MasqueradeURL(raw string, tailLen int) string {
 	}
 	return fmt.Sprintf("%s://%s/...%s", u.Scheme, u.Host, tail)
 }
+
+// Masked returns a string with only the last N characters visible, the rest masked with '*'.
+func MaskedTail(s string, visible int) string {
+	if visible >= len(s) {
+		return s
+	}
+	if visible < 0 {
+		visible = 0
+	}
+	return strings.Repeat("*", len(s)-visible) + s[len(s)-visible:]
+}

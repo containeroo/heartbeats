@@ -50,47 +50,58 @@ func NewEmailNotifier(id string, cfg EmailConfig, logger *slog.Logger, sender em
 	}
 }
 
-func (en *EmailConfig) Type() string        { return "email" }
-func (en *EmailConfig) Target() string      { return FormatEmailRecipients(en.EmailDetails) }
-func (en *EmailConfig) LastSent() time.Time { return en.lastSent }
-func (en *EmailConfig) LastErr() error      { return en.lastErr }
+func (e *EmailConfig) Type() string        { return "email" }
+func (e *EmailConfig) Target() string      { return FormatEmailRecipients(e.EmailDetails) }
+func (e *EmailConfig) LastSent() time.Time { return e.lastSent }
+func (e *EmailConfig) LastErr() error      { return e.lastErr }
 func (ec *EmailConfig) Format(data NotificationData) (NotificationData, error) {
 	return formatNotification(data, ec.EmailDetails.SubjectTmpl, ec.EmailDetails.BodyTmpl, defaultEmailSubjectTmpl, defaultEmailBodyTmpl)
 }
 
 // Notify formats and sends the email using the configured SMTP settings.
-func (en *EmailConfig) Notify(ctx context.Context, data NotificationData) error {
+func (e *EmailConfig) Notify(ctx context.Context, data NotificationData) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	en.lastSent = time.Now()
-	en.lastErr = nil
+	e.lastSent = time.Now()
+	e.lastErr = nil
 
-	formatted, err := en.Format(data)
+	formatted, err := e.Format(data)
 	if err != nil {
-		en.lastErr = err
+		e.lastErr = err
 		return fmt.Errorf("failed to format notification: %w", err)
 	}
 
 	msg := email.Message{
-		To:      en.EmailDetails.To,
-		Cc:      en.EmailDetails.CC,
-		Bcc:     en.EmailDetails.BCC,
-		IsHTML:  en.EmailDetails.IsHTML,
+		To:      e.EmailDetails.To,
+		Cc:      e.EmailDetails.CC,
+		Bcc:     e.EmailDetails.BCC,
+		IsHTML:  e.EmailDetails.IsHTML,
 		Subject: formatted.Title,
 		Body:    formatted.Message,
 	}
 
-	if err := en.sender.Send(ctx, msg); err != nil {
-		en.lastErr = err
+	if err := e.sender.Send(ctx, msg); err != nil {
+		e.lastErr = err
 		return fmt.Errorf("cannot send Email notification: %w", err)
 	}
 
-	en.logger.Info("Notification sent",
-		"receiver", en.id,
-		"type", en.Type(),
-		"target", en.EmailDetails.To,
-	)
+	// Log only attributes that are relevant to the notification.
+	attrs := []slog.Attr{
+		slog.String("receiver", e.id),
+		slog.String("type", e.Type()),
+	}
+	if len(e.EmailDetails.To) > 0 {
+		attrs = append(attrs, slog.Any("to", e.EmailDetails.To))
+	}
+	if len(e.EmailDetails.CC) > 0 {
+		attrs = append(attrs, slog.Any("cc", e.EmailDetails.CC))
+	}
+	if len(e.EmailDetails.BCC) > 0 {
+		attrs = append(attrs, slog.Any("bcc", e.EmailDetails.BCC))
+	}
+
+	e.logger.LogAttrs(ctx, slog.LevelInfo, "Notification sent", attrs...)
 	return nil
 }
 

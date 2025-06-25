@@ -31,7 +31,7 @@ func TestMSTeamsConfig_Type(t *testing.T) {
 
 func TestMSTeamsConfig_Target(t *testing.T) {
 	t.Parallel()
-	assert.Equal(t, "http://example.com", NewMSTeamsNotifier("id", MSTeamsConfig{WebhookURL: "http://example.com"}, nil, nil).Target())
+	assert.Equal(t, "http://example.com/...path", NewMSTeamsNotifier("id", MSTeamsConfig{WebhookURL: "http://example.com/some-path"}, nil, nil).Target())
 }
 
 func TestMSTeamsConfig_LastSent(t *testing.T) {

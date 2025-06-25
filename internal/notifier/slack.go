@@ -44,24 +44,24 @@ func NewSlackNotifier(id string, cfg SlackConfig, logger *slog.Logger, sender sl
 }
 
 // Type returns the type of the notifier
-func (sn *SlackConfig) Type() string        { return "slack" }
-func (sn *SlackConfig) Target() string      { return sn.Channel }
-func (sn *SlackConfig) LastSent() time.Time { return sn.lastSent }
-func (sn *SlackConfig) LastErr() error      { return sn.lastErr }
-func (sn *SlackConfig) Format(data NotificationData) (NotificationData, error) {
-	return formatNotification(data, sn.TitleTmpl, sn.TextTmpl, defaultSlackTitleTmpl, defaultSlackTextTmpl)
+func (s *SlackConfig) Type() string        { return "slack" }
+func (s *SlackConfig) Target() string      { return s.Channel }
+func (s *SlackConfig) LastSent() time.Time { return s.lastSent }
+func (s *SlackConfig) LastErr() error      { return s.lastErr }
+func (s *SlackConfig) Format(data NotificationData) (NotificationData, error) {
+	return formatNotification(data, s.TitleTmpl, s.TextTmpl, defaultSlackTitleTmpl, defaultSlackTextTmpl)
 }
 
-func (sn *SlackConfig) Notify(ctx context.Context, data NotificationData) error {
+func (s *SlackConfig) Notify(ctx context.Context, data NotificationData) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	sn.lastSent = time.Now()
-	sn.lastErr = nil
+	s.lastSent = time.Now()
+	s.lastErr = nil
 
-	formatted, err := sn.Format(data)
+	formatted, err := s.Format(data)
 	if err != nil {
-		sn.lastErr = err
+		s.lastErr = err
 		return fmt.Errorf("format notification: %w", err)
 	}
 
@@ -78,49 +78,49 @@ func (sn *SlackConfig) Notify(ctx context.Context, data NotificationData) error 
 	}
 
 	payload := slack.Slack{
-		Channel:     sn.Channel,
+		Channel:     s.Channel,
 		Attachments: []slack.Attachment{attachment},
 	}
 
-	if _, err := sn.sender.Send(ctx, payload); err != nil {
-		sn.lastErr = err
+	if _, err := s.sender.Send(ctx, payload); err != nil {
+		s.lastErr = err
 		return fmt.Errorf("send Slack notification: %w", err)
 	}
 
-	sn.logger.Info("Notification sent",
-		"receiver", sn.id,
-		"type", sn.Type(),
-		"target", sn.Target(),
+	s.logger.Info("Notification sent",
+		"receiver", s.id,
+		"type", s.Type(),
+		"channel", s.Target(),
 	)
 	return nil
 }
 
 // Resolve interpolates variables in the config.
-func (sn *SlackConfig) Resolve() error {
+func (s *SlackConfig) Resolve() error {
 	var err error
-	if sn.Token, err = resolver.ResolveVariable(sn.Token); err != nil {
+	if s.Token, err = resolver.ResolveVariable(s.Token); err != nil {
 		return fmt.Errorf("resolve token: %w", err)
 	}
-	if sn.Channel, err = resolver.ResolveVariable(sn.Channel); err != nil {
+	if s.Channel, err = resolver.ResolveVariable(s.Channel); err != nil {
 		return fmt.Errorf("resolve channel: %w", err)
 	}
-	if sn.TitleTmpl, err = resolver.ResolveVariable(sn.TitleTmpl); err != nil {
+	if s.TitleTmpl, err = resolver.ResolveVariable(s.TitleTmpl); err != nil {
 		return fmt.Errorf("resolve title template: %w", err)
 	}
-	if sn.TextTmpl, err = resolver.ResolveVariable(sn.TextTmpl); err != nil {
+	if s.TextTmpl, err = resolver.ResolveVariable(s.TextTmpl); err != nil {
 		return fmt.Errorf("resolve text template: %w", err)
 	}
 	return nil
 }
 
 // Validate ensures required fields are set.
-func (sn *SlackConfig) Validate() error {
-	if sn.Token == "" {
+func (s *SlackConfig) Validate() error {
+	if s.Token == "" {
 		return errors.New("token cannot be empty")
 	}
-	if sn.Channel == "" {
+	if s.Channel == "" {
 		return errors.New("channel cannot be empty")
 	}
-	sn.Channel = "#" + strings.TrimPrefix(sn.Channel, "#")
+	s.Channel = "#" + strings.TrimPrefix(s.Channel, "#")
 	return nil
 }
