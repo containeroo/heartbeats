@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
@@ -31,11 +32,13 @@ func TestParseFlags(t *testing.T) {
 		assert.Equal(t, "config.yaml", cfg.ConfigPath, "default config path")
 		assert.Equal(t, ":8080", cfg.ListenAddr, "default listen address")
 		assert.Equal(t, "http://localhost:8080", cfg.SiteRoot, "default site root")
-		assert.Equal(t, 10000, cfg.HistorySize, "default history size")
 		assert.False(t, cfg.Debug, "default debug flag")
 		assert.Equal(t, 8081, cfg.DebugServerPort, "default debug server port")
 		assert.False(t, cfg.SkipTLS, "default skipTLS setting")
 		assert.Equal(t, logging.LogFormat("json"), cfg.LogFormat, "default log format")
+		assert.Equal(t, history.BackendTypeRingStore, cfg.HistoryBackend, "default history backend")
+		assert.Equal(t, "db", cfg.BadgerPath, "default badger path")
+		assert.Equal(t, 10000, cfg.RingStoreSize, "default history size")
 	})
 
 	t.Run("show version", func(t *testing.T) {
@@ -67,7 +70,7 @@ func TestParseFlags(t *testing.T) {
 			"-c", "myconf.yml",
 			"-a", "127.0.0.1:9000",
 			"-r", "https://example.com",
-			"-s", "42",
+			"--ring-size", "42",
 			"-d",
 			"--debug-server-port", "8082",
 			"-l", "text",
@@ -77,7 +80,7 @@ func TestParseFlags(t *testing.T) {
 		assert.Equal(t, "myconf.yml", cfg.ConfigPath)
 		assert.Equal(t, "127.0.0.1:9000", cfg.ListenAddr)
 		assert.Equal(t, "https://example.com", cfg.SiteRoot)
-		assert.Equal(t, 42, cfg.HistorySize)
+		assert.Equal(t, 42, cfg.RingStoreSize)
 		assert.True(t, cfg.Debug)
 		assert.Equal(t, 8082, cfg.DebugServerPort)
 		assert.Equal(t, logging.LogFormat("text"), cfg.LogFormat)
@@ -103,13 +106,15 @@ func TestBuildOptions(t *testing.T) {
 		fs.String("config", "test.yaml", "Path to config")
 		fs.String("listen-address", ":9090", "Listen address")
 		fs.String("site-root", "https://example.com", "Site root")
-		fs.Int("history-size", 123, "History size")
 		fs.Bool("debug", true, "Enable debug")
 		fs.Int("debug-server-port", 9999, "Debug server port")
 		fs.Bool("skip-tls", true, "Skip TLS")
 		fs.Int("retry-count", 5, "Retry count")
 		fs.Duration("retry-delay", 3*time.Second, "Retry delay")
 		fs.String("log-format", "text", "Log format")
+		fs.String("history-backend", "ring", "History backend")
+		fs.Int("ring-size", 123, "History size")
+		fs.String("badger-path", "db", "Badger path")
 
 		// Simulate parsing (uses the default values above)
 		assert.NoError(t, fs.Parse([]string{}))
@@ -120,7 +125,7 @@ func TestBuildOptions(t *testing.T) {
 		assert.Equal(t, "test.yaml", opts.ConfigPath)
 		assert.Equal(t, ":9090", opts.ListenAddr)
 		assert.Equal(t, "https://example.com", opts.SiteRoot)
-		assert.Equal(t, 123, opts.HistorySize)
+		assert.Equal(t, 123, opts.RingStoreSize)
 		assert.Equal(t, true, opts.Debug)
 		assert.Equal(t, 9999, opts.DebugServerPort)
 		assert.Equal(t, true, opts.SkipTLS)
@@ -149,7 +154,7 @@ func TestBuildOptions(t *testing.T) {
 		// Register only a subset of expected flags
 		fs.String("config", "cfg.yaml", "config file")
 		fs.String("site-root", "http://localhost", "site root URL")
-		fs.Int("history-size", 100, "history size")
+		fs.Int("ring-size", 100, "history size")
 
 		// leave out "listen-address" → must(envflag.HostPort(...)) will panic
 
@@ -189,9 +194,10 @@ func TestConfig_Validate(t *testing.T) {
 		t.Parallel()
 
 		cfg := Options{
-			LogFormat:  logging.LogFormatJSON,
-			RetryCount: 3,
-			RetryDelay: 2 * time.Second,
+			LogFormat:      logging.LogFormatJSON,
+			RetryCount:     3,
+			RetryDelay:     2 * time.Second,
+			HistoryBackend: history.BackendTypeRingStore,
 		}
 		assert.NoError(t, cfg.Validate())
 	})
@@ -205,7 +211,7 @@ func TestConfig_Validate(t *testing.T) {
 			RetryDelay: 2 * time.Second,
 		}
 		err := cfg.Validate()
-		assert.ErrorContains(t, err, "retry count")
+		assert.EqualError(t, err, "retry count must be -1 (infinite) or >= 1, got 0")
 	})
 
 	t.Run("invalid retry count < -1", func(t *testing.T) {
@@ -217,7 +223,7 @@ func TestConfig_Validate(t *testing.T) {
 			RetryDelay: 2 * time.Second,
 		}
 		err := cfg.Validate()
-		assert.ErrorContains(t, err, "retry count")
+		assert.EqualError(t, err, "retry count must be -1 (infinite) or >= 1, got -2")
 	})
 
 	t.Run("invalid retry delay < 1s", func(t *testing.T) {
@@ -229,7 +235,7 @@ func TestConfig_Validate(t *testing.T) {
 			RetryDelay: 500 * time.Millisecond,
 		}
 		err := cfg.Validate()
-		assert.ErrorContains(t, err, "retry delay")
+		assert.EqualError(t, err, "retry delay must be at least 1s, got 500ms")
 	})
 
 	t.Run("invalid log format", func(t *testing.T) {
@@ -241,6 +247,19 @@ func TestConfig_Validate(t *testing.T) {
 			RetryDelay: 2 * time.Second,
 		}
 		err := cfg.Validate()
-		assert.ErrorContains(t, err, "invalid log format")
+		assert.EqualError(t, err, "invalid log format: 'xml'")
+	})
+
+	t.Run("invalid history backend", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := Options{
+			LogFormat:      "text",
+			RetryCount:     3,
+			RetryDelay:     2 * time.Second,
+			HistoryBackend: "invalid",
+		}
+		err := cfg.Validate()
+		assert.EqualError(t, err, "invalid history backend: 'invalid' (must be 'ring' or 'badger')")
 	})
 }

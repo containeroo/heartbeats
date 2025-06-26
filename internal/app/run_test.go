@@ -124,6 +124,42 @@ func TestRun(t *testing.T) {
 		assert.EqualError(t, err, "invalid YAML config: at least one heartbeat must be defined")
 	})
 
+	t.Run("fails on history init", func(t *testing.T) {
+		webFS := webFS
+		tmpFile := filepath.Join(t.TempDir(), "good.yaml")
+
+		config := `
+receivers:
+  team1:
+    slack_configs:
+      - channel: "#alerts"
+        token: "dummy"
+heartbeats:
+  ping:
+    interval: 500ms
+    grace: 500ms
+    receivers: ["team1"]
+`
+		assert.NoError(t, os.WriteFile(tmpFile, []byte(config), 0644))
+
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		defer cancel()
+
+		var buf bytes.Buffer
+		args := []string{
+			"--config", tmpFile,
+			"--listen-address", ":8070",
+			"--debug",
+			"--history-backend", "badger",
+			"--badger-path", "",
+			"--retry-count", "2",
+			"--retry-delay", "1s",
+		}
+		err := app.Run(ctx, webFS, "dev", "abc", args, &buf, os.Getenv)
+		assert.Error(t, err)
+		assert.EqualError(t, err, "failed to initialize history: badger backend requires a path")
+	})
+
 	t.Run("startup and state change succeeds", func(t *testing.T) {
 		t.Parallel()
 
