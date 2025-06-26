@@ -24,44 +24,16 @@ func (e *HelpRequested) Error() string {
 
 // Options holds the application configuration.
 type Options struct {
-	Debug       bool              // Set LogLevel to Debug
-	LogFormat   logging.LogFormat // Specify the log output format
-	ConfigPath  string            // Path to the configuration file
-	ListenAddr  string            // Address to listen on
-	SiteRoot    string            // Root URL of the site
-	HistorySize int               // Size of the history ring buffer
-	SkipTLS     bool              // Skip TLS for all receivers
-	RetryCount  int               // Number of retries for notifications
-	RetryDelay  time.Duration     // Delay between retries
-}
-
-// must panics on err and is used to keep config assembly clean.
-func must[T any](v T, err error) T {
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// buildOptions resolves all values from flags, env, or defaults.
-func buildOptions(fs *flag.FlagSet) (opts Options, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("failed to parse flags: %v", r)
-			opts = Options{} // zero value
-		}
-	}()
-	return Options{
-		ConfigPath:  must(envflag.String(fs, "config", "HEARTBEATS_CONFIG")),
-		ListenAddr:  must(envflag.HostPort(fs, "listen-address", "HEARTBEATS_LISTEN_ADDRESS")),
-		SiteRoot:    must(envflag.URL(fs, "site-root", "HEARTBEATS_SITE_ROOT")),
-		HistorySize: must(envflag.Int(fs, "history-size", "HEARTBEATS_HISTORY_SIZE")),
-		Debug:       must(envflag.Bool(fs, "debug", "HEARTBEATS_DEBUG")),
-		SkipTLS:     must(envflag.Bool(fs, "skip-tls", "HEARTBEATS_SKIP_TLS")),
-		RetryCount:  must(envflag.Int(fs, "retry-count", "HEARTBEATS_RETRY_COUNT")),
-		RetryDelay:  must(envflag.Duration(fs, "retry-delay", "HEARTBEATS_RETRY_DELAY")),
-		LogFormat:   logging.LogFormat(must(envflag.String(fs, "log-format", "HEARTBEATS_LOG_FORMAT"))),
-	}, nil
+	Debug           bool              // Set LogLevel to Debug
+	LogFormat       logging.LogFormat // Specify the log output format
+	ConfigPath      string            // Path to the configuration file
+	ListenAddr      string            // Address to listen on
+	SiteRoot        string            // Root URL of the site
+	HistorySize     int               // Size of the history ring buffer
+	SkipTLS         bool              // Skip TLS for all receivers
+	RetryCount      int               // Number of retries for notifications
+	RetryDelay      time.Duration     // Delay between retries
+	DebugServerPort int               // Port for the debug server
 }
 
 // ParseFlags parses flags and environment variables.
@@ -76,6 +48,7 @@ func ParseFlags(args []string, version string, getEnv func(string) string) (Opti
 	fs.IntP("history-size", "s", 10000, "Size of the history (env: HEARTBEATS_HISTORY_SIZE)")
 	fs.Bool("skip-tls", false, "Skip TLS verification (env: HEARTBEATS_SKIP_TLS)")
 	fs.BoolP("debug", "d", false, "Enable debug logging (env: HEARTBEATS_DEBUG)")
+	fs.Int("debug-server-port", 8081, "Port for the debug server (env: HEARTBEATS_DEBUG_SERVER_PORT)")
 	fs.StringP("log-format", "l", "json", "Log format: json | text (env: HEARTBEATS_LOG_FORMAT)")
 	fs.Int("retry-count", 3, "Retries for failed notifications (-1 = infinite) (env: HEARTBEATS_RETRY_COUNT)")
 	fs.Duration("retry-delay", 2*time.Second, "Delay between retries (env: HEARTBEATS_RETRY_DELAY)")
@@ -104,6 +77,36 @@ func ParseFlags(args []string, version string, getEnv func(string) string) (Opti
 	}
 
 	return buildOptions(fs)
+}
+
+// buildOptions resolves all values from flags, env, or defaults.
+func buildOptions(fs *flag.FlagSet) (opts Options, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("failed to parse flags: %v", r)
+			opts = Options{} // zero value
+		}
+	}()
+	return Options{
+		ConfigPath:      must(envflag.String(fs, "config", "HEARTBEATS_CONFIG")),
+		ListenAddr:      must(envflag.HostPort(fs, "listen-address", "HEARTBEATS_LISTEN_ADDRESS")),
+		SiteRoot:        must(envflag.URL(fs, "site-root", "HEARTBEATS_SITE_ROOT")),
+		HistorySize:     must(envflag.Int(fs, "history-size", "HEARTBEATS_HISTORY_SIZE")),
+		Debug:           must(envflag.Bool(fs, "debug", "HEARTBEATS_DEBUG")),
+		DebugServerPort: must(envflag.Int(fs, "debug-server-port", "HEARTBEATS_DEBUG_SERVER_PORT")),
+		SkipTLS:         must(envflag.Bool(fs, "skip-tls", "HEARTBEATS_SKIP_TLS")),
+		RetryCount:      must(envflag.Int(fs, "retry-count", "HEARTBEATS_RETRY_COUNT")),
+		RetryDelay:      must(envflag.Duration(fs, "retry-delay", "HEARTBEATS_RETRY_DELAY")),
+		LogFormat:       logging.LogFormat(must(envflag.String(fs, "log-format", "HEARTBEATS_LOG_FORMAT"))),
+	}, nil
+}
+
+// must panics on err and is used to keep config assembly clean.
+func must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 // Validate checks whether the Options are valid.

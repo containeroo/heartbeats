@@ -89,12 +89,14 @@ func (a *Actor) Run(ctx context.Context) {
 			return
 
 		case ev := <-a.mailbox:
-			// handle heartbeat or manual failure
+			// handle heartbeat, manual failure and test
 			switch ev {
 			case common.EventReceive:
 				a.onReceive()
 			case common.EventFail:
 				a.onFail()
+			case common.EventTest:
+				a.onTest()
 			}
 
 		case <-checkCh:
@@ -161,7 +163,7 @@ func (a *Actor) onFail() {
 		ID:          a.ID,
 		Description: a.Description,
 		LastBump:    now,
-		Status:      common.HeartbeatStateMissing.String(),
+		Status:      common.HeartbeatStateFailed.String(),
 		Receivers:   a.Receivers,
 	}
 
@@ -202,6 +204,18 @@ func (a *Actor) onEnterMissing() {
 		Receivers:   a.Receivers,
 	}
 	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
+}
+
+// onTest sends only a notification to the Actor without changing state.
+func (a *Actor) onTest() {
+	// send notification
+	a.dispatchCh <- notifier.NotificationData{
+		ID:          a.ID,
+		Description: a.Description,
+		LastBump:    a.LastBump,
+		Status:      a.State.String(),
+		Receivers:   a.Receivers,
+	}
 }
 
 // runPending executes a delayed state change, if set.

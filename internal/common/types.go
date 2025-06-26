@@ -21,4 +21,5 @@ type EventType int
 const (
 	EventReceive EventType = iota // EventReceive is a heartbeat ping.
 	EventFail                     // EventFail is a manual failure.
+	EventTest                     // EventTest is a test notification.
 )

@@ -29,19 +29,20 @@ A lightweight HTTP service for monitoring periodic “heartbeat” pings (“bum
 
 ### Flags
 
-| Flag               | Shorthand | Default                 | Environment Variable        | Description                                                              |
-| :----------------- | :-------- | :---------------------- | :-------------------------- | :----------------------------------------------------------------------- |
-| `--config`         | `-c`      | `heartbeats.yml`        | `HEARTBEATS_CONFIG`         | Path to configuration file                                               |
-| `--listen-address` | `-a`      | `:8080`                 | `HEARTBEATS_LISTEN_ADDRESS` | Address to listen on (host:port)                                         |
-| `--site-root`      | `-r`      | `http://localhost:8080` | `HEARTBEATS_SITE_ROOT`      | Base URL for dashboard and link rendering                                |
-| `--history-size`   | `-s`      | `10000`                 | `HEARTBEATS_HISTORY_SIZE`   | Maximum number of historical heartbeat events to retain                  |
-| `--skip-tls`       | -         | `false`                 | `HEARTBEATS_SKIP_TLS`       | Skip TLS verification for all receivers (can be overridden per receiver) |
-| `--debug`          | `-d`      | `false`                 | `HEARTBEATS_DEBUG`          | Enable debug-level logging                                               |
-| `--log-format`     | `-l`      | `text`                  | `HEARTBEATS_LOG_FORMAT`     | Log format (`json` or `text`)                                            |
-| `--retry-count`    | -         | `3`                     | `HEARTBEATS_RETRY_COUNT`    | Number of times to retry a failed notification. Use `-1` for infinite.   |
-| `--retry-delay`    | -         | `2s`                    | `HEARTBEATS_RETRY_DELAY`    | Delay between retries. Must be ≥ 1s.                                     |
-| `--help`           | `-h`      | -                       | -                           | Show help and exit                                                       |
-| `--version`        | -         | -                       | -                           | Print version and exit                                                   |
+| Flag                  | Shorthand | Default                 | Environment Variable           | Description                                                              |
+| :-------------------- | :-------- | :---------------------- | :----------------------------- | :----------------------------------------------------------------------- |
+| `--config`            | `-c`      | `heartbeats.yml`        | `HEARTBEATS_CONFIG`            | Path to configuration file                                               |
+| `--listen-address`    | `-a`      | `:8080`                 | `HEARTBEATS_LISTEN_ADDRESS`    | Address to listen on (host:port)                                         |
+| `--site-root`         | `-r`      | `http://localhost:8080` | `HEARTBEATS_SITE_ROOT`         | Base URL for dashboard and link rendering                                |
+| `--history-size`      | `-s`      | `10000`                 | `HEARTBEATS_HISTORY_SIZE`      | Maximum number of historical heartbeat events to retain                  |
+| `--skip-tls`          | -         | `false`                 | `HEARTBEATS_SKIP_TLS`          | Skip TLS verification for all receivers (can be overridden per receiver) |
+| `--debug`             | `-d`      | `false`                 | `HEARTBEATS_DEBUG`             | Enable debug-level logging                                               |
+| `--debug-server-port` | `-p`      | `8081`                  | `HEARTBEATS_DEBUG_SERVER_PORT` | Port for the debug server                                                |
+| `--log-format`        | `-l`      | `text`                  | `HEARTBEATS_LOG_FORMAT`        | Log format (`json` or `text`)                                            |
+| `--retry-count`       | -         | `3`                     | `HEARTBEATS_RETRY_COUNT`       | Number of times to retry a failed notification. Use `-1` for infinite.   |
+| `--retry-delay`       | -         | `2s`                    | `HEARTBEATS_RETRY_DELAY`       | Delay between retries. Must be ≥ 1s.                                     |
+| `--help`              | `-h`      | -                       | -                              | Show help and exit                                                       |
+| `--version`           | -         | -                       | -                              | Print version and exit                                                   |
 
 #### Proxy Environment Variables
 
@@ -250,6 +251,48 @@ msteamsgraph_configs:
 Download the binary and update the example [config.yaml](./deploy/config.yaml) according your needs.
 If you prefer to run heartbeats in docker, you find a `docker-compose.yaml` & `config.yaml` [here](./deploy/).
 For a kubernetes deployment you find the manifests [here](./deploy/kubernetes).
+
+## Development & Debugging
+
+Heartbeats includes optional internal endpoints for testing receiver notifications and simulating heartbeats. These are only enabled when the `--debug` flag is set.
+
+### Internal Endpoints
+
+| Path                       | Method | Description                               |
+| :------------------------- | :----- | :---------------------------------------- |
+| `/internal/receiver/{id}`  | `GET`  | Sends a test notification to the receiver |
+| `/internal/heartbeat/{id}` | `GET`  | Simulates a bump for the given heartbeat  |
+
+These endpoints listen only on `127.0.0.1`.
+
+#### Kubernetes
+
+Forward the debug port to your local machine:
+
+```bash
+kubectl port-forward deploy/heartbeats 8081:8081
+
+curl http://localhost:8081/internal/receiver/{id}
+curl http://localhost:8081/internal/heartbeat/{id}
+```
+
+#### Docker
+
+Bind the debug port only to your host’s loopback interface:
+
+```bash
+docker run \
+  -p 127.0.0.1:8081:8081 \
+  -v ./config.yaml:/config.yaml \
+  containeroo/heartbeats
+
+curl http://localhost:8081/internal/receiver/{id}
+curl http://localhost:8081/internal/heartbeat/{id}
+```
+
+> ✅ This ensures `/internal/*` endpoints are **only reachable from your local machine**, not from other containers or the network.
+
+> ⚠️ **Warning:** These endpoints are meant for local testing and debugging only. Never expose them in production.
 
 ## License
 
