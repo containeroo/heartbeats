@@ -56,7 +56,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	defer stop()
 
 	// Create history
-	history, err := history.InitializeHistory(flags)
+	history, err := history.InitializeHistory(flags.HistoryBackend, flags.RingStoreSize, flags.BadgerPath)
 	if err != nil {
 		return fmt.Errorf("failed to initialize history: %w", err)
 	}
