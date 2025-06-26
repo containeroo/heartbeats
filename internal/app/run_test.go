@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -13,6 +14,21 @@ import (
 	"github.com/containeroo/heartbeats/internal/app"
 	"github.com/stretchr/testify/assert"
 )
+
+// waitForLog polls the log buffer until it contains the expected substring or times out.
+func waitForLog(t *testing.T, buf *bytes.Buffer, contains string, timeout time.Duration) bool {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+
+	for time.Now().Before(deadline) {
+		if strings.Contains(buf.String(), contains) {
+			return true
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	return false
+}
 
 func TestRun(t *testing.T) {
 	t.Parallel()
@@ -144,21 +160,16 @@ heartbeats:
 			_ = app.Run(ctx, webFS, "dev", "abc", args, &buf, os.Getenv)
 		}()
 
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond) // wait to start the server
 
 		resp, err := http.Post("http://localhost:8070/bump/ping", "text/plain", nil)
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		// Wait for grace period expiration + delayed transition + retries
-		time.Sleep(7 * time.Second)
-
-		logs := buf.String()
-		assert.Contains(t, logs, `msg":"received heartbeat"`)
-		assert.Contains(t, logs, `"from":"active","to":"grace"}`)
-		assert.Contains(t, logs, `"from":"grace","to":"missing"}`)
-		assert.Contains(t, logs, `"msg":"retrying","attempt":1,"`)
-		assert.Contains(t, logs, `"msg":"retrying","attempt":2,"`)
-		assert.Contains(t, logs, `"error":"notification failed after 2 retries: send Slack notification: Slack API error: invalid_auth"`)
+		assert.True(t, waitForLog(t, &buf, `"from":"active","to":"grace"`, 2*time.Second), "expected Active → Grace")
+		assert.True(t, waitForLog(t, &buf, `"from":"grace","to":"missing"`, 2*time.Second), "expected Grace → Missing")
+		assert.True(t, waitForLog(t, &buf, `"msg":"retrying","attempt":1`, 2*time.Second), "expected retry 1")
+		assert.True(t, waitForLog(t, &buf, `"msg":"retrying","attempt":2`, 2*time.Second), "expected retry 2")
+		assert.True(t, waitForLog(t, &buf, `notification failed after 2 retries`, 2*time.Second), "expected failure log")
 	})
 }

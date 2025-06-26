@@ -1,6 +1,7 @@
 package flag
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/logging"
+	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,6 +33,7 @@ func TestParseFlags(t *testing.T) {
 		assert.Equal(t, "http://localhost:8080", cfg.SiteRoot, "default site root")
 		assert.Equal(t, 10000, cfg.HistorySize, "default history size")
 		assert.False(t, cfg.Debug, "default debug flag")
+		assert.Equal(t, 8081, cfg.DebugServerPort, "default debug server port")
 		assert.False(t, cfg.SkipTLS, "default skipTLS setting")
 		assert.Equal(t, logging.LogFormat("json"), cfg.LogFormat, "default log format")
 	})
@@ -66,6 +69,7 @@ func TestParseFlags(t *testing.T) {
 			"-r", "https://example.com",
 			"-s", "42",
 			"-d",
+			"--debug-server-port", "8082",
 			"-l", "text",
 		}
 		cfg, err := ParseFlags(args, "0.0.0", os.Getenv)
@@ -75,6 +79,7 @@ func TestParseFlags(t *testing.T) {
 		assert.Equal(t, "https://example.com", cfg.SiteRoot)
 		assert.Equal(t, 42, cfg.HistorySize)
 		assert.True(t, cfg.Debug)
+		assert.Equal(t, 8082, cfg.DebugServerPort)
 		assert.Equal(t, logging.LogFormat("text"), cfg.LogFormat)
 	})
 
@@ -85,6 +90,95 @@ func TestParseFlags(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.EqualError(t, err, "unknown flag: --invalid")
+	})
+}
+
+func TestBuildOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("valid flags", func(t *testing.T) {
+		fs := pflag.NewFlagSet("test", pflag.ContinueOnError)
+
+		// Register all flags required by buildOptions
+		fs.String("config", "test.yaml", "Path to config")
+		fs.String("listen-address", ":9090", "Listen address")
+		fs.String("site-root", "https://example.com", "Site root")
+		fs.Int("history-size", 123, "History size")
+		fs.Bool("debug", true, "Enable debug")
+		fs.Int("debug-server-port", 9999, "Debug server port")
+		fs.Bool("skip-tls", true, "Skip TLS")
+		fs.Int("retry-count", 5, "Retry count")
+		fs.Duration("retry-delay", 3*time.Second, "Retry delay")
+		fs.String("log-format", "text", "Log format")
+
+		// Simulate parsing (uses the default values above)
+		assert.NoError(t, fs.Parse([]string{}))
+
+		opts, err := buildOptions(fs)
+		assert.NoError(t, err)
+
+		assert.Equal(t, "test.yaml", opts.ConfigPath)
+		assert.Equal(t, ":9090", opts.ListenAddr)
+		assert.Equal(t, "https://example.com", opts.SiteRoot)
+		assert.Equal(t, 123, opts.HistorySize)
+		assert.Equal(t, true, opts.Debug)
+		assert.Equal(t, 9999, opts.DebugServerPort)
+		assert.Equal(t, true, opts.SkipTLS)
+		assert.Equal(t, 5, opts.RetryCount)
+		assert.Equal(t, 3*time.Second, opts.RetryDelay)
+		assert.Equal(t, logging.LogFormat("text"), opts.LogFormat)
+	})
+
+	t.Run("panics on error", func(t *testing.T) {
+		t.Parallel()
+
+		fs := pflag.NewFlagSet("test", pflag.ContinueOnError)
+
+		opts, err := buildOptions(fs)
+
+		assert.Error(t, err)
+		assert.EqualError(t, err, "failed to parse flags: flag not found: config")
+		assert.Equal(t, Options{}, opts)
+	})
+
+	t.Run("partial flags", func(t *testing.T) {
+		t.Parallel()
+
+		fs := pflag.NewFlagSet("test", pflag.ContinueOnError)
+
+		// Register only a subset of expected flags
+		fs.String("config", "cfg.yaml", "config file")
+		fs.String("site-root", "http://localhost", "site root URL")
+		fs.Int("history-size", 100, "history size")
+
+		// leave out "listen-address" → must(envflag.HostPort(...)) will panic
+
+		_, err := buildOptions(fs)
+
+		assert.Error(t, err)
+		assert.EqualError(t, err, "failed to parse flags: flag not found: listen-address")
+	})
+}
+
+func TestMust(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns value if no error", func(t *testing.T) {
+		t.Parallel()
+
+		got := must("value", nil)
+		assert.Equal(t, "value", got)
+	})
+
+	t.Run("panics if error is not nil", func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			if r := recover(); r == nil {
+				t.Fatal("expected panic but got none")
+			}
+		}()
+		_ = must("fail", errors.New("error"))
 	})
 }
 

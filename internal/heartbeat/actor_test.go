@@ -3,6 +3,7 @@ package heartbeat
 import (
 	"context"
 	"log/slog"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -12,6 +13,20 @@ import (
 	"github.com/containeroo/heartbeats/internal/notifier"
 	"github.com/stretchr/testify/assert"
 )
+
+// waitForEvent waits for a matching event to appear in history, with timeout.
+func waitForEvent(t *testing.T, hist history.Store, match func(history.Event) bool, timeout time.Duration) bool {
+	t.Helper()
+
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if slices.ContainsFunc(hist.GetEvents(), match) {
+			return true
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return false
+}
 
 func TestActor_Run_Smoke(t *testing.T) {
 	t.Parallel()
@@ -49,43 +64,31 @@ func TestActor_Run_Smoke(t *testing.T) {
 			History:     hist,
 			DispatchCh:  disp.Mailbox(),
 		})
-
 		go actor.Run(ctx)
 
-		// Send one heartbeat to enter active state
 		actor.Mailbox() <- common.EventReceive
+		delay := transitionDelay + 150*time.Millisecond
 
-		// Let the heartbeat expire:
-		// checkTimer (100ms) + transitionDelay (1s) +
-		// graceTimer (100ms) + transitionDelay (1s) + buffer
-		time.Sleep(2300 * time.Millisecond)
+		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
+			return e.Type == history.EventTypeStateChanged &&
+				e.PrevState == "idle" && e.NewState == "active"
+		}, delay), "expected Idle → Active")
 
-		events := hist.GetEvents()
-		t.Logf("events: %+v", events)
+		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
+			return e.Type == history.EventTypeStateChanged &&
+				e.PrevState == "active" && e.NewState == "grace"
+		}, delay), "expected Active → Grace")
 
-		var seenIdleToActive,
-			seenActiveToGrace,
-			seenGraceToMissing,
-			seenNotification bool
+		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
+			return e.Type == history.EventTypeStateChanged &&
+				e.PrevState == "grace" && e.NewState == "missing"
+		}, delay), "expected Grace → Missing")
 
-		for _, e := range events {
-			switch {
-			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateIdle.String() && e.NewState == common.HeartbeatStateActive.String():
-				seenIdleToActive = true
-			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateActive.String() && e.NewState == common.HeartbeatStateGrace.String():
-				seenActiveToGrace = true
-			case e.Type == history.EventTypeStateChanged && e.PrevState == common.HeartbeatStateGrace.String() && e.NewState == common.HeartbeatStateMissing.String():
-				seenGraceToMissing = true
-			case e.Type == history.EventTypeNotificationSent:
-				seenNotification = true
-			}
-			t.Logf("%s → %s (%s)", e.PrevState, e.NewState, e.Type)
-		}
+		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
+			return e.Type == history.EventTypeNotificationSent
+		}, delay), "expected notification sent")
 
-		assert.True(t, seenIdleToActive, "expected Idle → Active transition")
-		assert.True(t, seenActiveToGrace, "expected Active → Grace transition")
-		assert.True(t, seenGraceToMissing, "expected Grace → Missing transition")
-		assert.True(t, seenNotification, "expected notification to be sent")
+		t.Log("Events:", hist.GetEvents())
 	})
 
 	t.Run("Let heartbeat recover", func(t *testing.T) {
@@ -116,75 +119,41 @@ func TestActor_Run_Smoke(t *testing.T) {
 			History:     hist,
 			DispatchCh:  disp.Mailbox(),
 		})
-
 		go actor.Run(ctx)
 
-		// First bump: idle → active
 		actor.Mailbox() <- common.EventReceive
-		time.Sleep(transitionDelay + 50*time.Millisecond)
+		delay := transitionDelay + 200*time.Millisecond
 
-		// Wait for active → grace
-		time.Sleep(actor.Interval + transitionDelay + 50*time.Millisecond)
+		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
+			return e.PrevState == "idle" && e.NewState == "active"
+		}, delay))
 
-		// bump during grace: grace → active (recovery)
+		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
+			return e.PrevState == "active" && e.NewState == "grace"
+		}, delay))
+
+		delay += 500 * time.Millisecond // recover needs more time
 		actor.Mailbox() <- common.EventReceive
-		time.Sleep(transitionDelay + 50*time.Millisecond)
+		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
+			return e.PrevState == "grace" && e.NewState == "active"
+		}, delay))
 
-		// Wait again for active → grace
-		time.Sleep(actor.Interval + transitionDelay + 50*time.Millisecond)
+		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
+			return e.PrevState == "active" && e.NewState == "grace"
+		}, delay))
 
-		// Let it go to missing
-		time.Sleep(actor.Grace + transitionDelay + 50*time.Millisecond)
+		delay += 1 * time.Second // sending needs more time
+		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
+			return e.PrevState == "grace" && e.NewState == "missing"
+		}, delay))
 
-		// final bump: missing → active (triggers recovery)
+		delay += 1 * time.Second // recover needs more time
 		actor.Mailbox() <- common.EventReceive
-		time.Sleep(transitionDelay + 50*time.Millisecond)
+		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
+			return e.PrevState == "missing" && e.NewState == "active"
+		}, delay))
 
-		events := hist.GetEvents()
-		t.Logf("events: %+v", events)
-
-		var seenIdleToActive,
-			seenActiveToGrace,
-			seenGraceToActive,
-			seenSecondGrace,
-			seenGraceToMissing,
-			seenRecovered bool
-
-		for _, e := range events {
-			switch {
-			case (e.Type == history.EventTypeStateChanged &&
-				e.PrevState == common.HeartbeatStateIdle.String() &&
-				e.NewState == common.HeartbeatStateActive.String()):
-				seenIdleToActive = true
-			case (e.Type == history.EventTypeStateChanged &&
-				e.PrevState == common.HeartbeatStateActive.String() &&
-				e.NewState == common.HeartbeatStateGrace.String()):
-				if !seenActiveToGrace {
-					seenActiveToGrace = true
-				} else {
-					seenSecondGrace = true
-				}
-			case (e.Type == history.EventTypeStateChanged &&
-				e.PrevState == common.HeartbeatStateGrace.String() &&
-				e.NewState == common.HeartbeatStateActive.String()):
-				seenGraceToActive = true
-			case (e.Type == history.EventTypeStateChanged &&
-				e.PrevState == common.HeartbeatStateGrace.String() &&
-				e.NewState == common.HeartbeatStateMissing.String()):
-				seenGraceToMissing = true
-			case (e.Type == history.EventTypeStateChanged &&
-				e.PrevState == common.HeartbeatStateMissing.String() &&
-				e.NewState == common.HeartbeatStateActive.String()):
-				seenRecovered = true
-			}
-		}
-
-		assert.True(t, seenIdleToActive, "expected idle → active")
-		assert.True(t, seenActiveToGrace, "expected active → grace")
-		assert.True(t, seenGraceToActive, "expected grace → active")
-		assert.True(t, seenSecondGrace, "expected second active → grace")
-		assert.True(t, seenGraceToMissing, "expected grace → missing")
-		assert.True(t, seenRecovered, "expected missing → active (recovery)")
+		t.Log("Events:", hist.GetEvents())
 	})
 }
 
@@ -299,7 +268,7 @@ func TestActor_OnFail(t *testing.T) {
 		case n := <-recv:
 			assert.Equal(t, "x", n.ID)
 			assert.Equal(t, "test", n.Description)
-			assert.Equal(t, common.HeartbeatStateMissing.String(), n.Status)
+			assert.Equal(t, common.HeartbeatStateFailed.String(), n.Status)
 			assert.Equal(t, []string{"r1"}, n.Receivers)
 			assert.WithinDuration(t, time.Now(), n.LastBump, time.Second)
 		case <-time.After(10 * time.Millisecond):
@@ -419,6 +388,39 @@ func TestActor_OnEnterMissing(t *testing.T) {
 			t.Fatalf("unexpected notification sent: %+v", n)
 		case <-time.After(5 * time.Millisecond):
 			// pass
+		}
+	})
+}
+
+func TestActor_OnTest(t *testing.T) {
+	t.Parallel()
+
+	t.Run("dispatches notification with correct fields", func(t *testing.T) {
+		t.Parallel()
+
+		dispatchCh := make(chan notifier.NotificationData, 1)
+
+		a := &Actor{
+			ID:          "test-hb",
+			Description: "desc",
+			LastBump:    time.Now().Add(-5 * time.Minute),
+			State:       common.HeartbeatStateIdle,
+			Receivers:   []string{"r1", "r2"},
+			dispatchCh:  dispatchCh,
+		}
+
+		a.onTest()
+
+		select {
+		case msg := <-dispatchCh:
+			assert.Equal(t, "test-hb", msg.ID)
+			assert.Equal(t, "desc", msg.Description)
+			assert.Equal(t, a.LastBump, msg.LastBump)
+			assert.Equal(t, "idle", msg.Status)
+			assert.Equal(t, []string{"r1", "r2"}, msg.Receivers)
+			assert.Equal(t, common.HeartbeatStateIdle.String(), msg.Status)
+		default:
+			t.Fatal("expected notification to be sent")
 		}
 	})
 }

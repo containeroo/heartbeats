@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/containeroo/heartbeats/internal/config"
+	"github.com/containeroo/heartbeats/internal/debugserver"
 	"github.com/containeroo/heartbeats/internal/flag"
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
@@ -78,6 +79,11 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		history,
 		logger,
 	)
+
+	// Run debug server if enabled
+	if flags.Debug {
+		debugserver.Run(ctx, flags.DebugServerPort, mgr, dispatcher, logger)
+	}
 
 	// Create server and run forever
 	router := server.NewRouter(

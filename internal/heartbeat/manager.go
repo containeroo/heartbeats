@@ -68,3 +68,13 @@ func (m *Manager) HandleFail(id string) error {
 	a.Mailbox() <- common.EventFail
 	return nil
 }
+
+// HandleTest sends only a notification to the Actor.
+func (m *Manager) HandleTest(id string) error {
+	a, ok := m.actors[id]
+	if !ok {
+		return fmt.Errorf("unknown heartbeat id %q", id)
+	}
+	a.Mailbox() <- common.EventTest
+	return nil
+}
