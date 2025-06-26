@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/envflag"
 	"github.com/containeroo/heartbeats/internal/logging"
+	"github.com/containeroo/heartbeats/pkg/envflag"
 
 	flag "github.com/spf13/pflag"
 )
@@ -83,6 +83,8 @@ func ParseFlags(args []string, version string, getEnv func(string) string) (Opti
 func buildOptions(fs *flag.FlagSet) (opts Options, err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			// catch panic from must(...) calls to avoid repetitive `if err != nil` checks
+			// and convert them into a single error return instead
 			err = fmt.Errorf("failed to parse flags: %v", r)
 			opts = Options{} // zero value
 		}
