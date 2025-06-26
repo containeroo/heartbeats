@@ -55,7 +55,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Create history
+	// Create history cache
 	history, err := history.InitializeHistory(flags)
 	if err != nil {
 		return fmt.Errorf("failed to initialize history: %w", err)
