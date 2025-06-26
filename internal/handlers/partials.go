@@ -172,28 +172,42 @@ func renderHistory(
 	views := make([]HistoryView, 0, len(raw))
 	for _, e := range raw {
 		var det string
-		switch {
-		case e.Payload != nil:
-			if p, ok := e.Payload.(notifier.NotificationInfo); ok {
-				if p.Error != nil {
+
+		switch e.Type {
+		case history.EventTypeNotificationSent, history.EventTypeNotificationFailed:
+			var p history.NotificationPayload
+			if err := e.DecodePayload(&p); err == nil {
+				if p.Error != "" {
 					det = fmt.Sprintf("Notification to %q via %s (%s) failed: %s",
-						p.Receiver,
-						p.Type,
-						p.Target,
-						p.Error,
+						p.Receiver, p.Type, p.Target, p.Error,
 					)
 				} else {
 					det = fmt.Sprintf("Notification sent to %q via %s (%s)",
-						p.Receiver,
-						p.Type,
-						p.Target,
+						p.Receiver, p.Type, p.Target,
 					)
 				}
+			} else {
+				det = "Invalid notification payload"
 			}
-		case e.PrevState != "":
-			det = e.PrevState + " → " + e.NewState
-		case e.Type == history.EventTypeHeartbeatReceived || e.Type == history.EventTypeHeartbeatFailed:
-			det = fmt.Sprintf("%s from %s with %s", e.Method, e.Source, e.UserAgent)
+
+		case history.EventTypeStateChanged:
+			var p history.StateChangePayload
+			if err := e.DecodePayload(&p); err == nil {
+				det = fmt.Sprintf("%s → %s", p.From, p.To)
+			} else {
+				det = "Invalid state change payload"
+			}
+
+		case history.EventTypeHeartbeatReceived, history.EventTypeHeartbeatFailed:
+			var p history.RequestMetadataPayload
+			if err := e.DecodePayload(&p); err == nil {
+				det = fmt.Sprintf("%s from %s with %q", p.Method, p.Source, p.UserAgent)
+			} else {
+				det = "Invalid request metadata"
+			}
+
+		default:
+			det = "Unknown event type"
 		}
 
 		views = append(views, HistoryView{
@@ -204,8 +218,9 @@ func renderHistory(
 		})
 	}
 
+	// Newest first
 	sort.Slice(views, func(i, j int) bool {
-		return views[i].Timestamp.Before(views[j].Timestamp)
+		return views[j].Timestamp.Before(views[i].Timestamp)
 	})
 
 	return tmpl.ExecuteTemplate(w, "history", struct{ Events []HistoryView }{Events: views})

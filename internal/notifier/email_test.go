@@ -31,9 +31,13 @@ func TestEmailConfig_Type(t *testing.T) {
 
 func TestEmailConfig_Target(t *testing.T) {
 	t.Parallel()
-	assert.Equal(t, "To: test@exampl.com", NewEmailNotifier(
+	assert.Equal(t, "To: to@exampl.com\nCC: cc@exampl.com\nBCC: bcc@exampl.com", NewEmailNotifier(
 		"id",
-		EmailConfig{EmailDetails: EmailDetails{To: []string{"test@exampl.com"}}},
+		EmailConfig{EmailDetails: EmailDetails{
+			To:  []string{"to@exampl.com"},
+			CC:  []string{"cc@exampl.com"},
+			BCC: []string{"bcc@exampl.com"},
+		}},
 		nil,
 		nil,
 	).Target())

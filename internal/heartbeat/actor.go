@@ -140,8 +140,9 @@ func (a *Actor) onReceive() {
 	}
 
 	a.State = common.HeartbeatStateActive
-	a.recordStateChange(prev, a.State)
-
+	if err := a.recordStateChange(prev, a.State); err != nil {
+		a.logger.Error("failed to record state change", "err", err)
+	}
 	a.LastBump = now
 	a.checkTimer = time.NewTimer(a.Interval)
 
@@ -168,7 +169,9 @@ func (a *Actor) onFail() {
 	}
 
 	a.State = common.HeartbeatStateFailed
-	a.recordStateChange(prev, a.State)
+	if err := a.recordStateChange(prev, a.State); err != nil {
+		a.logger.Error("failed to record state change", "err", err)
+	}
 
 	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
 }
@@ -181,7 +184,9 @@ func (a *Actor) onEnterGrace() {
 
 	prev := a.State
 	a.State = common.HeartbeatStateGrace
-	a.recordStateChange(prev, a.State)
+	if err := a.recordStateChange(prev, a.State); err != nil {
+		a.logger.Error("failed to record state change", "err", err)
+	}
 
 	a.graceTimer = time.NewTimer(a.Grace)
 }
@@ -193,7 +198,9 @@ func (a *Actor) onEnterMissing() {
 	}
 	prev := a.State
 	a.State = common.HeartbeatStateMissing
-	a.recordStateChange(prev, a.State)
+	if err := a.recordStateChange(prev, a.State); err != nil {
+		a.logger.Error("failed to record state change", "err", err)
+	}
 
 	// send notification
 	a.dispatchCh <- notifier.NotificationData{
@@ -203,6 +210,7 @@ func (a *Actor) onEnterMissing() {
 		Status:      common.HeartbeatStateMissing.String(),
 		Receivers:   a.Receivers,
 	}
+
 	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
 }
 

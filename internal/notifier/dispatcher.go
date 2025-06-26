@@ -85,16 +85,16 @@ func (d *Dispatcher) Get(id string) []Notifier {
 
 // sendWithRetry retries a notification and records its outcome.
 func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Notifier, data NotificationData) {
-	info := NotificationInfo{
+	payload := history.NotificationPayload{
 		Receiver: receiverID,
 		Type:     n.Type(),
 		Target:   n.Target(),
 	}
+
 	eventType := history.EventTypeNotificationSent
 
-	err := d.retryNotify(ctx, n, data, receiverID)
-	if err != nil {
-		info.Error = err
+	if err := d.retryNotify(ctx, n, data, receiverID); err != nil {
+		payload.Error = err.Error()
 		eventType = history.EventTypeNotificationFailed
 
 		d.logger.Error("notification error",
@@ -105,12 +105,10 @@ func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Not
 		)
 	}
 
-	_ = d.history.RecordEvent(ctx, history.Event{
-		Timestamp:   time.Now(),
-		Type:        eventType,
-		HeartbeatID: data.ID,
-		Payload:     info,
-	})
+	ev := history.MustNewEvent(eventType, data.ID, payload)
+	if err := d.history.RecordEvent(ctx, ev); err != nil {
+		d.logger.Error("failed to record state change", "err", err)
+	}
 }
 
 // retryNotify retries sending notification.

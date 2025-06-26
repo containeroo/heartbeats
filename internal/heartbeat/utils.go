@@ -40,13 +40,12 @@ func (a *Actor) stopAllTimers() {
 }
 
 // recordStateChange logs and records a state change if it actually changed.
-func (a *Actor) recordStateChange(prev, next common.HeartbeatState) {
+func (a *Actor) recordStateChange(prev, next common.HeartbeatState) error {
 	if prev == next {
 		// avoid noisy logs when state hasn’t changed (e.g. repeated heartbeats in active state)
-		return
+		return nil
 	}
 
-	now := time.Now()
 	from := prev.String()
 	to := next.String()
 
@@ -56,11 +55,11 @@ func (a *Actor) recordStateChange(prev, next common.HeartbeatState) {
 		"to", to,
 	)
 
-	_ = a.hist.RecordEvent(a.ctx, history.Event{
-		Timestamp:   now,
-		Type:        history.EventTypeStateChanged,
-		HeartbeatID: a.ID,
-		PrevState:   from,
-		NewState:    to,
-	})
+	payload := history.StateChangePayload{
+		From: from,
+		To:   to,
+	}
+	ev := history.MustNewEvent(history.EventTypeStateChanged, a.ID, payload)
+
+	return a.hist.RecordEvent(a.ctx, ev)
 }

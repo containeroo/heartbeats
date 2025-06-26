@@ -18,13 +18,12 @@ type HelpRequested struct {
 }
 
 // Error returns the help message.
-func (e *HelpRequested) Error() string {
-	return e.Message
-}
+func (e *HelpRequested) Error() string { return e.Message }
 
 // Options holds the application configuration.
 type Options struct {
 	Debug           bool              // Set LogLevel to Debug
+	DebugServerPort int               // Port for the debug server
 	LogFormat       logging.LogFormat // Specify the log output format
 	ConfigPath      string            // Path to the configuration file
 	ListenAddr      string            // Address to listen on
@@ -33,7 +32,6 @@ type Options struct {
 	SkipTLS         bool              // Skip TLS for all receivers
 	RetryCount      int               // Number of retries for notifications
 	RetryDelay      time.Duration     // Delay between retries
-	DebugServerPort int               // Port for the debug server
 }
 
 // ParseFlags parses flags and environment variables.
