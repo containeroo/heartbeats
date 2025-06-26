@@ -26,10 +26,10 @@ func Run(ctx context.Context, port int, mgr *heartbeat.Manager, dispatcher *noti
 		Handler: mux,
 	}
 
-	// Graceful shutdown on ctx cancel.
+	// Direct shutdown on ctx cancel.
 	go func() {
 		<-ctx.Done()
-		_ = server.Close()
+		server.Close() // nolint:errcheck
 	}()
 
 	// Serve requests on 127.0.0.1 until shutdown.
