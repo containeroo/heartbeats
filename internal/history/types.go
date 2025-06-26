@@ -17,6 +17,7 @@ type Store interface {
 	GetEventsByID(id string) []Event                // GetEventsByID returns all events recorded for the specified heartbeat ID.
 }
 
+// InitializeHistory initializes a new history store.
 func InitializeHistory(flags flag.Options) (Store, error) {
 	return NewRingStore(flags.HistorySize), nil
 }
