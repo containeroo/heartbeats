@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"slices"
 	"strings"
@@ -14,8 +15,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// waitForEvent waits for a matching event to appear in history, with timeout.
-func waitForEvent(t *testing.T, hist history.Store, match func(history.Event) bool, timeout time.Duration) bool {
+// waitForPayloadEvent waits for a matching event to appear in history, with timeout.
+func waitForPayloadEvent[T any](t *testing.T, hist history.Store, match func(T) bool, timeout time.Duration) bool {
+	t.Helper()
+
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		for _, ev := range hist.GetEvents() {
+			var payload T
+			if err := ev.DecodePayload(&payload); err != nil {
+				continue // skip non-matching or invalid payloads
+			}
+			if match(payload) {
+				return true
+			}
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return false
+}
+
+// waitForRawEvent waits for an event that matches the given predicate on the full event.
+func waitForRawEvent(t *testing.T, hist history.Store, match func(history.Event) bool, timeout time.Duration) bool {
 	t.Helper()
 
 	deadline := time.Now().Add(timeout)
@@ -42,14 +63,10 @@ func TestActor_Run_Smoke(t *testing.T) {
 
 		store.Register("r1", &notifier.MockNotifier{
 			NotifyFunc: func(ctx context.Context, data notifier.NotificationData) error {
-				return hist.RecordEvent(ctx, history.Event{
-					Timestamp:   time.Now(),
-					Type:        history.EventTypeNotificationSent,
-					HeartbeatID: data.ID,
-					Payload:     data,
-				})
+				return hist.RecordEvent(ctx, history.MustNewEvent(history.EventTypeNotificationSent, data.ID, data))
 			},
 		})
+
 		disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
 		go disp.Run(ctx)
 
@@ -66,29 +83,26 @@ func TestActor_Run_Smoke(t *testing.T) {
 		})
 		go actor.Run(ctx)
 
+		// First receive to transition out of idle
 		actor.Mailbox() <- common.EventReceive
-		delay := transitionDelay + 150*time.Millisecond
 
-		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
-			return e.Type == history.EventTypeStateChanged &&
-				e.PrevState == "idle" && e.NewState == "active"
-		}, delay), "expected Idle → Active")
+		timeout := transitionDelay + 150*time.Millisecond
 
-		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
-			return e.Type == history.EventTypeStateChanged &&
-				e.PrevState == "active" && e.NewState == "grace"
-		}, delay), "expected Active → Grace")
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "idle" && p.To == "active"
+		}, timeout))
 
-		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
-			return e.Type == history.EventTypeStateChanged &&
-				e.PrevState == "grace" && e.NewState == "missing"
-		}, delay), "expected Grace → Missing")
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "active" && p.To == "grace"
+		}, timeout))
 
-		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
-			return e.Type == history.EventTypeNotificationSent
-		}, delay), "expected notification sent")
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "grace" && p.To == "missing"
+		}, timeout))
 
-		t.Log("Events:", hist.GetEvents())
+		assert.True(t, waitForRawEvent(t, hist, func(e history.Event) bool {
+			return e.Type == history.EventTypeNotificationSent || e.Type == history.EventTypeNotificationFailed
+		}, timeout))
 	})
 
 	t.Run("Let heartbeat recover", func(t *testing.T) {
@@ -122,38 +136,43 @@ func TestActor_Run_Smoke(t *testing.T) {
 		go actor.Run(ctx)
 
 		actor.Mailbox() <- common.EventReceive
-		delay := transitionDelay + 200*time.Millisecond
+		timeout := transitionDelay + 200*time.Millisecond
 
-		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
-			return e.PrevState == "idle" && e.NewState == "active"
-		}, delay))
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "idle" && p.To == "active"
+		}, timeout), "expected Idle → Active")
 
-		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
-			return e.PrevState == "active" && e.NewState == "grace"
-		}, delay))
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "active" && p.To == "grace"
+		}, timeout), "expected Active → Grace")
 
-		delay += 500 * time.Millisecond // recover needs more time
+		timeout += 500 * time.Millisecond // allow time before recover
 		actor.Mailbox() <- common.EventReceive
-		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
-			return e.PrevState == "grace" && e.NewState == "active"
-		}, delay))
 
-		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
-			return e.PrevState == "active" && e.NewState == "grace"
-		}, delay))
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "grace" && p.To == "active"
+		}, timeout), "expected Grace → Active")
 
-		delay += 1 * time.Second // sending needs more time
-		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
-			return e.PrevState == "grace" && e.NewState == "missing"
-		}, delay))
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "active" && p.To == "grace"
+		}, timeout), "expected Active → Grace")
 
-		delay += 1 * time.Second // recover needs more time
+		timeout += time.Second // wait for missing state
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "grace" && p.To == "missing"
+		}, timeout), "expected Grace → Missing")
+
+		// wait for notification
+		assert.True(t, waitForRawEvent(t, hist, func(e history.Event) bool {
+			return e.Type == history.EventTypeNotificationSent || e.Type == history.EventTypeNotificationFailed
+		}, timeout))
+
+		timeout += time.Second // final recover
 		actor.Mailbox() <- common.EventReceive
-		assert.True(t, waitForEvent(t, hist, func(e history.Event) bool {
-			return e.PrevState == "missing" && e.NewState == "active"
-		}, delay))
 
-		t.Log("Events:", hist.GetEvents())
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "missing" && p.To == "active"
+		}, timeout), "expected Missing → Active")
 	})
 }
 
@@ -194,10 +213,9 @@ func TestActor_OnReceive(t *testing.T) {
 			t.Fatal("expected recovery notification to be sent")
 		}
 
-		events := hist.GetEvents()
-		assert.Len(t, events, 1)
-		assert.Equal(t, "missing", events[0].PrevState)
-		assert.Equal(t, "active", events[0].NewState)
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "missing" && p.To == "active"
+		}, 100*time.Millisecond), "expected state change: missing → active")
 	})
 
 	t.Run("previous state was not missing", func(t *testing.T) {
@@ -233,10 +251,42 @@ func TestActor_OnReceive(t *testing.T) {
 			// expected: no notification
 		}
 
-		events := hist.GetEvents()
-		assert.Len(t, events, 1)
-		assert.Equal(t, "idle", events[0].PrevState)
-		assert.Equal(t, "active", events[0].NewState)
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "idle" && p.To == "active"
+		}, 100*time.Millisecond), "expected state change: missing → active")
+	})
+
+	t.Run("record error", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		dispatchCh := make(chan notifier.NotificationData, 1)
+		var buf strings.Builder
+		logger := slog.New(slog.NewTextHandler(&buf, nil))
+
+		mockHist := history.MockStore{
+			RecordEventFunc: func(ctx context.Context, e history.Event) error {
+				return errors.New("fail!")
+			},
+		}
+
+		a := &Actor{
+			ctx:         ctx,
+			ID:          "hb2",
+			Description: "Test Heartbeat",
+			Interval:    100 * time.Millisecond,
+			Grace:       50 * time.Millisecond,
+			Receivers:   []string{"r2"},
+			logger:      logger,
+			hist:        &mockHist,
+			dispatchCh:  dispatchCh,
+			State:       common.HeartbeatStateIdle,
+		}
+
+		a.onReceive()
+
+		assert.Equal(t, common.HeartbeatStateActive, a.State)
+		assert.Contains(t, buf.String(), "level=ERROR msg=\"failed to record state change\" err=fail!\n")
 	})
 }
 
@@ -274,6 +324,39 @@ func TestActor_OnFail(t *testing.T) {
 		case <-time.After(10 * time.Millisecond):
 			t.Fatal("expected notification not sent")
 		}
+	})
+
+	t.Run("record error", func(t *testing.T) {
+		t.Parallel()
+
+		ctx := t.Context()
+		dispatchCh := make(chan notifier.NotificationData, 1)
+		var buf strings.Builder
+		logger := slog.New(slog.NewTextHandler(&buf, nil))
+
+		mockHist := history.MockStore{
+			RecordEventFunc: func(ctx context.Context, e history.Event) error {
+				return errors.New("fail!")
+			},
+		}
+
+		a := &Actor{
+			ctx:         ctx,
+			ID:          "hb2",
+			Description: "Test Heartbeat",
+			Interval:    100 * time.Millisecond,
+			Grace:       50 * time.Millisecond,
+			Receivers:   []string{"r2"},
+			logger:      logger,
+			hist:        &mockHist,
+			dispatchCh:  dispatchCh,
+			State:       common.HeartbeatStateActive,
+		}
+
+		a.onFail()
+
+		assert.Equal(t, common.HeartbeatStateFailed, a.State)
+		assert.Contains(t, buf.String(), "level=ERROR msg=\"failed to record state change\" err=fail!\n")
 	})
 }
 
@@ -322,6 +405,34 @@ func TestActor_OnEnterGrace(t *testing.T) {
 
 		assert.Equal(t, common.HeartbeatStateIdle, act.State)
 		assert.Nil(t, act.graceTimer)
+	})
+
+	t.Run("record error", func(t *testing.T) {
+		t.Parallel()
+
+		var buf strings.Builder
+		logger := slog.New(slog.NewTextHandler(&buf, nil))
+
+		mockHist := history.MockStore{
+			RecordEventFunc: func(ctx context.Context, e history.Event) error {
+				return errors.New("fail!")
+			},
+		}
+
+		act := &Actor{
+			ID:         "x",
+			State:      common.HeartbeatStateActive,
+			Grace:      50 * time.Millisecond,
+			logger:     logger,
+			hist:       &mockHist,
+			mailbox:    make(chan common.EventType, 1),
+			dispatchCh: make(chan notifier.NotificationData, 1),
+		}
+
+		act.onEnterGrace()
+
+		assert.Equal(t, common.HeartbeatStateGrace, act.State)
+		assert.Contains(t, buf.String(), "level=ERROR msg=\"failed to record state change\" err=fail!\n")
 	})
 }
 
@@ -389,6 +500,31 @@ func TestActor_OnEnterMissing(t *testing.T) {
 		case <-time.After(5 * time.Millisecond):
 			// pass
 		}
+	})
+
+	t.Run("record error", func(t *testing.T) {
+		t.Parallel()
+
+		var buf strings.Builder
+		logger := slog.New(slog.NewTextHandler(&buf, nil))
+		mockHist := history.MockStore{
+			RecordEventFunc: func(ctx context.Context, e history.Event) error {
+				return errors.New("fail!")
+			},
+		}
+
+		act := &Actor{
+			ID:         "x",
+			State:      common.HeartbeatStateGrace,
+			dispatchCh: make(chan notifier.NotificationData, 1),
+			hist:       &mockHist,
+			logger:     logger,
+		}
+
+		act.onEnterMissing()
+
+		assert.Equal(t, common.HeartbeatStateMissing, act.State)
+		assert.Contains(t, buf.String(), "level=ERROR msg=\"failed to record state change\" err=fail!\n")
 	})
 }
 

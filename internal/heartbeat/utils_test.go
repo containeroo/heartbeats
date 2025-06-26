@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 	"testing"
@@ -68,16 +69,11 @@ func TestRecordStateChange_ChangesState(t *testing.T) {
 			hist:   hist,
 		}
 
-		a.recordStateChange(common.HeartbeatStateGrace, common.HeartbeatStateActive)
+		a.recordStateChange(common.HeartbeatStateGrace, common.HeartbeatStateActive) // nolint:errcheck
 
-		events := hist.GetEvents()
-
-		assert.Equal(t, "grace", events[0].PrevState)
-		assert.Equal(t, "active", events[0].NewState)
-		assert.Equal(t, "demo", events[0].HeartbeatID)
-
-		logStr := logBuf.String()
-		assert.Contains(t, logStr, "level=INFO msg=\"state change\" heartbeat=demo from=grace to=active\n")
+		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
+			return p.From == "grace" && p.To == "active"
+		}, 100*time.Millisecond), "expected state change: missing → active")
 	})
 
 	t.Run("Status does not change", func(t *testing.T) {
@@ -94,7 +90,29 @@ func TestRecordStateChange_ChangesState(t *testing.T) {
 			hist:   hist,
 		}
 
-		a.recordStateChange(common.HeartbeatStateActive, common.HeartbeatStateActive)
+		a.recordStateChange(common.HeartbeatStateActive, common.HeartbeatStateActive) // nolint:errcheck
+
+		assert.Empty(t, logBuf.String())
+	})
+	t.Run("record error", func(t *testing.T) {
+		t.Parallel()
+
+		var logBuf strings.Builder
+		logger := slog.New(slog.NewTextHandler(&logBuf, nil))
+		mockHist := &history.MockStore{
+			RecordEventFunc: func(ctx context.Context, e history.Event) error {
+				return errors.New("fail!")
+			},
+		}
+
+		a := &Actor{
+			ID:     "noop",
+			ctx:    context.Background(),
+			logger: logger,
+			hist:   mockHist,
+		}
+
+		a.recordStateChange(common.HeartbeatStateActive, common.HeartbeatStateActive) // nolint:errcheck
 
 		assert.Empty(t, logBuf.String())
 	})

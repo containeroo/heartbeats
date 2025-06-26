@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
@@ -19,25 +18,31 @@ func BumpHandler(mgr *heartbeat.Manager, hist history.Store, logger *slog.Logger
 			return
 		}
 
-		now := time.Now()
 		src := r.RemoteAddr
-		ua := r.Header.Get("User-Agent")
-		logger.Info("received heartbeat", "id", id, "from", src)
 
-		_ = hist.RecordEvent(r.Context(), history.Event{
-			Timestamp:   now,
-			Type:        history.EventTypeHeartbeatReceived,
-			HeartbeatID: id,
-			Source:      src,
-			Method:      r.Method,
-			UserAgent:   ua,
-		})
-
-		if err := mgr.HandleReceive(id); err != nil {
-			logger.Error("handle receive failed", "id", id, "err", err)
-			http.Error(w, err.Error(), http.StatusNotFound)
+		if mgr.Get(id) == nil {
+			logger.Warn("received bump for unknown heartbeat ID", "id", id, "from", src)
+			http.Error(w, fmt.Sprintf("unknown heartbeat id %q", id), http.StatusNotFound)
 			return
 		}
+
+		logger.Info("received bump", "id", id, "from", src)
+
+		payload := history.RequestMetadataPayload{
+			Source:    src,
+			Method:    r.Method,
+			UserAgent: r.UserAgent(),
+		}
+		ev := history.MustNewEvent(history.EventTypeHeartbeatReceived, id, payload)
+
+		if err := hist.RecordEvent(r.Context(), ev); err != nil {
+			logger.Error("failed to record state change", "err", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// We check if the heartbeat exists before calling HandleReceive
+		mgr.HandleReceive(id) // nolint:errcheck
 
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "ok") // nolint:errcheck
@@ -53,25 +58,31 @@ func FailHandler(mgr *heartbeat.Manager, hist history.Store, logger *slog.Logger
 			return
 		}
 
-		now := time.Now()
 		src := r.RemoteAddr
-		ua := r.Header.Get("User-Agent")
-		logger.Info("manual fail", "id", id, "from", src)
 
-		_ = hist.RecordEvent(r.Context(), history.Event{
-			Timestamp:   now,
-			Type:        history.EventTypeHeartbeatFailed,
-			HeartbeatID: id,
-			Source:      src,
-			Method:      r.Method,
-			UserAgent:   ua,
-		})
-
-		if err := mgr.HandleFail(id); err != nil {
-			logger.Error("handle receive failed", "id", id, "err", err)
-			http.Error(w, err.Error(), http.StatusNotFound)
+		if mgr.Get(id) == nil {
+			logger.Warn("received /fail bump for unknown heartbeat ID", "id", id, "from", src)
+			http.Error(w, fmt.Sprintf("unknown heartbeat id %q", id), http.StatusNotFound)
 			return
 		}
+
+		logger.Info("manual fail", "id", id, "from", src)
+
+		payload := history.RequestMetadataPayload{
+			Source:    src,
+			Method:    r.Method,
+			UserAgent: r.UserAgent(),
+		}
+		ev := history.MustNewEvent(history.EventTypeHeartbeatFailed, id, payload)
+
+		if err := hist.RecordEvent(r.Context(), ev); err != nil {
+			logger.Error("failed to record state change", "err", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// We check if the heartbeat exists before calling HandleFail
+		mgr.HandleFail(id) // nolint:errcheck
 
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "ok") // nolint:errcheck

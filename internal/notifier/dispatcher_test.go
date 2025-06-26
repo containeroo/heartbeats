@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -73,6 +74,42 @@ func TestDispatcher_Dispatch(t *testing.T) {
 
 		// Let it settle
 		time.Sleep(10 * time.Millisecond)
+	})
+
+	t.Run("record error", func(t *testing.T) {
+		t.Parallel()
+
+		var buf strings.Builder
+		logger := slog.New(slog.NewTextHandler(&buf, nil))
+
+		n := &MockNotifier{}
+		store := NewReceiverStore()
+		store.Register("r1", n)
+
+		mockHist := history.MockStore{
+			RecordEventFunc: func(ctx context.Context, e history.Event) error {
+				return errors.New("fail!")
+			},
+		}
+
+		dispatcher := NewDispatcher(store, logger, &mockHist, 1, 1*time.Millisecond, 1)
+
+		// Start dispatcher loop
+		ctx := t.Context()
+		go dispatcher.Run(ctx)
+
+		data := NotificationData{
+			Receivers: []string{"r1"},
+			Message:   "hello",
+		}
+
+		// Send data via mailbox
+		dispatcher.Mailbox() <- data
+
+		// Let it settle
+		time.Sleep(10 * time.Millisecond)
+
+		assert.Contains(t, buf.String(), "level=ERROR msg=\"failed to record state change\" err=fail!\n")
 	})
 }
 

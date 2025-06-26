@@ -25,6 +25,16 @@ func TestMockNotifier(t *testing.T) {
 		assert.Equal(t, input, mock.last)
 	})
 
+	t.Run("Notify uses custom TargetName", func(t *testing.T) {
+		t.Parallel()
+
+		mock := &MockNotifier{
+			TargetName: "mock",
+		}
+
+		assert.Equal(t, "mock", mock.Target())
+	})
+
 	t.Run("Notify uses custom NotifyFunc if set", func(t *testing.T) {
 		t.Parallel()
 

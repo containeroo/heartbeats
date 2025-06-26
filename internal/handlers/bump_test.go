@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -95,9 +96,12 @@ func TestBumpHandler(t *testing.T) {
 		ev := e[0]
 		assert.Equal(t, history.EventTypeHeartbeatReceived, ev.Type)
 		assert.Equal(t, hbName, ev.HeartbeatID)
-		assert.Equal(t, "GET", ev.Method)
-		assert.Equal(t, "1.2.3.4:5678", ev.Source)
-		assert.Equal(t, "Go-test", ev.UserAgent)
+
+		var meta history.RequestMetadataPayload
+		assert.NoError(t, ev.DecodePayload(&meta))
+		assert.Equal(t, "GET", meta.Method)
+		assert.Equal(t, "1.2.3.4:5678", meta.Source)
+		assert.Equal(t, "Go-test", meta.UserAgent)
 	})
 
 	t.Run("successful bump POST", func(t *testing.T) {
@@ -120,7 +124,10 @@ func TestBumpHandler(t *testing.T) {
 
 		assert.Equal(t, history.EventTypeHeartbeatReceived, ev.Type)
 		assert.Equal(t, hbName, ev.HeartbeatID)
-		assert.Equal(t, "POST", ev.Method)
+
+		var meta history.RequestMetadataPayload
+		assert.NoError(t, ev.DecodePayload(&meta))
+		assert.Equal(t, "POST", meta.Method)
 	})
 }
 
@@ -165,19 +172,25 @@ func TestFailHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/bump/%s/fail", hbName), nil)
 		req.RemoteAddr = "1.2.3.4:5678"
 		req.Header.Set("User-Agent", "Go-test")
+
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, "ok", rec.Body.String())
 
-		e := hist.GetEventsByID(hbName)
+		events := hist.GetEventsByID(hbName)
+		assert.Len(t, events, 1)
 
-		ev := e[0]
+		ev := events[0]
 		assert.Equal(t, history.EventTypeHeartbeatFailed, ev.Type)
 		assert.Equal(t, hbName, ev.HeartbeatID)
-		assert.Equal(t, "GET", ev.Method)
-		assert.Equal(t, "1.2.3.4:5678", ev.Source)
-		assert.Equal(t, "Go-test", ev.UserAgent)
+
+		var meta history.RequestMetadataPayload
+		assert.NoError(t, ev.DecodePayload(&meta))
+
+		assert.Equal(t, "GET", meta.Method)
+		assert.Equal(t, "1.2.3.4:5678", meta.Source)
+		assert.Equal(t, "Go-test", meta.UserAgent)
 	})
 
 	t.Run("successful fail POST", func(t *testing.T) {
@@ -200,6 +213,53 @@ func TestFailHandler(t *testing.T) {
 
 		assert.Equal(t, history.EventTypeHeartbeatFailed, ev.Type)
 		assert.Equal(t, hbName, ev.HeartbeatID)
-		assert.Equal(t, "POST", ev.Method)
+
+		var meta history.RequestMetadataPayload
+		assert.NoError(t, ev.DecodePayload(&meta))
+		assert.Equal(t, "POST", meta.Method)
+	})
+
+	t.Run("bump - record event error", func(t *testing.T) {
+		t.Parallel()
+
+		mockHist := &history.MockStore{
+			RecordEventFunc: func(ctx context.Context, e history.Event) error {
+				return errors.New("fail!")
+			},
+		}
+
+		hbName := "event-error"
+		router := setupRouter(t, hbName, mockHist)
+
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", fmt.Sprintf("/bump/%s", hbName), nil)
+		req.RemoteAddr = "5.6.7.8:1234"
+		req.Header.Set("User-Agent", "Go-post")
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		assert.Equal(t, "fail!\n", rec.Body.String())
+	})
+
+	t.Run("fail - record event error", func(t *testing.T) {
+		t.Parallel()
+
+		mockHist := &history.MockStore{
+			RecordEventFunc: func(ctx context.Context, e history.Event) error {
+				return errors.New("fail!")
+			},
+		}
+
+		hbName := "event-error"
+		router := setupRouter(t, hbName, mockHist)
+
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", fmt.Sprintf("/bump/%s/fail", hbName), nil)
+		req.RemoteAddr = "5.6.7.8:1234"
+		req.Header.Set("User-Agent", "Go-post")
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		assert.Equal(t, "fail!\n", rec.Body.String())
 	})
 }

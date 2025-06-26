@@ -56,7 +56,10 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	defer stop()
 
 	// Create history
-	history := history.NewRingStore(flags.HistorySize)
+	history, err := history.InitializeHistory(flags)
+	if err != nil {
+		return fmt.Errorf("failed to initialize history: %w", err)
+	}
 
 	// Inizalize notification
 	store := notifier.InitializeStore(cfg.Receivers, flags.SkipTLS, version, logger)
