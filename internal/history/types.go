@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/containeroo/heartbeats/internal/flag"
 )
 
 type BackendType string
@@ -20,16 +22,16 @@ type Store interface {
 	GetEventsByID(id string) []Event                // GetEventsByID returns all events recorded for the specified heartbeat ID.
 }
 
-func InitHistory(backend BackendType, path string, size int) (Store, error) {
-	switch backend {
+func InitHistory(flags flag.Flags) (Store, error) {
+
+	switch flags.HistoryBackend {
 	case BackendTypeRingStore:
 		return NewRingStore(size), nil
 	case BackendTypeBadger:
-		if path == "" {
+		if flags.BadgerPath == "" {
 			return nil, errors.New("badger backend requires a path")
 		}
 		return NewBadger(path)
 	default:
 		return nil, fmt.Errorf("unknown history backend: %s", backend)
 	}
-}

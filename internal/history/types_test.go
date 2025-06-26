@@ -3,6 +3,8 @@ package history
 import (
 	"testing"
 
+	"github.com/containeroo/heartbeats/internal/flag"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,5 +41,6 @@ func TestInitHistory(t *testing.T) {
 		store, err := InitHistory("invalid-backend", "", 0)
 		assert.Nil(t, store)
 		assert.ErrorContains(t, err, "unknown history backend")
+	})
 	})
 }
