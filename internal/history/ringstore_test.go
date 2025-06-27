@@ -115,3 +115,45 @@ func TestRingStore_GetEventsByID(t *testing.T) {
 		assert.Equal(t, got, want)
 	})
 }
+
+func TestRingStore_ByteSize(t *testing.T) {
+	t.Parallel()
+
+	size := 10_000
+	store := NewRingStore(size)
+
+	payload := RequestMetadataPayload{
+		Source:    "http://localhost:9090",
+		Method:    "GET",
+		UserAgent: "go-test",
+	}
+
+	for range size + 5 {
+		ev := MustNewEvent(EventTypeHeartbeatReceived, "test", payload)
+		err := store.RecordEvent(context.Background(), ev)
+		assert.NoError(t, err)
+	}
+
+	got := store.ByteSize()
+	assert.Greater(t, got, 1790000, "ByteSize should be reasonably large")
+	assert.Less(t, got, 1810000, "ByteSize should be within expected upper bound")
+}
+
+func TestRingStore_ByteSizePerformance(t *testing.T) {
+	t.Parallel()
+
+	size := 10_000
+	store := NewRingStore(size)
+
+	for range size {
+		ev := MustNewEvent(EventTypeHeartbeatReceived, "test", RequestMetadataPayload{})
+		_ = store.RecordEvent(context.Background(), ev)
+	}
+
+	start := time.Now()
+	_ = store.ByteSize()
+	elapsed := time.Since(start)
+
+	t.Logf("ByteSize calculated in %s", elapsed)
+	assert.Less(t, elapsed, 100*time.Millisecond)
+}

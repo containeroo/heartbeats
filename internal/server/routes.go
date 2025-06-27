@@ -18,7 +18,7 @@ func NewRouter(
 	siteRoot string,
 	version string,
 	mgr *heartbeat.Manager,
-	histStore history.Store,
+	hist history.Store,
 	disp *notifier.Dispatcher,
 	logger *slog.Logger,
 	debug bool,
@@ -31,15 +31,15 @@ func NewRouter(
 	root.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
 	root.Handle("/", handlers.HomeHandler(webFS, version)) // no Method allowed, otherwise it crashes
-	root.Handle("GET /partials/", http.StripPrefix("/partials", handlers.PartialHandler(webFS, siteRoot, mgr, histStore, disp, logger)))
+	root.Handle("GET /partials/", http.StripPrefix("/partials", handlers.PartialHandler(webFS, siteRoot, mgr, hist, disp, logger)))
 	root.Handle("GET /healthz", handlers.Healthz())
-	root.Handle("GET /metrics", handlers.Metrics())
+	root.Handle("GET /metrics", handlers.Metrics(hist))
 
 	// define your API routes on a sub-mux
-	root.Handle("POST /bump/{id}", handlers.BumpHandler(mgr, histStore, logger))
-	root.Handle("GET  /bump/{id}", handlers.BumpHandler(mgr, histStore, logger))
-	root.Handle("POST /bump/{id}/fail", handlers.FailHandler(mgr, histStore, logger))
-	root.Handle("GET  /bump/{id}/fail", handlers.FailHandler(mgr, histStore, logger))
+	root.Handle("POST /bump/{id}", handlers.BumpHandler(mgr, hist, logger))
+	root.Handle("GET  /bump/{id}", handlers.BumpHandler(mgr, hist, logger))
+	root.Handle("POST /bump/{id}/fail", handlers.FailHandler(mgr, hist, logger))
+	root.Handle("GET  /bump/{id}/fail", handlers.FailHandler(mgr, hist, logger))
 
 	// wrap the whole mux in logging if debug
 	var h http.Handler = root

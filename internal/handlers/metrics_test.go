@@ -1,38 +1,33 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/containeroo/heartbeats/internal/metrics"
-
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMetricsHandler(t *testing.T) {
-	// Register a test metric
-	testMetric := prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "test_metric",
-		Help: "This is a test metric",
-	})
-	metrics.PromMetrics.Registry.MustRegister(testMetric)
+	t.Parallel()
 
-	// Increment the test metric
-	testMetric.Inc()
+	// Create a ring store and fill with some data
+	store := history.NewRingStore(100)
+	for range 10 {
+		event := history.MustNewEvent(history.EventTypeHeartbeatReceived, "test_heartbeat", history.RequestMetadataPayload{})
+		_ = store.RecordEvent(context.Background(), event)
+	}
 
-	// Create the Metrics handler
-	handler := Metrics()
+	// Create metrics handler with injected store
+	handler := Metrics(store)
 
-	// Create a new HTTP request
 	req := httptest.NewRequest("GET", "/metrics", nil)
 	rec := httptest.NewRecorder()
 
-	// Serve the HTTP request
 	handler.ServeHTTP(rec, req)
 
-	// Check the status code and response body
-	assert.Equal(t, http.StatusOK, rec.Code, "Expected status code 200")
-	assert.Contains(t, rec.Body.String(), "test_metric", "Expected response body to contain 'test_metric'")
+	assert.Equal(t, http.StatusOK, rec.Code, "Expected HTTP 200 OK")
+	assert.Contains(t, rec.Body.String(), "heartbeats_history_byte_size", "Expected metrics to include 'heartbeats_history_byte_size'")
 }

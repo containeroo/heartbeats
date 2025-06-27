@@ -150,12 +150,6 @@ func TestDispatcher_ListAndGet(t *testing.T) {
 	})
 }
 
-type mockHistory struct{}
-
-func (m *mockHistory) RecordEvent(ctx context.Context, e history.Event) error { return nil }
-func (m *mockHistory) GetEvents() []history.Event                             { return nil }
-func (m *mockHistory) GetEventsByID(id string) []history.Event                { return nil }
-
 func TestDispatcher_LogsErrorFromNotifier(t *testing.T) {
 	t.Parallel()
 
@@ -172,7 +166,7 @@ func TestDispatcher_LogsErrorFromNotifier(t *testing.T) {
 	dispatcher := NewDispatcher(
 		store,
 		logger,
-		&mockHistory{},
+		&history.MockStore{},
 		1,
 		1*time.Millisecond,
 		1, // buffer size

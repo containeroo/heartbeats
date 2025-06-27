@@ -90,3 +90,23 @@ func TestMockStore_GetEventsByID(t *testing.T) {
 		assert.Nil(t, got)
 	})
 }
+
+func TestMockStore_ByteSize(t *testing.T) {
+	t.Parallel()
+
+	t.Run("calls custom ByteSizeFunc", func(t *testing.T) {
+		t.Parallel()
+		mock := &MockStore{
+			ByteSizeFunc: func() int {
+				return 1234
+			},
+		}
+		assert.Equal(t, 1234, mock.ByteSize())
+	})
+
+	t.Run("returns 0 when ByteSizeFunc is nil", func(t *testing.T) {
+		t.Parallel()
+		mock := &MockStore{}
+		assert.Equal(t, int(0), mock.ByteSize())
+	})
+}

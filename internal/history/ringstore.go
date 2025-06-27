@@ -2,6 +2,7 @@ package history
 
 import (
 	"context"
+	"encoding/json"
 	"slices"
 	"sync"
 )
@@ -22,6 +23,19 @@ func NewRingStore(maxEvents int) *RingStore {
 		buf: make([]Event, maxEvents),
 		max: maxEvents,
 	}
+}
+
+// Size returns the current number of events in the ring buffer.
+func (r *RingStore) ByteSize() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var total int
+	for _, e := range r.buf {
+		b, _ := json.Marshal(e)
+		total += len(b)
+	}
+	return total
 }
 
 // RecordEvent appends a new event into the ring.

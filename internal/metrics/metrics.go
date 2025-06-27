@@ -1,11 +1,9 @@
 package metrics
 
 import (
+	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/prometheus/client_golang/prometheus"
 )
-
-// PromMetrics holds the global instance of Metrics.
-var PromMetrics = NewMetrics()
 
 const (
 	DOWN = iota
@@ -38,10 +36,15 @@ type Metrics struct {
 }
 
 // NewMetrics creates and initializes a new Metrics instance with all relevant metrics registered.
-func NewMetrics() *Metrics {
+func NewMetrics(store history.Store) *Metrics {
 	reg := prometheus.NewRegistry()
+
+	// Register core metrics
 	reg.MustRegister(HeartbeatStatus)
 	reg.MustRegister(TotalHeartbeats)
+
+	// Register history store metrics
+	reg.MustRegister(history.NewHistoryMetrics(store))
 
 	return &Metrics{
 		Registry: reg,
