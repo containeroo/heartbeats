@@ -16,7 +16,7 @@ function attachCopyHandlers() {
 }
 
 /**
- * Wire up a text‐search + clear “×” inside an .input-group.filter.
+ * Wire up a text‐search + clear "×" inside an .input-group.filter.
  *
  * @param {object} opts
  * @param {string} opts.inputId    – the <input id="…">
@@ -39,13 +39,13 @@ function attachFilter({ inputId, rowSelector, getText }) {
     });
   };
 
-  // show/hide clear-“×” and re-filter on every keystroke
+  // show/hide clear-"×" and re-filter on every keystroke
   input.addEventListener("input", () => {
     clearBtn.style.display = input.value ? "block" : "none";
     filterRows();
   });
 
-  // clear everything when “×” is clicked
+  // clear everything when "×" is clicked
   clearBtn.addEventListener("click", () => {
     input.value = "";
     clearBtn.style.display = "none";
@@ -159,7 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // initial page load, pick up the hash (if any)
-  let initial = window.location.hash.slice(1); // strip the “#”
+  let initial = window.location.hash.slice(1); // strip the "#"
   if (!initial || !["heartbeats", "receivers", "history"].includes(initial)) {
     initial = "heartbeats";
   }
