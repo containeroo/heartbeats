@@ -113,6 +113,5 @@ func TestHistorySizeMetric(t *testing.T) {
 	err := testutil.GatherAndCompare(promMetrics.Registry, strings.NewReader(expected), "heartbeats_history_byte_size")
 	assert.NoError(t, err, "Expected no error while gathering and comparing metrics")
 
-	assert.Greater(t, got, float64(1.898883e+05), "ByteSize should be reasonably large")
-	assert.Less(t, got, float64(1.898883e+07), "ByteSize should be within expected upper bound")
+	assert.Equal(t, float64(1.83e+06), got)
 }

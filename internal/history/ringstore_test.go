@@ -135,8 +135,7 @@ func TestRingStore_ByteSize(t *testing.T) {
 	}
 
 	got := store.ByteSize()
-	assert.Greater(t, got, 1790000, "ByteSize should be reasonably large")
-	assert.Less(t, got, 1810000, "ByteSize should be within expected upper bound")
+	assert.Equal(t, 1730000, got)
 }
 
 func TestRingStore_ByteSizePerformance(t *testing.T) {

@@ -2,9 +2,9 @@ package history
 
 import (
 	"context"
-	"encoding/json"
 	"slices"
 	"sync"
+	"unsafe"
 )
 
 // RingStore is a fixed-size circular buffer of history.Event.
@@ -25,15 +25,17 @@ func NewRingStore(maxEvents int) *RingStore {
 	}
 }
 
-// Size returns the current number of events in the ring buffer.
+// ByteSize returns an estimated size of the ring buffer in bytes.
 func (r *RingStore) ByteSize() int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	var total int
 	for _, e := range r.buf {
-		b, _ := json.Marshal(e)
-		total += len(b)
+		total += int(unsafe.Sizeof(e)) // size of struct (fixed-size fields)
+		total += len(e.HeartbeatID)    // string data
+		total += len(e.RawPayload)     // payload slice
+		total += len(e.Type)           // EventType is a string alias
 	}
 	return total
 }

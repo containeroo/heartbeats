@@ -21,7 +21,7 @@ A lightweight HTTP service for monitoring periodic “heartbeat” pings (“bum
 - **In-memory history** of recent events (received, failed, state changes, notifications, API requests)
 
   - Stores up to `--history-size` entries (default: 10,000)
-  - Not persisted across restarts (\~1.6 MB at max size)
+  - Not persisted across restarts (\~1.73 MB at max size)
 
 - **Dashboard** with:
   - **Heartbeats**: status, URL, last bump, receivers, quick-links
@@ -34,11 +34,11 @@ A lightweight HTTP service for monitoring periodic “heartbeat” pings (“bum
 ### Flags
 
 | Flag                  | Shorthand | Default                 | Environment Variable           | Description                                                              |
-| :-------------------- | :-------- | :---------------------- | :----------------------------- | :----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| :-------------------- | :-------- | :---------------------- | :----------------------------- | :----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `--config`            | `-c`      | `heartbeats.yml`        | `HEARTBEATS_CONFIG`            | Path to configuration file                                               |
 | `--listen-address`    | `-a`      | `:8080`                 | `HEARTBEATS_LISTEN_ADDRESS`    | Address to listen on (host:port)                                         |
 | `--site-root`         | `-r`      | `http://localhost:8080` | `HEARTBEATS_SITE_ROOT`         | Base URL for dashboard and link rendering                                |
-| `--history-size`      | `-s`      | `10000`                 | `HEARTBEATS_HISTORY_SIZE`      |                                                                          | Number of historical events to keep in memory (default ~1.6 MB for 10,000). Not persisted. |
+| `--history-size`      | `-s`      | `10000`                 | `HEARTBEATS_HISTORY_SIZE`      |                                                                          | Number of historical events to keep in memory (default ~1.73 MB for 10,000). Not persisted. |
 | `--skip-tls`          | -         | `false`                 | `HEARTBEATS_SKIP_TLS`          | Skip TLS verification for all receivers (can be overridden per receiver) |
 | `--debug`             | `-d`      | `false`                 | `HEARTBEATS_DEBUG`             | Enable debug-level logging                                               |
 | `--debug-server-port` | `-p`      | `8081`                  | `HEARTBEATS_DEBUG_SERVER_PORT` | Port for the debug server                                                |
