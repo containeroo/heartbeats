@@ -26,12 +26,12 @@ type MSTeamsGraphConfig struct {
 	logger   *slog.Logger        `yaml:"-"`
 	sender   msteamsgraph.Sender `yaml:"-"`
 
-	SkipTLS   *bool  `yaml:"skipTLS"`
-	Token     string `yaml:"token"`     // bearer token for Graph API
-	TeamID    string `yaml:"teamID"`    // ID of the target team
-	ChannelID string `yaml:"channelID"` // ID of the channel in the team
-	TitleTmpl string `yaml:"titleTemplate,omitempty"`
-	TextTmpl  string `yaml:"textTemplate,omitempty"`
+	SkipTLS   *bool  `yaml:"skip_tls"`
+	Token     string `yaml:"token"`      // bearer token for Graph API
+	TeamID    string `yaml:"team_id"`    // ID of the target team
+	ChannelID string `yaml:"channel_id"` // ID of the channel in the team
+	TitleTmpl string `yaml:"title_template,omitempty"`
+	TextTmpl  string `yaml:"text_Template,omitempty"`
 }
 
 // NewMSTeamsGraphNotifier constructs a new Teams Graph notifier.

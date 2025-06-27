@@ -139,13 +139,13 @@ func (c *MailClient) Send(ctx context.Context, msg Message) error {
 
 // SMTPConfig contains connection and authentication settings for an SMTP server.
 type SMTPConfig struct {
-	Host               string `yaml:"host,omitempty"`               // SMTP server hostname.
-	Port               int    `yaml:"port,omitempty"`               // SMTP server port.
-	From               string `yaml:"from,omitempty"`               // Sender email address.
-	Username           string `yaml:"username,omitempty"`           // SMTP username.
-	Password           string `yaml:"password,omitempty"`           // SMTP password.
-	StartTLS           *bool  `yaml:"startTLS,omitempty"`           // Whether to initiate STARTTLS.
-	SkipInsecureVerify *bool  `yaml:"skipInsecureVerify,omitempty"` // Whether to skip TLS certificate verification.
+	Host               string `yaml:"host,omitempty"`                 // SMTP server hostname.
+	Port               int    `yaml:"port,omitempty"`                 // SMTP server port.
+	From               string `yaml:"from,omitempty"`                 // Sender email address.
+	Username           string `yaml:"username,omitempty"`             // SMTP username.
+	Password           string `yaml:"password,omitempty"`             // SMTP password.
+	StartTLS           *bool  `yaml:"start_tls,omitempty"`            // Whether to initiate STARTTLS.
+	SkipInsecureVerify *bool  `yaml:"skip_insecure_verify,omitempty"` // Whether to skip TLS certificate verification.
 }
 
 // Message represents an email to be sent.
@@ -153,7 +153,7 @@ type Message struct {
 	To          []string     `yaml:"to,omitempty"`          // Recipient email addresses.
 	Cc          []string     `yaml:"cc,omitempty"`          // CC recipient email addresses.
 	Bcc         []string     `yaml:"bcc,omitempty"`         // BCC recipient email addresses.
-	IsHTML      bool         `yaml:"isHTML,omitempty"`      // Whether the body is HTML formatted.
+	IsHTML      bool         `yaml:"is_html,omitempty"`     // Whether the body is HTML formatted.
 	Subject     string       `yaml:"subject,omitempty"`     // Subject of the email.
 	Body        string       `yaml:"body,omitempty"`        // Body content of the email.
 	Attachments []Attachment `yaml:"attachments,omitempty"` // Optional file attachments.

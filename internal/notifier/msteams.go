@@ -27,10 +27,10 @@ type MSTeamsConfig struct {
 	logger   *slog.Logger   `yaml:"-"` // logger is the logger for logging events.
 	sender   msteams.Sender `yaml:"-"` // Optional override for injecting a custom sender (used in tests)
 
-	WebhookURL string `yaml:"webhook_url"`             // WebhookURL is the webhook URL for the MSTeams webhook.
-	SkipTLS    *bool  `yaml:"skipTLS"`                 // SkipTLS skipt TLS check when doing the web request.
-	TitleTmpl  string `yaml:"titleTemplate,omitempty"` // TitleTmpl is the title template for the notification.
-	TextTmpl   string `yaml:"textTemplate,omitempty"`  // TextTmpl is the text template for the notification.
+	WebhookURL string `yaml:"webhook_url"`              // WebhookURL is the webhook URL for the MSTeams webhook.
+	SkipTLS    *bool  `yaml:"skip_tls"`                 // SkipTLS skipt TLS check when doing the web request.
+	TitleTmpl  string `yaml:"title_template,omitempty"` // TitleTmpl is the title template for the notification.
+	TextTmpl   string `yaml:"text_template,omitempty"`  // TextTmpl is the text template for the notification.
 }
 
 // NewMSTeamsNotifier creates a new MSTeamsNotifier for a single MSTeams configuration.
