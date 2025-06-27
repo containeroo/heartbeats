@@ -78,7 +78,7 @@ func TestClient_Send_Non200(t *testing.T) {
 	_, err := client.Send(context.Background(), Slack{})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "received non-200 response")
+	assert.EqualError(t, err, "received non-200 response: 403")
 }
 
 func TestClient_Send_ErrorDecoding(t *testing.T) {
@@ -95,7 +95,7 @@ func TestClient_Send_ErrorDecoding(t *testing.T) {
 	_, err := client.Send(context.Background(), Slack{})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "error decoding response")
+	assert.EqualError(t, err, "error decoding response: invalid character 'i' looking for beginning of object key string")
 }
 
 func TestClient_Send_ErrorAPIResponse(t *testing.T) {
@@ -112,5 +112,5 @@ func TestClient_Send_ErrorAPIResponse(t *testing.T) {
 	_, err := client.Send(context.Background(), Slack{})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Slack API error: invalid_auth")
+	assert.EqualError(t, err, "Slack API error: invalid_auth")
 }

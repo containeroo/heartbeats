@@ -65,7 +65,7 @@ func TestEvent_ToJSON(t *testing.T) {
 
 	t.Run("returns JSON", func(t *testing.T) {
 		ev := MustNewEvent(EventTypeNotificationFailed, "hbY", dummyPayload{Message: "fail"})
-		assert.Contains(t, ev.ToJSON(), `"fail"`)
+		assert.Equal(t, "{\"message\":\"fail\"}", ev.ToJSON())
 	})
 
 	t.Run("returns empty string for nil payload", func(t *testing.T) {
@@ -89,7 +89,7 @@ func TestEvent_DecodePayload(t *testing.T) {
 		ev := Event{}
 		var dp dummyPayload
 		err := ev.DecodePayload(&dp)
-		assert.ErrorContains(t, err, "empty payload")
+		assert.EqualError(t, err, "empty payload")
 	})
 
 	t.Run("errors on invalid JSON", func(t *testing.T) {

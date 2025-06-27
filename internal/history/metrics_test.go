@@ -19,7 +19,7 @@ func TestHistoryMetrics_Describe(t *testing.T) {
 	collector.Describe(ch)
 
 	desc := <-ch
-	assert.Contains(t, desc.String(), "heartbeats_history_byte_size")
+	assert.Equal(t, "Desc{fqName: \"heartbeats_history_byte_size\", help: \"Current size of the history store in bytes\", constLabels: {}, variableLabels: {}}", desc.String())
 }
 
 func TestHistoryMetrics_Collect(t *testing.T) {

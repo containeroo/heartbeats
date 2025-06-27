@@ -98,7 +98,7 @@ func TestTestHeartbeatHandler(t *testing.T) {
 		handler.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusNotFound, rec.Code)
-		assert.Contains(t, rec.Body.String(), "unknown heartbeat id")
+		assert.Equal(t, "heartbeat ID \"invalid\" not found\n", rec.Body.String())
 	})
 
 	t.Run("trigger test heartbeat", func(t *testing.T) {

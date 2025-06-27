@@ -67,7 +67,7 @@ func TestMSTeamsGraphConfig_Notify(t *testing.T) {
 			Status:   "active",
 			LastBump: time.Now(),
 		})
-		assert.ErrorContains(t, err, "format notification")
+		assert.EqualError(t, err, "format notification: format title: template: notification:1:3: executing \"notification\" at <.Missing>: can't evaluate field Missing in type notifier.NotificationData")
 	})
 
 	t.Run("send error", func(t *testing.T) {
@@ -86,7 +86,7 @@ func TestMSTeamsGraphConfig_Notify(t *testing.T) {
 			Status:   "failed",
 			LastBump: time.Now(),
 		})
-		assert.ErrorContains(t, err, "send MS Teams message")
+		assert.EqualError(t, err, "send MS Teams message: mock error")
 	})
 
 	t.Run("successful send", func(t *testing.T) {
@@ -108,8 +108,7 @@ func TestMSTeamsGraphConfig_Notify(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.True(t, mock.called)
-		assert.Contains(t, mock.payload.Body.Content, "check-1")
-		assert.Contains(t, mock.payload.Body.Content, "RECOVERED")
+		assert.Equal(t, "<b>[RECOVERED] check-1</b><br>check-1 is recovered (last Ping: 2m0s)", mock.payload.Body.Content)
 	})
 }
 

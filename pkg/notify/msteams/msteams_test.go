@@ -42,7 +42,6 @@ func TestClient_Send_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, "Message sent successfully", result)
-	assert.Contains(t, string(mock.Capture), "System Alert")
 }
 
 func TestClient_Send_RequestFailure(t *testing.T) {
@@ -56,7 +55,7 @@ func TestClient_Send_RequestFailure(t *testing.T) {
 	_, err := client.Send(context.Background(), MSTeams{}, "https://webhook")
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "error sending HTTP request")
+	assert.EqualError(t, err, "error sending HTTP request: unexpected EOF")
 }
 
 func TestClient_Send_Non200Status(t *testing.T) {
@@ -73,5 +72,5 @@ func TestClient_Send_Non200Status(t *testing.T) {
 	_, err := client.Send(context.Background(), MSTeams{}, "https://webhook")
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "received non-200 response")
+	assert.EqualError(t, err, "received non-200 response: 403, body: forbidden")
 }

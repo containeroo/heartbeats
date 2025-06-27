@@ -75,7 +75,7 @@ func TestClient_SendChannel_GraphError(t *testing.T) {
 	_, err := client.SendChannel(context.Background(), "team", "channel", Message{})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "teams graph error: InvalidAuthToken: Access denied.")
+	assert.EqualError(t, err, "teams graph error: InvalidAuthToken: Access denied.")
 }
 
 func TestClient_SendChannel_DecodeError(t *testing.T) {
@@ -92,7 +92,7 @@ func TestClient_SendChannel_DecodeError(t *testing.T) {
 	_, err := client.SendChannel(context.Background(), "team", "channel", Message{})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "decode error")
+	assert.EqualError(t, err, "decode error: invalid character 'i' looking for beginning of object key string")
 }
 
 func TestClient_SendChannel_RequestError(t *testing.T) {
@@ -106,5 +106,5 @@ func TestClient_SendChannel_RequestError(t *testing.T) {
 	_, err := client.SendChannel(context.Background(), "team", "channel", Message{})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "request failed")
+	assert.EqualError(t, err, "request failed: assert.AnError general error for testing")
 }

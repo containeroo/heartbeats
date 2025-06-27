@@ -114,8 +114,8 @@ func TestMSTeamsConfig_Notify(t *testing.T) {
 		err := config.Notify(context.Background(), data)
 		assert.NoError(t, err)
 		assert.True(t, mock.called)
-		assert.Contains(t, mock.sentMsg.Title, "db-check")
-		assert.Contains(t, mock.sentMsg.Text, "db-check is failed")
+		assert.Equal(t, "[FAILED] db-check", mock.sentMsg.Title)
+		assert.Equal(t, "db-check is failed (last bump: 2m0s)", mock.sentMsg.Text)
 		assert.Nil(t, config.lastErr)
 	})
 }
@@ -197,7 +197,7 @@ func TestMSTeamsConfig_Validate(t *testing.T) {
 			TitleTmpl:  "{{ .", // invalid
 		}
 		err := cfg.Validate()
-		assert.ErrorContains(t, err, "format title")
+		assert.EqualError(t, err, "format title: template: notification:1: illegal number syntax: \".\"")
 	})
 
 	t.Run("fails when URL is empty", func(t *testing.T) {
@@ -239,6 +239,6 @@ func TestMSTeamsConfig_Format(t *testing.T) {
 
 	out, err := config.Format(data)
 	assert.NoError(t, err)
-	assert.Contains(t, out.Title, "[ACTIVE]")
-	assert.Contains(t, out.Message, "api-heartbeat is active")
+	assert.Equal(t, "[ACTIVE] api-heartbeat", out.Title)
+	assert.Equal(t, "api-heartbeat is active (last bump: 5m0s)", out.Message)
 }

@@ -52,6 +52,6 @@ func TestDoRequest(t *testing.T) {
 		resp, err := client.DoRequest(context.Background(), "INVALID METHOD", "http://example.com", nil)
 		assert.Nil(t, resp)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "error creating INVALID METHOD request")
+		assert.EqualError(t, err, "error creating INVALID METHOD request: net/http: invalid method \"INVALID METHOD\"")
 	})
 }

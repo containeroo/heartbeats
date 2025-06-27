@@ -29,5 +29,5 @@ func TestMetricsHandler(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code, "Expected HTTP 200 OK")
-	assert.Contains(t, rec.Body.String(), "heartbeats_history_byte_size", "Expected metrics to include 'heartbeats_history_byte_size'")
+	assert.Equal(t, "# HELP heartbeats_history_byte_size Current size of the history store in bytes\n# TYPE heartbeats_history_byte_size gauge\nheartbeats_history_byte_size 8720\n", rec.Body.String(), "Expected metrics to include 'heartbeats_history_byte_size'")
 }

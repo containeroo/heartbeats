@@ -205,7 +205,7 @@ func TestConfig_Validate(t *testing.T) {
 			RetryDelay: 2 * time.Second,
 		}
 		err := cfg.Validate()
-		assert.ErrorContains(t, err, "retry count")
+		assert.EqualError(t, err, "retry count must be -1 (infinite) or >= 1, got 0")
 	})
 
 	t.Run("invalid retry count < -1", func(t *testing.T) {
@@ -217,7 +217,7 @@ func TestConfig_Validate(t *testing.T) {
 			RetryDelay: 2 * time.Second,
 		}
 		err := cfg.Validate()
-		assert.ErrorContains(t, err, "retry count")
+		assert.EqualError(t, err, "retry count must be -1 (infinite) or >= 1, got -2")
 	})
 
 	t.Run("invalid retry delay < 1s", func(t *testing.T) {
@@ -229,7 +229,7 @@ func TestConfig_Validate(t *testing.T) {
 			RetryDelay: 500 * time.Millisecond,
 		}
 		err := cfg.Validate()
-		assert.ErrorContains(t, err, "retry delay")
+		assert.EqualError(t, err, "retry delay must be at least 1s, got 500ms")
 	})
 
 	t.Run("invalid log format", func(t *testing.T) {
@@ -241,6 +241,6 @@ func TestConfig_Validate(t *testing.T) {
 			RetryDelay: 2 * time.Second,
 		}
 		err := cfg.Validate()
-		assert.ErrorContains(t, err, "invalid log format")
+		assert.EqualError(t, err, "invalid log format: 'xml'")
 	})
 }

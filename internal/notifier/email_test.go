@@ -133,8 +133,8 @@ func TestEmailConfig_Notify(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, mock.called)
 		assert.Equal(t, "dev@example.com", mock.message.To[0])
-		assert.Contains(t, mock.message.Subject, "my-check")
-		assert.Contains(t, mock.message.Body, "Last bump")
+		assert.Equal(t, "[HEARTBEATS]: my-check FAILED", mock.message.Subject)
+		assert.Equal(t, "<b>Description:</b><br>.<br>Last bump: 10m0s", mock.message.Body)
 		assert.Nil(t, cfg.lastErr)
 		assert.WithinDuration(t, time.Now(), cfg.lastSent, time.Second)
 	})
@@ -156,8 +156,8 @@ func TestEmailConfig_Format(t *testing.T) {
 
 	out, err := cfg.Format(data)
 	assert.NoError(t, err)
-	assert.Contains(t, out.Title, "heartbeat-01 ACTIVE")
-	assert.Contains(t, out.Message, "Checks DB")
+	assert.Equal(t, "[HEARTBEATS]: heartbeat-01 ACTIVE", out.Title)
+	assert.Equal(t, "<b>Description:</b><br>Checks DB.<br>Last bump: 3m0s", out.Message)
 }
 
 func TestEmailConfig_Resolve(t *testing.T) {

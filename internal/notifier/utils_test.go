@@ -83,7 +83,7 @@ func TestFuncMapTemplateUsage(t *testing.T) {
 		t.Parallel()
 		start := time.Now().Add(-2 * time.Second)
 		out := render(t, `{{ ago .Time }}`, map[string]any{"Time": start})
-		assert.Contains(t, out, "2s")
+		assert.Equal(t, "2s", out)
 	})
 
 	t.Run("ago zero", func(t *testing.T) {

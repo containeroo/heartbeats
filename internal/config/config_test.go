@@ -38,9 +38,12 @@ func TestLoadConfig(t *testing.T) {
 
 		dir := t.TempDir()
 		path := filepath.Join(dir, "good.yaml")
-		const sample = `
+		sample := `---
 receivers:
-  receiver1: {}
+  receiver1:
+    slack_configs:
+      - channel: channel1
+        token: token1
 heartbeats:
   hb1:
     interval: 1s
@@ -54,7 +57,11 @@ heartbeats:
 		assert.NoError(t, err)
 
 		// check receivers
-		assert.Contains(t, cfg.Receivers, "receiver1")
+		rec, ok := cfg.Receivers["receiver1"]
+		assert.True(t, ok, "receiver1 should be present")
+		assert.Equal(t, "channel1", rec.SlackConfigs[0].Channel)
+		assert.Equal(t, "token1", rec.SlackConfigs[0].Token)
+
 		// check heartbeat settings
 		hb, ok := cfg.Heartbeats["hb1"]
 		assert.True(t, ok, "hb1 should be present")
@@ -103,7 +110,7 @@ func TestConfigValidate(t *testing.T) {
 		}
 		err := cfg.Validate()
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), `heartbeat "hb" references unknown receiver "no_such"`)
+		assert.EqualError(t, err, `heartbeat "hb" references unknown receiver "no_such"`)
 	})
 
 	t.Run("invalid slack config - validate error", func(t *testing.T) {
