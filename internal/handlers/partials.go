@@ -104,7 +104,7 @@ func renderHeartbeats(
 	actors := mgr.List()
 	views := make([]HeartbeatView, 0, len(actors))
 	for id, a := range actors {
-		evs := hist.GetEventsByID(id)
+		evs := hist.ListByID(id)
 
 		views = append(views, HeartbeatView{
 			ID:              id,
@@ -167,7 +167,7 @@ func renderHistory(
 	tmpl *template.Template,
 	hist history.Store,
 ) error {
-	raw := hist.GetEvents()
+	raw := hist.List()
 
 	views := make([]HistoryView, 0, len(raw))
 	for _, e := range raw {

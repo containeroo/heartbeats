@@ -91,7 +91,7 @@ func TestBumpHandler(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, "ok", rec.Body.String())
 
-		e := hist.GetEventsByID(hbName)
+		e := hist.ListByID(hbName)
 
 		ev := e[0]
 		assert.Equal(t, history.EventTypeHeartbeatReceived, ev.Type)
@@ -119,7 +119,7 @@ func TestBumpHandler(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, "ok", rec.Body.String())
 
-		e := hist.GetEventsByID(hbName)
+		e := hist.ListByID(hbName)
 		ev := e[0]
 
 		assert.Equal(t, history.EventTypeHeartbeatReceived, ev.Type)
@@ -178,7 +178,7 @@ func TestFailHandler(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, "ok", rec.Body.String())
 
-		events := hist.GetEventsByID(hbName)
+		events := hist.ListByID(hbName)
 		assert.Len(t, events, 1)
 
 		ev := events[0]
@@ -208,7 +208,7 @@ func TestFailHandler(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, "ok", rec.Body.String())
 
-		e := hist.GetEventsByID(hbName)
+		e := hist.ListByID(hbName)
 		ev := e[0]
 
 		assert.Equal(t, history.EventTypeHeartbeatFailed, ev.Type)

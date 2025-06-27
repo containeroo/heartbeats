@@ -9,21 +9,21 @@ type MockStore struct {
 	ByteSizeFunc      func() int
 }
 
-func (m *MockStore) RecordEvent(ctx context.Context, e Event) error {
+func (m *MockStore) Append(ctx context.Context, e Event) error {
 	if m.RecordEventFunc != nil {
 		return m.RecordEventFunc(ctx, e)
 	}
 	return nil
 }
 
-func (m *MockStore) GetEvents() []Event {
+func (m *MockStore) List() []Event {
 	if m.GetEventsFunc != nil {
 		return m.GetEventsFunc()
 	}
 	return nil
 }
 
-func (m *MockStore) GetEventsByID(id string) []Event {
+func (m *MockStore) ListByID(id string) []Event {
 	if m.GetEventsByIDFunc != nil {
 		return m.GetEventsByIDFunc(id)
 	}

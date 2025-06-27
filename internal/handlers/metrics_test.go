@@ -17,7 +17,7 @@ func TestMetricsHandler(t *testing.T) {
 	store := history.NewRingStore(100)
 	for range 10 {
 		event := history.MustNewEvent(history.EventTypeHeartbeatReceived, "test_heartbeat", history.RequestMetadataPayload{})
-		_ = store.RecordEvent(context.Background(), event)
+		_ = store.Append(context.Background(), event)
 	}
 
 	// Create metrics handler with injected store

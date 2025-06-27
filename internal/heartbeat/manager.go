@@ -49,31 +49,31 @@ func (m *Manager) List() map[string]*Actor { return m.actors }
 // Get returns one heartbeat’s info by ID.
 func (m *Manager) Get(id string) *Actor { return m.actors[id] }
 
-// HandleReceive pings the Actor or logs unknown ID.
-func (m *Manager) HandleReceive(id string) error {
+// Receive notifies the Actor with a heartbeat "receive" event.
+func (m *Manager) Receive(id string) error {
 	a, ok := m.actors[id]
 	if !ok {
-		return fmt.Errorf("unknown heartbeat id %q", id)
+		return fmt.Errorf("heartbeat ID %q not found", id)
 	}
 	a.Mailbox() <- common.EventReceive
 	return nil
 }
 
-// HandleFail marks the Actor failed or logs unknown ID.
-func (m *Manager) HandleFail(id string) error {
+// Fail notifies the Actor with a heartbeat "fail" event.
+func (m *Manager) Fail(id string) error {
 	a, ok := m.actors[id]
 	if !ok {
-		return fmt.Errorf("unknown heartbeat id %q", id)
+		return fmt.Errorf("heartbeat ID %q not found", id)
 	}
 	a.Mailbox() <- common.EventFail
 	return nil
 }
 
-// HandleTest sends only a notification to the Actor.
-func (m *Manager) HandleTest(id string) error {
+// Test sends a test notification event to the Actor.
+func (m *Manager) Test(id string) error {
 	a, ok := m.actors[id]
 	if !ok {
-		return fmt.Errorf("unknown heartbeat id %q", id)
+		return fmt.Errorf("heartbeat ID %q not found", id)
 	}
 	a.Mailbox() <- common.EventTest
 	return nil

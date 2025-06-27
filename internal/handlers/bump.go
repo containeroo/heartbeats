@@ -35,14 +35,14 @@ func BumpHandler(mgr *heartbeat.Manager, hist history.Store, logger *slog.Logger
 		}
 		ev := history.MustNewEvent(history.EventTypeHeartbeatReceived, id, payload)
 
-		if err := hist.RecordEvent(r.Context(), ev); err != nil {
+		if err := hist.Append(r.Context(), ev); err != nil {
 			logger.Error("failed to record state change", "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		// We check if the heartbeat exists before calling HandleReceive
-		mgr.HandleReceive(id) // nolint:errcheck
+		mgr.Receive(id) // nolint:errcheck
 
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "ok") // nolint:errcheck
@@ -75,14 +75,14 @@ func FailHandler(mgr *heartbeat.Manager, hist history.Store, logger *slog.Logger
 		}
 		ev := history.MustNewEvent(history.EventTypeHeartbeatFailed, id, payload)
 
-		if err := hist.RecordEvent(r.Context(), ev); err != nil {
+		if err := hist.Append(r.Context(), ev); err != nil {
 			logger.Error("failed to record state change", "err", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		// We check if the heartbeat exists before calling HandleFail
-		mgr.HandleFail(id) // nolint:errcheck
+		mgr.Fail(id) // nolint:errcheck
 
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "ok") // nolint:errcheck

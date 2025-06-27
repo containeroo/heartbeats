@@ -22,7 +22,7 @@ func TestMockStore_RecordEvent(t *testing.T) {
 			},
 		}
 
-		err := mock.RecordEvent(context.Background(), Event{})
+		err := mock.Append(context.Background(), Event{})
 		assert.NoError(t, err)
 		assert.True(t, called)
 	})
@@ -31,7 +31,7 @@ func TestMockStore_RecordEvent(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockStore{}
-		err := mock.RecordEvent(context.Background(), Event{})
+		err := mock.Append(context.Background(), Event{})
 		assert.NoError(t, err)
 	})
 }
@@ -49,7 +49,7 @@ func TestMockStore_GetEvents(t *testing.T) {
 			},
 		}
 
-		got := mock.GetEvents()
+		got := mock.List()
 		assert.Equal(t, want, got)
 	})
 
@@ -57,7 +57,7 @@ func TestMockStore_GetEvents(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockStore{}
-		got := mock.GetEvents()
+		got := mock.List()
 		assert.Nil(t, got)
 	})
 }
@@ -78,7 +78,7 @@ func TestMockStore_GetEventsByID(t *testing.T) {
 			},
 		}
 
-		got := mock.GetEventsByID("abc")
+		got := mock.ListByID("abc")
 		assert.Equal(t, want, got)
 	})
 
@@ -86,7 +86,7 @@ func TestMockStore_GetEventsByID(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockStore{}
-		got := mock.GetEventsByID("xyz")
+		got := mock.ListByID("xyz")
 		assert.Nil(t, got)
 	})
 }

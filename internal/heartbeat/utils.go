@@ -61,5 +61,5 @@ func (a *Actor) recordStateChange(prev, next common.HeartbeatState) error {
 	}
 	ev := history.MustNewEvent(history.EventTypeStateChanged, a.ID, payload)
 
-	return a.hist.RecordEvent(a.ctx, ev)
+	return a.hist.Append(a.ctx, ev)
 }

@@ -106,7 +106,7 @@ func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Not
 	}
 
 	ev := history.MustNewEvent(eventType, data.ID, payload)
-	if err := d.history.RecordEvent(ctx, ev); err != nil {
+	if err := d.history.Append(ctx, ev); err != nil {
 		d.logger.Error("failed to record state change", "err", err)
 	}
 }

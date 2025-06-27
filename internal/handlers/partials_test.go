@@ -54,7 +54,7 @@ func TestPartialHandler(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
-	_ = hist.RecordEvent(context.Background(), history.MustNewEvent(
+	_ = hist.Append(context.Background(), history.MustNewEvent(
 		history.EventTypeHeartbeatReceived,
 		"hb1",
 		history.RequestMetadataPayload{
@@ -191,7 +191,7 @@ func TestRenderHistory(t *testing.T) {
 	hist := history.NewRingStore(10)
 
 	// Record state change event
-	_ = hist.RecordEvent(context.Background(), history.MustNewEvent(
+	_ = hist.Append(context.Background(), history.MustNewEvent(
 		history.EventTypeStateChanged,
 		"hb1",
 		history.StateChangePayload{
@@ -201,7 +201,7 @@ func TestRenderHistory(t *testing.T) {
 	))
 
 	// Record notification event
-	_ = hist.RecordEvent(context.Background(), history.MustNewEvent(
+	_ = hist.Append(context.Background(), history.MustNewEvent(
 		history.EventTypeNotificationSent,
 		"hb1",
 		history.NotificationPayload{
@@ -224,7 +224,7 @@ func TestRenderHistory(t *testing.T) {
 		t.Parallel()
 
 		hist := history.NewRingStore(10)
-		_ = hist.RecordEvent(context.Background(), history.MustNewEvent(
+		_ = hist.Append(context.Background(), history.MustNewEvent(
 			history.EventTypeNotificationFailed,
 			"hb2",
 			history.NotificationPayload{
@@ -251,7 +251,7 @@ func TestRenderHistory(t *testing.T) {
 			HeartbeatID: "hb3",
 			RawPayload:  json.RawMessage(`{invalid-json}`), // deliberately broken
 		}
-		_ = hist.RecordEvent(context.Background(), ev)
+		_ = hist.Append(context.Background(), ev)
 
 		var buf bytes.Buffer
 		err := renderHistory(&buf, tmpl, hist)
@@ -271,7 +271,7 @@ func TestRenderHistory(t *testing.T) {
 			HeartbeatID: "hb4",
 			RawPayload:  json.RawMessage(`"not a valid state change"`),
 		}
-		_ = hist.RecordEvent(context.Background(), ev)
+		_ = hist.Append(context.Background(), ev)
 
 		var buf bytes.Buffer
 		err := renderHistory(&buf, tmpl, hist)
@@ -292,7 +292,7 @@ func TestRenderHistory(t *testing.T) {
 			HeartbeatID: "hb5",
 			RawPayload:  json.RawMessage(`"this is not a struct"`), // will not decode into struct
 		}
-		_ = hist.RecordEvent(context.Background(), ev)
+		_ = hist.Append(context.Background(), ev)
 
 		var buf bytes.Buffer
 		err := renderHistory(&buf, tmpl, hist)
@@ -307,7 +307,7 @@ func TestRenderHistory(t *testing.T) {
 		hist := history.NewRingStore(10)
 		ev := history.MustNewEvent(history.EventType("999"), "hb6", nil)
 		ev.RawPayload = nil
-		_ = hist.RecordEvent(context.Background(), ev)
+		_ = hist.Append(context.Background(), ev)
 
 		var buf bytes.Buffer
 		err := renderHistory(&buf, tmpl, hist)

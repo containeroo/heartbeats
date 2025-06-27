@@ -98,7 +98,7 @@ func TestHistorySizeMetric(t *testing.T) {
 
 	for range size {
 		ev := history.MustNewEvent(history.EventTypeHeartbeatReceived, "test_heartbeat", payload)
-		err := hist.RecordEvent(ctx, ev)
+		err := hist.Append(ctx, ev)
 		assert.NoError(t, err)
 	}
 

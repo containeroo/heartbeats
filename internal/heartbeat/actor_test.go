@@ -21,7 +21,7 @@ func waitForPayloadEvent[T any](t *testing.T, hist history.Store, match func(T) 
 
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		for _, ev := range hist.GetEvents() {
+		for _, ev := range hist.List() {
 			var payload T
 			if err := ev.DecodePayload(&payload); err != nil {
 				continue // skip non-matching or invalid payloads
@@ -41,7 +41,7 @@ func waitForRawEvent(t *testing.T, hist history.Store, match func(history.Event)
 
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		if slices.ContainsFunc(hist.GetEvents(), match) {
+		if slices.ContainsFunc(hist.List(), match) {
 			return true
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -63,7 +63,7 @@ func TestActor_Run_Smoke(t *testing.T) {
 
 		store.Register("r1", &notifier.MockNotifier{
 			NotifyFunc: func(ctx context.Context, data notifier.NotificationData) error {
-				return hist.RecordEvent(ctx, history.MustNewEvent(history.EventTypeNotificationSent, data.ID, data))
+				return hist.Append(ctx, history.MustNewEvent(history.EventTypeNotificationSent, data.ID, data))
 			},
 		})
 

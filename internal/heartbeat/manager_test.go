@@ -36,7 +36,7 @@ func TestManager_HandleReceive(t *testing.T) {
 		}
 
 		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
-		err := mgr.HandleReceive("a1")
+		err := mgr.Receive("a1")
 		assert.NoError(t, err)
 
 		time.Sleep(10 * time.Millisecond) // allow actor to process mailbox
@@ -50,9 +50,9 @@ func TestManager_HandleReceive(t *testing.T) {
 		cfg := map[string]heartbeat.HeartbeatConfig{}
 
 		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
-		err := mgr.HandleReceive("a1")
+		err := mgr.Receive("a1")
 		assert.Error(t, err)
-		assert.EqualError(t, err, "unknown heartbeat id \"a1\"")
+		assert.EqualError(t, err, "heartbeat ID \"a1\" not found")
 	})
 }
 
@@ -78,7 +78,7 @@ func TestManager_HandleFail(t *testing.T) {
 		}
 
 		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
-		err := mgr.HandleFail("a1")
+		err := mgr.Fail("a1")
 		assert.NoError(t, err)
 
 		time.Sleep(10 * time.Millisecond) // allow actor to process mailbox
@@ -92,9 +92,9 @@ func TestManager_HandleFail(t *testing.T) {
 		cfg := map[string]heartbeat.HeartbeatConfig{}
 
 		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
-		err := mgr.HandleFail("a1")
+		err := mgr.Fail("a1")
 		assert.Error(t, err)
-		assert.EqualError(t, err, "unknown heartbeat id \"a1\"")
+		assert.EqualError(t, err, "heartbeat ID \"a1\" not found")
 	})
 }
 
@@ -120,7 +120,7 @@ func TestManager_HandleTest(t *testing.T) {
 		}
 
 		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
-		err := mgr.HandleTest("a1")
+		err := mgr.Test("a1")
 		assert.NoError(t, err)
 
 		time.Sleep(10 * time.Millisecond) // allow actor to process mailbox
@@ -134,9 +134,9 @@ func TestManager_HandleTest(t *testing.T) {
 		cfg := map[string]heartbeat.HeartbeatConfig{}
 		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
 
-		err := mgr.HandleTest("does-not-exist")
+		err := mgr.Test("does-not-exist")
 		assert.Error(t, err)
-		assert.EqualError(t, err, `unknown heartbeat id "does-not-exist"`)
+		assert.EqualError(t, err, "heartbeat ID \"does-not-exist\" not found")
 	})
 }
 

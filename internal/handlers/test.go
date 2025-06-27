@@ -44,7 +44,7 @@ func TestHeartbeatHandler(mgr *heartbeat.Manager, logger *slog.Logger) http.Hand
 
 		logger.Info("Test request heartbeat", "heartbeat", id)
 
-		if err := mgr.HandleTest(id); err != nil {
+		if err := mgr.Test(id); err != nil {
 			logger.Error("handle test failed", "id", id, "err", err)
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return

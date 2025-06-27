@@ -40,8 +40,8 @@ func (r *RingStore) ByteSize() int {
 	return total
 }
 
-// RecordEvent appends a new event into the ring.
-func (r *RingStore) RecordEvent(_ context.Context, e Event) error {
+// Append appends a new event into the ring.
+func (r *RingStore) Append(_ context.Context, e Event) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -57,10 +57,10 @@ func (r *RingStore) RecordEvent(_ context.Context, e Event) error {
 	return nil
 }
 
-// GetEvents returns all events oldest-first.
+// List returns all events oldest-first.
 // If the buffer has never wrapped, that's just buf[:next].
 // Once wrapped, we stitch buf[next:] before buf[:next].
-func (r *RingStore) GetEvents() []Event {
+func (r *RingStore) List() []Event {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -75,9 +75,9 @@ func (r *RingStore) GetEvents() []Event {
 	return append(head, tail...)
 }
 
-// GetEventsByID returns only those events for the given heartbeat ID,
+// ListByID returns only those events for the given heartbeat ID,
 // still in chronological (oldest-first) order.
-func (r *RingStore) GetEventsByID(id string) []Event {
+func (r *RingStore) ListByID(id string) []Event {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
