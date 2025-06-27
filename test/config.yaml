@@ -16,7 +16,7 @@ receivers:
           from: env:MAIL_FROM
           username: env:MAIL_USERNAME
           password: env:MAIL_PASSWORD
-          startTLS: true
+          start_tls: true
         email:
           to: [env:HEARTBEATS_EMAIL_TO]
     slack_configs:

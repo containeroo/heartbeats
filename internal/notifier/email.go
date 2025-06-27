@@ -31,12 +31,12 @@ type EmailConfig struct {
 
 // EmailDetails is a simplified version of the email.Message used by heartbeats.
 type EmailDetails struct {
-	To          []string `yaml:"to"`                        // List of recipients.
-	CC          []string `yaml:"cc,omitempty"`              // List of CCs.
-	BCC         []string `yaml:"bcc,omitempty"`             // List of BCCs.
-	IsHTML      bool     `yaml:"isHTML,omitempty"`          // Whether to send as HTML.
-	SubjectTmpl string   `yaml:"subjectTemplate,omitempty"` // Subject template.
-	BodyTmpl    string   `yaml:"bodyTemplate,omitempty"`    // Body template.
+	To          []string `yaml:"to"`                         // List of recipients.
+	CC          []string `yaml:"cc,omitempty"`               // List of CCs.
+	BCC         []string `yaml:"bcc,omitempty"`              // List of BCCs.
+	IsHTML      bool     `yaml:"is_html,omitempty"`          // Whether to send as HTML.
+	SubjectTmpl string   `yaml:"subject_template,omitempty"` // Subject template.
+	BodyTmpl    string   `yaml:"body_template,omitempty"`    // Body template.
 }
 
 // NewEmailNotifier creates a new EmailConfig notifier.
