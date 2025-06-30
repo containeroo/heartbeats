@@ -146,8 +146,8 @@ func (a *Actor) onReceive() {
 	a.LastBump = now
 	a.checkTimer = time.NewTimer(a.Interval)
 
-	metrics.TotalHeartbeats.With(prometheus.Labels{"heartbeat": a.ID}).Inc()
-	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.UP)
+	metrics.ReceivedTotal.With(prometheus.Labels{"heartbeat": a.ID}).Inc()
+	metrics.LastStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.UP)
 }
 
 // onFail handles a manual failure trigger.
@@ -173,7 +173,7 @@ func (a *Actor) onFail() {
 		a.logger.Error("failed to record state change", "err", err)
 	}
 
-	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
+	metrics.LastStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
 }
 
 // onEnterGrace transitions to Grace state.
@@ -211,7 +211,7 @@ func (a *Actor) onEnterMissing() {
 		Receivers:   a.Receivers,
 	}
 
-	metrics.HeartbeatStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
+	metrics.LastStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
 }
 
 // onTest sends only a notification to the Actor without changing state.

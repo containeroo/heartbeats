@@ -40,8 +40,8 @@ func NewMetrics(store history.Store) *Metrics {
 	reg := prometheus.NewRegistry()
 
 	// Register core metrics
-	reg.MustRegister(HeartbeatStatus)
-	reg.MustRegister(TotalHeartbeats)
+	reg.MustRegister(LastStatus)
+	reg.MustRegister(ReceivedTotal)
 
 	// Register history store metrics
 	reg.MustRegister(history.NewHistoryMetrics(store))
