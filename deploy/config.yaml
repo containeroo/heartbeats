@@ -19,8 +19,8 @@ receivers:
     slack_configs:
       - channel: platform-alerts
         token: env:SLACK_PLATFORM_TOKEN
-        title_template: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
-        text_template: |
+        title_tmpl: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
+        text_tmpl: |
           *Service:* {{ .Name }}
           *Status:* {{ .Status }}
           *Description:* {{ .Description }}
@@ -37,8 +37,8 @@ receivers:
           skip_insecure_verify: false
         email:
           is_html: true
-          subject_template: "[HEARTBEAT ALERT] {{ .Name }} is {{ upper .Status }}"
-          body_template: |
+          subject_tmpl: "[HEARTBEAT ALERT] {{ .Name }} is {{ upper .Status }}"
+          body_tmpl: |
             <h3>Service: {{ .Name }}</h3>
             <p>Status: <b>{{ .Status }}</b></p>
             <p>{{ .Description }}</p>
@@ -53,8 +53,8 @@ receivers:
     slack_configs:
       - token: file:$PWD/deploy/webhooks.txt//observability
         channel: observability
-        title_template: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
-        text_template: |
+        title_tmpl: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
+        text_tmpl: |
           **Service:** {{ .Name }}
           **Status:** {{ .Status }}
           **Description:** {{ .Description }}

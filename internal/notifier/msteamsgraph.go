@@ -30,8 +30,8 @@ type MSTeamsGraphConfig struct {
 	Token     string `yaml:"token"`      // bearer token for Graph API
 	TeamID    string `yaml:"team_id"`    // ID of the target team
 	ChannelID string `yaml:"channel_id"` // ID of the channel in the team
-	TitleTmpl string `yaml:"title_template,omitempty"`
-	TextTmpl  string `yaml:"text_Template,omitempty"`
+	TitleTmpl string `yaml:"title_tmpl,omitempty"`
+	TextTmpl  string `yaml:"text_tmpl,omitempty"`
 }
 
 // NewMSTeamsGraphNotifier constructs a new Teams Graph notifier.

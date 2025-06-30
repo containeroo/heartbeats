@@ -140,8 +140,8 @@ Resolver supports:
 
 _Defaults:_
 
-- subject_template: `[{{ upper .Status }}] {{ .ID }}"`
-- text_template: `{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
+- subject_tmpl: `[{{ upper .Status }}] {{ .ID }}"`
+- text_tmpl: `{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
 
 ```yaml
 receivers:
@@ -151,7 +151,7 @@ receivers:
         token: env:SLACK_TOKEN
         # optional custom templates:
         title_tempalte: "[{{ upper .Status }}] {{ .ID }}"
-        text_template: "{{ .ID }} status: {{ .Status }}"
+        text_tmpl: "{{ .ID }} status: {{ .Status }}"
         # optional: override global skip TLS
         skip_tls: true
 ```
@@ -163,8 +163,8 @@ receivers:
 
 _Defaults:_
 
-- subject_template: `"[HEARTBEATS]: {{ .ID }} {{ upper .Status }}"`
-- body_template: `"<b>Description:</b> {{ .Description }}<br>Last bump: {{ ago .LastBump }}"`
+- subject_tmpl: `"[HEARTBEATS]: {{ .ID }} {{ upper .Status }}"`
+- body_tmpl: `"<b>Description:</b> {{ .Description }}<br>Last bump: {{ ago .LastBump }}"`
 
 ```yaml
 email_configs:
@@ -182,8 +182,8 @@ email_configs:
       is_html: true
       to: ["ops@example.com"]
       # optional custom templates:
-      subject_template: "[HB] {{ .ID }} {{ upper .Status }}"
-      body_template: "Last bump: {{ ago .LastBump }}"
+      subject_tmpl: "[HB] {{ .ID }} {{ upper .Status }}"
+      body_tmpl: "Last bump: {{ ago .LastBump }}"
 ```
 
 #### MS Teams (incomming webhook)
@@ -191,14 +191,14 @@ email_configs:
 _Defaults:_
 
 - title_tempalte: `"[{{ upper .Status }}] {{ .ID }}"`
-- text_template: `"{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
+- text_tmpl: `"{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
 
 ```yaml
 msteams_configs:
   - webhook_url: file:/secrets/teams/webhook//prod
     # optional custom templates:
     title_tempalte: "[{{ upper .Status }}] {{ .ID }}"
-    text_template: "{{ .ID }} status: {{ .Status }}"
+    text_tmpl: "{{ .ID }} status: {{ .Status }}"
     # optional: override global skip TLS
     skip_tls: true
 ```
@@ -211,7 +211,7 @@ msteams_configs:
 _Defaults:_
 
 - title_tempalte: `"[{{ upper .Status }}] {{ .ID }}"`
-- text_template: `"{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
+- text_tmpl: `"{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
 
 ```yaml
 msteamsgraph_configs:
@@ -219,7 +219,7 @@ msteamsgraph_configs:
     team_id: env:MSTEAMSGRAPH_TEAM_ID
     # optional custom templates:
     title_tempalte: "[{{ upper .Status }}] {{ .ID }}"
-    text_template: "{{ .ID }} status: {{ .Status }}"
+    text_tmpl: "{{ .ID }} status: {{ .Status }}"
     # optional: override global skip TLS
     skip_tls: true
 ```
