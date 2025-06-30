@@ -11,20 +11,20 @@ const (
 )
 
 var (
-	// HeartbeatStatus is a gauge metric representing the last status of each heartbeat.
-	HeartbeatStatus = prometheus.NewGaugeVec(
+	// LastStatus reports the most recent status of each heartbeat (0 = DOWN, 1 = UP).
+	LastStatus = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "heartbeats_heartbeat_last_status",
-			Help: "Total number of heartbeats",
+			Help: "Most recent status of each heartbeat (0 = DOWN, 1 = UP)",
 		},
 		[]string{"heartbeat"},
 	)
 
-	// TotalHeartbeats is a counter metric tracking the total number of heartbeats.
-	TotalHeartbeats = prometheus.NewCounterVec(
+	// ReceivedTotal counts the total number of received heartbeats per ID.
+	ReceivedTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "heartbeats_heartbeats_total",
-			Help: "The total number of heartbeats",
+			Name: "heartbeats_heartbeat_received_total",
+			Help: "Total number of received heartbeats per ID",
 		},
 		[]string{"heartbeat"},
 	)
