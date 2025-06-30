@@ -27,12 +27,12 @@ type SlackConfig struct {
 	logger   *slog.Logger `yaml:"-"` // logger for internal events
 	sender   slack.Sender `yaml:"-"` // Optional override for injecting a custom sender (used in tests)
 
-	SkipTLS   *bool  `yaml:"skipTLS"`                 // SkipTLS skipt TLS check when doing the web request.
-	Channel   string `yaml:"channel"`                 // Slack channel
-	Token     string `yaml:"token"`                   // Slack API token
-	Username  string `yaml:"username,omitempty"`      // display username
-	TitleTmpl string `yaml:"titleTemplate,omitempty"` // title template
-	TextTmpl  string `yaml:"textTemplate,omitempty"`  // text template
+	SkipTLS   *bool  `yaml:"skip_tls"`                 // SkipTLS skipt TLS check when doing the web request.
+	Channel   string `yaml:"channel"`                  // Slack channel
+	Token     string `yaml:"token"`                    // Slack API token
+	Username  string `yaml:"username,omitempty"`       // display username
+	TitleTmpl string `yaml:"title_template,omitempty"` // title template
+	TextTmpl  string `yaml:"text_template,omitempty"`  // text template
 }
 
 // NewSlackNotifier creates a Slack notifier.

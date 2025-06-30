@@ -19,8 +19,8 @@ receivers:
     slack_configs:
       - channel: platform-alerts
         token: env:SLACK_PLATFORM_TOKEN
-        titleTemplate: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
-        textTemplate: |
+        title_template: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
+        text_template: |
           *Service:* {{ .Name }}
           *Status:* {{ .Status }}
           *Description:* {{ .Description }}
@@ -33,12 +33,12 @@ receivers:
           from: alerts@platform.example.com
           username: env:SENDGRID_USERNAME
           password: env:SENDGRID_PASSWORD
-          startTLS: true
-          skipInsecureVerify: false
+          start_tls: true
+          skip_insecure_verify: false
         email:
-          isHTML: true
-          subjectTemplate: "[HEARTBEAT ALERT] {{ .Name }} is {{ upper .Status }}"
-          bodyTemplate: |
+          is_html: true
+          subject_template: "[HEARTBEAT ALERT] {{ .Name }} is {{ upper .Status }}"
+          body_template: |
             <h3>Service: {{ .Name }}</h3>
             <p>Status: <b>{{ .Status }}</b></p>
             <p>{{ .Description }}</p>
@@ -53,8 +53,8 @@ receivers:
     slack_configs:
       - token: file:$PWD/deploy/webhooks.txt//observability
         channel: observability
-        titleTemplate: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
-        textTemplate: |
+        title_template: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
+        text_template: |
           **Service:** {{ .Name }}
           **Status:** {{ .Status }}
           **Description:** {{ .Description }}
