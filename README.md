@@ -150,7 +150,7 @@ receivers:
       - channel: "#integration"
         token: env:SLACK_TOKEN
         # optional custom templates:
-        title_tempalte: "[{{ upper .Status }}] {{ .ID }}"
+        title_tmpl: "[{{ upper .Status }}] {{ .ID }}"
         text_tmpl: "{{ .ID }} status: {{ .Status }}"
         # optional: override global skip TLS
         skip_tls: true
@@ -190,14 +190,14 @@ email_configs:
 
 _Defaults:_
 
-- title_tempalte: `"[{{ upper .Status }}] {{ .ID }}"`
+- title_tmpl: `"[{{ upper .Status }}] {{ .ID }}"`
 - text_tmpl: `"{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
 
 ```yaml
 msteams_configs:
   - webhook_url: file:/secrets/teams/webhook//prod
     # optional custom templates:
-    title_tempalte: "[{{ upper .Status }}] {{ .ID }}"
+    title_tmpl: "[{{ upper .Status }}] {{ .ID }}"
     text_tmpl: "{{ .ID }} status: {{ .Status }}"
     # optional: override global skip TLS
     skip_tls: true
@@ -210,7 +210,7 @@ msteams_configs:
 
 _Defaults:_
 
-- title_tempalte: `"[{{ upper .Status }}] {{ .ID }}"`
+- title_tmpl: `"[{{ upper .Status }}] {{ .ID }}"`
 - text_tmpl: `"{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
 
 ```yaml
@@ -218,7 +218,7 @@ msteamsgraph_configs:
   - channel_id: env:MSTEAMSGRAPH_CHANNEL_ID
     team_id: env:MSTEAMSGRAPH_TEAM_ID
     # optional custom templates:
-    title_tempalte: "[{{ upper .Status }}] {{ .ID }}"
+    title_tmpl: "[{{ upper .Status }}] {{ .ID }}"
     text_tmpl: "{{ .ID }} status: {{ .Status }}"
     # optional: override global skip TLS
     skip_tls: true
