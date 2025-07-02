@@ -1,0 +1,18 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: heartbeats
+spec:
+  groups:
+    - name: heartbeats.rules
+      rules:
+        - alert: HeartbeatsReceiverNotificationFailed
+          expr: heartbeats_receiver_error_status == 1
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Heartbeat receiver failed to send notification"
+            description: >
+              Receiver {{ $labels.receiver }} (type={{ $labels.type }}, target={{ $labels.target }}) failed its last notification attempt.
