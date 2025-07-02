@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 )
 
 // Dispatcher handles queued notifications via mailbox.
@@ -92,10 +93,13 @@ func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Not
 	}
 
 	eventType := history.EventTypeNotificationSent
+	receiverStatus := metrics.SUCCESS
 
 	if err := d.retryNotify(ctx, n, data, receiverID); err != nil {
 		payload.Error = err.Error()
 		eventType = history.EventTypeNotificationFailed
+
+		receiverStatus = metrics.ERROR
 
 		d.logger.Error("notification error",
 			"receiver", receiverID,
@@ -104,6 +108,10 @@ func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Not
 			"error", err,
 		)
 	}
+
+	metrics.ReceiverErrorStatus.
+		WithLabelValues(receiverID, n.Type(), n.Target()).
+		Set(receiverStatus)
 
 	ev := history.MustNewEvent(eventType, data.ID, payload)
 	if err := d.history.Append(ctx, ev); err != nil {

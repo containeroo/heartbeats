@@ -21,6 +21,7 @@ func TestNewMetrics(t *testing.T) {
 	// Initialize metrics
 	LastStatus.With(prometheus.Labels{"heartbeat": "test_heartbeat"})
 	ReceivedTotal.With(prometheus.Labels{"heartbeat": "test_heartbeat"})
+	ReceiverErrorStatus.With(prometheus.Labels{"receiver": "recv1", "type": "test-type", "target": "test-target"})
 
 	gatherers := prometheus.Gatherers{
 		PromMetrics.Registry,
@@ -29,11 +30,14 @@ func TestNewMetrics(t *testing.T) {
 	mfs, err := gatherers.Gather()
 	assert.NoError(t, err, "Expected no error while gathering metrics")
 
-	var foundLastStatus, foundReceivedTotal, foundHistorySize bool
+	var foundHeartbeatLastStatus, foundLastReceiverStatus, foundReceivedTotal, foundHistorySize bool
 
 	for _, mf := range mfs {
 		if *mf.Name == "heartbeats_heartbeat_last_status" {
-			foundLastStatus = true
+			foundHeartbeatLastStatus = true
+		}
+		if *mf.Name == "heartbeats_receiver_last_status" {
+			foundLastReceiverStatus = true
 		}
 		if *mf.Name == "heartbeats_heartbeat_received_total" {
 			foundReceivedTotal = true
@@ -43,12 +47,13 @@ func TestNewMetrics(t *testing.T) {
 		}
 	}
 
-	assert.True(t, foundLastStatus, "Expected to find heartbeats_heartbeat_last_status metric")
+	assert.True(t, foundHeartbeatLastStatus, "Expected to find heartbeats_heartbeat_last_status metric")
+	assert.True(t, foundLastReceiverStatus, "Expected to find heartbeats_receiver_last_status metric")
 	assert.True(t, foundReceivedTotal, "Expected to find heartbeats_heartbeats_total metric")
 	assert.True(t, foundHistorySize, "Expected to find heartbeats_history_byte_size metric")
 }
 
-func TestLastStatusMetric(t *testing.T) {
+func TestLastHeartbeatStatusMetric(t *testing.T) {
 	t.Parallel()
 
 	hist := history.NewRingStore(10)
@@ -62,6 +67,23 @@ func TestLastStatusMetric(t *testing.T) {
 	heartbeats_heartbeat_last_status{heartbeat="test_heartbeat"} 1
 	`
 	err := testutil.GatherAndCompare(promMetrics.Registry, strings.NewReader(expected), "heartbeats_heartbeat_last_status")
+	assert.NoError(t, err, "Expected no error while gathering and comparing metrics")
+}
+
+func TestReceiverErrorStatusMetrics(t *testing.T) {
+	t.Parallel()
+
+	hist := history.NewRingStore(10)
+	promMetrics := NewMetrics(hist)
+
+	ReceiverErrorStatus.With(prometheus.Labels{"receiver": "recv1", "target": "test-target", "type": "test-type"}).Set(1)
+
+	expected := `
+	# HELP heartbeats_receiver_last_status Reports the status of the last notification attempt (1 = ERROR, 0 = SUCCESS)
+	# TYPE heartbeats_receiver_last_status gauge
+	heartbeats_receiver_last_status{receiver="recv1",target="test-target",type="test-type"} 1
+	`
+	err := testutil.GatherAndCompare(promMetrics.Registry, strings.NewReader(expected), "heartbeats_receiver_last_status")
 	assert.NoError(t, err, "Expected no error while gathering and comparing metrics")
 }
 

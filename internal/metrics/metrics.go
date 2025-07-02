@@ -5,9 +5,16 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+// heartbeats_heartbeat_last_status
 const (
-	DOWN = iota
-	UP
+	DOWN float64 = 0
+	UP   float64 = 1
+)
+
+// heartbeats_receiver_last_status
+const (
+	SUCCESS float64 = 0
+	ERROR   float64 = 1
 )
 
 var (
@@ -28,6 +35,15 @@ var (
 		},
 		[]string{"heartbeat"},
 	)
+
+	// ReceiverErrorStatus reports the status of the last notification attempt (1 = ERROR, 0 = SUCCESS)
+	ReceiverErrorStatus = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "heartbeats_receiver_last_status",
+			Help: "Reports the status of the last notification attempt (1 = ERROR, 0 = SUCCESS)",
+		},
+		[]string{"receiver", "type", "target"},
+	)
 )
 
 // Metrics wraps a Prometheus registry and provides functionality for metric registration.
@@ -42,6 +58,7 @@ func NewMetrics(store history.Store) *Metrics {
 	// Register core metrics
 	reg.MustRegister(LastStatus)
 	reg.MustRegister(ReceivedTotal)
+	reg.MustRegister(ReceiverErrorStatus)
 
 	// Register history store metrics
 	reg.MustRegister(history.NewHistoryMetrics(store))

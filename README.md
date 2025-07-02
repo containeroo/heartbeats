@@ -233,10 +233,11 @@ Heartbeats exposes the following Prometheus metrics via the `/metrics` endpoint:
 
 ### Heartbeat Metrics
 
-| Name                                  | Type      | Labels      | Description                                             |
-| ------------------------------------- | --------- | ----------- | ------------------------------------------------------- |
-| `heartbeats_heartbeat_last_status`    | `gauge`   | `heartbeat` | Most recent status of each heartbeat (0 = DOWN, 1 = UP) |
-| `heartbeats_heartbeat_received_total` | `counter` | `heartbeat` | Total number of received heartbeats per ID              |
+| Name                                  | Type      | Labels                       | Description                                                                  |
+| ------------------------------------- | --------- | ---------------------------- | ---------------------------------------------------------------------------- |
+| `heartbeats_heartbeat_last_status`    | `gauge`   | `heartbeat`                  | Most recent status of each heartbeat (0 = DOWN, 1 = UP)                      |
+| `heartbeats_heartbeat_received_total` | `counter` | `heartbeat`                  | Total number of received heartbeats per ID                                   |
+| `heartbeats_receiver_last_status`     | `counter` | `receiver`, `type`, `target` | Reports the status of the last notification attempt (1 = ERROR, 0 = SUCCESS) |
 
 ### History Store Metrics
 
