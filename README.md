@@ -277,7 +277,7 @@ curl http://localhost:8081/internal/heartbeat/{id}
 
 #### Docker
 
-Bind the debug port only to your host’s loopback interface:
+Bind the debug port only to your host's loopback interface:
 
 ```bash
 docker run \
