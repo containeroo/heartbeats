@@ -21,10 +21,6 @@ spec:
           image: ghcr.io/containeroo/heartbeats:latest
           imagePullPolicy: IfNotPresent
           args:
-            - --config
-            - /tmp/config.yaml
-            - --listen-address
-            - 0.0.0.0:8080
             - --site-root
             - https://heartbeats.example.com
           env:
@@ -60,7 +56,8 @@ spec:
               cpu: 100m
           volumeMounts:
             - name: config
-              mountPath: /tmp/
+              mountPath: /config.yaml
+              subPath: config.yaml
             - name: webhooks
               mountPath: /secrets/teams
       # affinity:

@@ -10,16 +10,10 @@ services:
       - SENDGRID_PASSWORD=your-sendgrid-password
       - EMAIL_FROM=alerts@platform.example.com
       - ALERT_FALLBACK_EMAIL=fallback@example.com
-    command:
-      - --debug
-      - --listen-address
-      - 0.0.0.0:8080
-      - -c
-      - /config/config.yaml
     ports:
       - "8080:8080"
     volumes:
-      - ./config.yaml:/config/config.yaml:ro
+      - ./config.yaml:/config.yaml:ro
       - ./webhooks.txt:/secrets/teams/webhooks.txt:ro
     networks:
       - default
