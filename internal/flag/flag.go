@@ -50,16 +50,16 @@ func (o *Options) Validate() error {
 
 // registerFlags binds all application flags to the given FlagSet.
 func registerFlags(fs *flag.FlagSet) {
-	fs.StringP("config", "c", "config.yaml", "Path to configuration file")
-	fs.StringP("listen-address", "a", ":8080", "Address to listen on")
-	fs.StringP("site-root", "r", "http://localhost:8080", "Site root URL")
-	fs.IntP("history-size", "s", 10000, "Size of the history")
-	fs.Bool("skip-tls", false, "Skip TLS verificationdt")
-	fs.BoolP("debug", "d", false, "Enable debug logging")
-	fs.Int("debug-server-port", 8081, "Port for the debug server")
-	fs.StringP("log-format", "l", "json", "Log format: json | text")
-	fs.Int("retry-count", 3, "Retries for failed notifications (-1 = infinite)")
-	fs.Duration("retry-delay", 2*time.Second, "Delay between retries")
+	fs.StringP("config", "c", "config.yaml", envDesc("Path to configuration file", "HEARTBEATS_CONFIG"))
+	fs.StringP("listen-address", "a", ":8080", envDesc("Address to listen on", "HEARTBEATS_LISTEN_ADDRESS"))
+	fs.StringP("site-root", "r", "http://localhost:8080", envDesc("Site root URL", "HEARTBEATS_SITE_ROOT"))
+	fs.IntP("history-size", "s", 10000, envDesc("Size of the history", "HEARTBEATS_HISTORY_SIZE"))
+	fs.Bool("skip-tls", false, envDesc("Skip TLS verification", "HEARTBEATS_SKIP_TLS"))
+	fs.BoolP("debug", "d", false, envDesc("Enable debug logging", "HEARTBEATS_DEBUG"))
+	fs.Int("debug-server-port", 8081, envDesc("Port for the debug server", "HEARTBEATS_DEBUG_SERVER_PORT"))
+	fs.StringP("log-format", "l", "json", envDesc("Log format: json | text", "HEARTBEATS_LOG_FORMAT"))
+	fs.Int("retry-count", 3, envDesc("Retries for failed notifications (-1 = infinite)", "HEARTBEATS_RETRY_COUNT"))
+	fs.Duration("retry-delay", 2*time.Second, envDesc("Delay between retries", "HEARTBEATS_RETRY_DELAY"))
 }
 
 // ParseFlags parses flags and environment variables.
@@ -76,7 +76,6 @@ func ParseFlags(args []string, version string, getEnv func(string) string) (Opti
 
 	fs.Usage = func() {
 		fmt.Fprintf(fs.Output(), "Usage: %s [flags]\n\nFlags:\n", strings.ToLower(fs.Name())) // nolint:errcheck
-		decorateUsageWithEnv(fs, strings.ToUpper(fs.Name()))
 		fs.PrintDefaults()
 	}
 

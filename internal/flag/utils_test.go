@@ -3,10 +3,8 @@ package flag
 import (
 	"bytes"
 	"errors"
-	"strings"
 	"testing"
 
-	flag "github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,29 +30,28 @@ func TestMust(t *testing.T) {
 	})
 }
 
-func TestDecorateUsageWithEnv(t *testing.T) {
-	t.Run("adds env suffix to flag usage", func(t *testing.T) {
-		fs := flag.NewFlagSet("test", flag.ContinueOnError)
-		fs.String("my-flag", "", "some description")
+func TestEnvDesc(t *testing.T) {
+	t.Parallel()
 
-		decorateUsageWithEnv(fs, "CASCADER")
-
-		f := fs.Lookup("my-flag")
-		if !strings.Contains(f.Usage, "(env: CASCADER_MY_FLAG)") {
-			t.Errorf("expected usage to contain env suffix, got: %q", f.Usage)
-		}
+	t.Run("appends env var to description", func(t *testing.T) {
+		t.Parallel()
+		got := envDesc("Enable debug logging", "HEARTBEATS_DEBUG")
+		want := "Enable debug logging (env: HEARTBEATS_DEBUG)"
+		assert.Equal(t, want, got)
 	})
 
-	t.Run("does not overwrite existing env hint", func(t *testing.T) {
-		fs := flag.NewFlagSet("test", flag.ContinueOnError)
-		fs.String("already", "", "example (env: CUSTOM)")
+	t.Run("works with empty description", func(t *testing.T) {
+		t.Parallel()
+		got := envDesc("", "FOO")
+		want := " (env: FOO)"
+		assert.Equal(t, want, got)
+	})
 
-		decorateUsageWithEnv(fs, "CASCADER")
-
-		f := fs.Lookup("already")
-		if strings.Count(f.Usage, "(env:") > 1 {
-			t.Errorf("expected only one env hint, got: %q", f.Usage)
-		}
+	t.Run("works with empty env var", func(t *testing.T) {
+		t.Parallel()
+		got := envDesc("Desc only", "")
+		want := "Desc only (env: )"
+		assert.Equal(t, want, got)
 	})
 }
 
