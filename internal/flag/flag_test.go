@@ -1,8 +1,6 @@
 package flag
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -161,28 +159,6 @@ func TestBuildOptions(t *testing.T) {
 	})
 }
 
-func TestMust(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns value if no error", func(t *testing.T) {
-		t.Parallel()
-
-		got := must("value", nil)
-		assert.Equal(t, "value", got)
-	})
-
-	t.Run("panics if error is not nil", func(t *testing.T) {
-		t.Parallel()
-
-		defer func() {
-			if r := recover(); r == nil {
-				t.Fatal("expected panic but got none")
-			}
-		}()
-		_ = must("fail", errors.New("error"))
-	})
-}
-
 func TestConfig_Validate(t *testing.T) {
 	t.Parallel()
 
@@ -243,34 +219,5 @@ func TestConfig_Validate(t *testing.T) {
 		}
 		err := cfg.Validate()
 		assert.EqualError(t, err, "invalid log format: 'xml'")
-	})
-}
-
-func TestIsHelpRequested(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns true and writes message for HelpRequested error", func(t *testing.T) {
-		t.Parallel()
-
-		buf := &bytes.Buffer{}
-		helpMsg := "this is the help message\n"
-		err := &HelpRequested{Message: helpMsg}
-
-		ok := IsHelpRequested(err, buf)
-
-		assert.True(t, ok)
-		assert.Equal(t, helpMsg, buf.String())
-	})
-
-	t.Run("returns false and writes nothing for unrelated error", func(t *testing.T) {
-		t.Parallel()
-
-		buf := &bytes.Buffer{}
-		err := errors.New("some other error")
-
-		ok := IsHelpRequested(err, buf)
-
-		assert.False(t, ok)
-		assert.Equal(t, "", buf.String())
 	})
 }

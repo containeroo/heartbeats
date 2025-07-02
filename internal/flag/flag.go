@@ -2,9 +2,7 @@ package flag
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
@@ -36,22 +34,40 @@ type Options struct {
 	RetryDelay      time.Duration     // Delay between retries
 }
 
+// Validate checks whether the Options are valid.
+func (o *Options) Validate() error {
+	if o.RetryCount == 0 || o.RetryCount < -1 {
+		return fmt.Errorf("retry count must be -1 (infinite) or >= 1, got %d", o.RetryCount)
+	}
+	if o.RetryDelay < time.Second {
+		return fmt.Errorf("retry delay must be at least 1s, got %s", o.RetryDelay)
+	}
+	if o.LogFormat != logging.LogFormatText && o.LogFormat != logging.LogFormatJSON {
+		return fmt.Errorf("invalid log format: '%s'", o.LogFormat)
+	}
+	return nil
+}
+
+// registerFlags binds all application flags to the given FlagSet.
+func registerFlags(fs *flag.FlagSet) {
+	fs.StringP("config", "c", "config.yaml", "Path to configuration file")
+	fs.StringP("listen-address", "a", ":8080", "Address to listen on")
+	fs.StringP("site-root", "r", "http://localhost:8080", "Site root URL")
+	fs.IntP("history-size", "s", 10000, "Size of the history")
+	fs.Bool("skip-tls", false, "Skip TLS verificationdt")
+	fs.BoolP("debug", "d", false, "Enable debug logging")
+	fs.Int("debug-server-port", 8081, "Port for the debug server")
+	fs.StringP("log-format", "l", "json", "Log format: json | text")
+	fs.Int("retry-count", 3, "Retries for failed notifications (-1 = infinite)")
+	fs.Duration("retry-delay", 2*time.Second, "Delay between retries")
+}
+
 // ParseFlags parses flags and environment variables.
 func ParseFlags(args []string, version string, getEnv func(string) string) (Options, error) {
 	fs := flag.NewFlagSet("Heartbeats", flag.ContinueOnError)
 	fs.SortFlags = false
 
-	// Register flags
-	fs.StringP("config", "c", "config.yaml", "Path to configuration file (env: HEARTBEATS_CONFIG)")
-	fs.StringP("listen-address", "a", ":8080", "Address to listen on (env: HEARTBEATS_LISTEN_ADDRESS)")
-	fs.StringP("site-root", "r", "http://localhost:8080", "Site root URL (env: HEARTBEATS_SITE_ROOT)")
-	fs.IntP("history-size", "s", 10000, "Size of the history (env: HEARTBEATS_HISTORY_SIZE)")
-	fs.Bool("skip-tls", false, "Skip TLS verification (env: HEARTBEATS_SKIP_TLS)")
-	fs.BoolP("debug", "d", false, "Enable debug logging (env: HEARTBEATS_DEBUG)")
-	fs.Int("debug-server-port", 8081, "Port for the debug server (env: HEARTBEATS_DEBUG_SERVER_PORT)")
-	fs.StringP("log-format", "l", "json", "Log format: json | text (env: HEARTBEATS_LOG_FORMAT)")
-	fs.Int("retry-count", 3, "Retries for failed notifications (-1 = infinite) (env: HEARTBEATS_RETRY_COUNT)")
-	fs.Duration("retry-delay", 2*time.Second, "Delay between retries (env: HEARTBEATS_RETRY_DELAY)")
+	registerFlags(fs)
 
 	// Meta flags
 	var showHelp, showVersion bool
@@ -72,6 +88,7 @@ func ParseFlags(args []string, version string, getEnv func(string) string) (Opti
 	if showHelp {
 		var buf bytes.Buffer
 		fs.SetOutput(&buf)
+		decorateUsageWithEnv(fs, strings.ToUpper(fs.Name()))
 		fs.Usage()
 		return Options{}, &HelpRequested{Message: buf.String()}
 	}
@@ -101,36 +118,4 @@ func buildOptions(fs *flag.FlagSet) (opts Options, err error) {
 		RetryDelay:      must(envflag.Duration(fs, "retry-delay", "HEARTBEATS_RETRY_DELAY")),
 		LogFormat:       logging.LogFormat(must(envflag.String(fs, "log-format", "HEARTBEATS_LOG_FORMAT"))),
 	}, nil
-}
-
-// must panics on err and is used to keep config assembly clean.
-func must[T any](v T, err error) T {
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// Validate checks whether the Options are valid.
-func (c *Options) Validate() error {
-	if c.RetryCount == 0 || c.RetryCount < -1 {
-		return fmt.Errorf("retry count must be -1 (infinite) or >= 1, got %d", c.RetryCount)
-	}
-	if c.RetryDelay < time.Second {
-		return fmt.Errorf("retry delay must be at least 1s, got %s", c.RetryDelay)
-	}
-	if c.LogFormat != logging.LogFormatText && c.LogFormat != logging.LogFormatJSON {
-		return fmt.Errorf("invalid log format: '%s'", c.LogFormat)
-	}
-	return nil
-}
-
-// IsHelpRequested checks if the error is a HelpRequested sentinel and prints it.
-func IsHelpRequested(err error, w io.Writer) bool {
-	var helpErr *HelpRequested
-	if errors.As(err, &helpErr) {
-		fmt.Fprint(w, helpErr.Error()) // nolint:errcheck
-		return true
-	}
-	return false
 }
