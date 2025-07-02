@@ -76,6 +76,7 @@ func ParseFlags(args []string, version string, getEnv func(string) string) (Opti
 
 	fs.Usage = func() {
 		fmt.Fprintf(fs.Output(), "Usage: %s [flags]\n\nFlags:\n", strings.ToLower(fs.Name())) // nolint:errcheck
+		decorateUsageWithEnv(fs, strings.ToUpper(fs.Name()))
 		fs.PrintDefaults()
 	}
 
@@ -88,7 +89,6 @@ func ParseFlags(args []string, version string, getEnv func(string) string) (Opti
 	if showHelp {
 		var buf bytes.Buffer
 		fs.SetOutput(&buf)
-		decorateUsageWithEnv(fs, strings.ToUpper(fs.Name()))
 		fs.Usage()
 		return Options{}, &HelpRequested{Message: buf.String()}
 	}
