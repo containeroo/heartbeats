@@ -61,7 +61,7 @@ func TestRun(t *testing.T) {
 		err := app.Run(context.Background(), webFS, "v1.2.3", "deadbeef", []string{"--version"}, &out, os.Getenv)
 
 		assert.NoError(t, err)
-		assert.Equal(t, "Heartbeats version v1.2.3\n", out.String())
+		assert.Equal(t, "v1.2.3", out.String())
 	})
 
 	t.Run("fails with invalid log format", func(t *testing.T) {
@@ -70,7 +70,7 @@ func TestRun(t *testing.T) {
 		var out bytes.Buffer
 		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--log-format", "xml"}, &out, os.Getenv)
 
-		assert.EqualError(t, err, "invalid CLI flags: invalid log format: 'xml'")
+		assert.EqualError(t, err, "CLI flags error: invalid value for flag --log-format: invalid value \"xml\": must be one of text, json")
 	})
 
 	t.Run("fails with invalid retry delay format", func(t *testing.T) {
@@ -79,7 +79,7 @@ func TestRun(t *testing.T) {
 		var out bytes.Buffer
 		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--retry-delay", "foo"}, &out, os.Getenv)
 
-		assert.EqualError(t, err, "parsing error: invalid argument \"foo\" for \"--retry-delay\" flag: time: invalid duration \"foo\"")
+		assert.EqualError(t, err, "CLI flags error: invalid value for flag --retry-delay: time: invalid duration \"foo\"")
 	})
 
 	t.Run("fails with invalid retry count", func(t *testing.T) {
@@ -88,16 +88,16 @@ func TestRun(t *testing.T) {
 		var out bytes.Buffer
 		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--retry-count", "0"}, &out, os.Getenv)
 
-		assert.EqualError(t, err, "invalid CLI flags: retry count must be -1 (infinite) or >= 1, got 0")
+		assert.EqualError(t, err, "CLI flags error: invalid value for flag --retry-count: invalid value \"0\": retry count must be -1 for infinite or >= 1, got 0")
 	})
 
 	t.Run("fails with invalid retry delay", func(t *testing.T) {
 		t.Parallel()
 
 		var out bytes.Buffer
-		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--retry-delay", "200ms"}, &out, os.Getenv)
+		err := app.Run(context.Background(), webFS, "dev", "abc", []string{"--retry-delay", "20ms"}, &out, os.Getenv)
 
-		assert.EqualError(t, err, "invalid CLI flags: retry delay must be at least 1s, got 200ms")
+		assert.EqualError(t, err, "CLI flags error: invalid value for flag --retry-delay: invalid value \"20ms\": retry delay must be at least 200ms, got 20ms")
 	})
 
 	t.Run("fails when config file is missing", func(t *testing.T) {
@@ -157,7 +157,8 @@ heartbeats:
 		}
 
 		go func() {
-			_ = app.Run(ctx, webFS, "dev", "abc", args, &buf, os.Getenv)
+			err := app.Run(ctx, webFS, "dev", "abc", args, &buf, os.Getenv)
+			assert.NoError(t, err)
 		}()
 
 		time.Sleep(200 * time.Millisecond) // wait to start the server
