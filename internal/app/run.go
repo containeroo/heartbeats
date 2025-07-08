@@ -16,6 +16,8 @@ import (
 	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	"github.com/containeroo/heartbeats/internal/server"
+
+	"github.com/containeroo/tinyflags"
 )
 
 // Run is the single entry point for the application.
@@ -23,13 +25,11 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	// Parse and validate command-line flags.
 	flags, err := flag.ParseFlags(args, version, getEnv)
 	if err != nil {
-		if flag.IsHelpRequested(err, w) {
+		if tinyflags.IsHelpRequested(err) || tinyflags.IsVersionRequested(err) {
+			fmt.Fprint(w, err.Error()) // nolint:errcheck
 			return nil
 		}
-		return fmt.Errorf("parsing error: %w", err)
-	}
-	if err := flags.Validate(); err != nil {
-		return fmt.Errorf("invalid CLI flags: %w", err)
+		return fmt.Errorf("CLI flags error: %w", err)
 	}
 
 	// Load and validate configuration.

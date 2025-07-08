@@ -1,11 +1,10 @@
 module github.com/containeroo/heartbeats
 
-go 1.24.2
-
-toolchain go1.24.4
+go 1.24.4
 
 require (
 	github.com/containeroo/resolver v0.1.0
+	github.com/containeroo/tinyflags v0.0.6
 	github.com/prometheus/client_golang v1.22.0
 	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
