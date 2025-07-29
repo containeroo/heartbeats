@@ -1,7 +1,6 @@
 package flag
 
 import (
-	"os"
 	"testing"
 
 	"github.com/containeroo/heartbeats/internal/logging"
@@ -15,7 +14,7 @@ func TestParseFlags(t *testing.T) {
 	t.Run("use defaults", func(t *testing.T) {
 		t.Parallel()
 
-		cfg, err := ParseFlags([]string{}, "vX.Y.Z", os.Getenv)
+		cfg, err := ParseFlags([]string{}, "vX.Y.Z")
 		assert.NoError(t, err)
 		assert.Equal(t, "config.yaml", cfg.ConfigPath, "default config path")
 		assert.Equal(t, ":8080", cfg.ListenAddr, "default listen address")
@@ -30,7 +29,7 @@ func TestParseFlags(t *testing.T) {
 	t.Run("show version", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := ParseFlags([]string{"--version"}, "1.2.3", os.Getenv)
+		_, err := ParseFlags([]string{"--version"}, "1.2.3")
 		assert.Error(t, err)
 		assert.True(t, tinyflags.IsVersionRequested(err))
 		assert.EqualError(t, err, "1.2.3")
@@ -39,22 +38,22 @@ func TestParseFlags(t *testing.T) {
 	t.Run("show help", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := ParseFlags([]string{"--help"}, "", os.Getenv)
+		_, err := ParseFlags([]string{"--help"}, "")
 		assert.Error(t, err)
 		assert.True(t, tinyflags.IsHelpRequested(err))
 		usage := `Usage: Heartbeats [flags]
 Flags:
-  -c, --config CONFIG                    Path to configuration file (Default: config.yaml)
-  -a, --listen-address ADDR              Listen address (Default: :8080)
-  -r, --site-root URL                    Site root URL (Default: http://localhost:8080)
-  -s, --history-size INT                 Size of the history. Minimum is 100 (Default: 10000)
-      --skip-tls                         Skip TLS verification
-  -d, --debug                            Enable debug logging
-      --debug-server-port PORT           Port for the debug server (Default: 8081)
-  -l, --log-format <text|json>           Log format (Allowed: text, json) (Default: json)
-      --retry-count INT                  Retries for failed notifications (-1 = infinite) (Default: 3)
-      --retry-delay DUR                  Delay between retries (Default: 2s)
-  -h, --help                             show help
+    -c, --config CONFIG           Path to configuration file (Default: config.yaml) (Env: HEARTBEATS_CONFIG)
+    -a, --listen-address ADDR     Listen address (Default: :8080) (Env: HEARTBEATS_LISTEN_ADDRESS)
+    -r, --site-root URL           Site root URL (Default: http://localhost:8080) (Env: HEARTBEATS_SITE_ROOT)
+    -s, --history-size INT        Size of the history. Minimum is 100 (Default: 10000) (Env: HEARTBEATS_HISTORY_SIZE)
+        --skip-tls                Skip TLS verification (Default: false) (Env: HEARTBEATS_SKIP_TLS)
+    -d, --debug                   Enable debug logging (Default: false) (Env: HEARTBEATS_DEBUG)
+        --debug-server-port PORT  Port for the debug server (Default: 8081) (Env: HEARTBEATS_DEBUG_SERVER_PORT)
+    -l, --log-format <text|json>  Log format (Allowed: text, json) (Default: json) (Env: HEARTBEATS_LOG_FORMAT)
+        --retry-count INT         Retries for failed notifications (-1 = infinite) (Default: 3) (Env: HEARTBEATS_RETRY_COUNT)
+        --retry-delay DUR         Delay between retries (Default: 2s) (Env: HEARTBEATS_RETRY_DELAY)
+    -h, --help                    show help (Default: false)
 `
 		assert.EqualError(t, err, usage)
 	})
@@ -71,7 +70,7 @@ Flags:
 			"--debug-server-port", "8082",
 			"-l", "text",
 		}
-		cfg, err := ParseFlags(args, "0.0.0", os.Getenv)
+		cfg, err := ParseFlags(args, "0.0.0")
 		assert.NoError(t, err)
 		assert.Equal(t, "myconf.yml", cfg.ConfigPath)
 		assert.Equal(t, "127.0.0.1:9000", cfg.ListenAddr)
@@ -85,7 +84,7 @@ Flags:
 	t.Run("parsing error", func(t *testing.T) {
 		t.Parallel()
 		args := []string{"--invalid"}
-		_, err := ParseFlags(args, "", os.Getenv)
+		_, err := ParseFlags(args, "")
 
 		assert.Error(t, err)
 		assert.EqualError(t, err, "unknown flag: --invalid")
@@ -95,7 +94,7 @@ Flags:
 		t.Parallel()
 
 		args := []string{"--history-size", "100"}
-		_, err := ParseFlags(args, "", os.Getenv)
+		_, err := ParseFlags(args, "")
 
 		assert.NoError(t, err)
 	})
@@ -104,16 +103,16 @@ Flags:
 		t.Parallel()
 
 		args := []string{"--history-size", "99"}
-		_, err := ParseFlags(args, "", os.Getenv)
+		_, err := ParseFlags(args, "")
 
 		assert.Error(t, err)
-		assert.EqualError(t, err, "invalid value for flag --history-size: invalid value \"99\": history size must be at least 100, got 99")
+		assert.EqualError(t, err, "invalid value for flag --history-size: history size must be at least 100, got 99.")
 	})
 
 	t.Run("valid log format", func(t *testing.T) {
 		t.Parallel()
 		args := []string{"--log-format", "json"}
-		_, err := ParseFlags(args, "", os.Getenv)
+		_, err := ParseFlags(args, "")
 
 		assert.NoError(t, err)
 	})
@@ -121,16 +120,16 @@ Flags:
 	t.Run("invalid log format", func(t *testing.T) {
 		t.Parallel()
 		args := []string{"--log-format", "xml"}
-		_, err := ParseFlags(args, "", os.Getenv)
+		_, err := ParseFlags(args, "")
 
 		assert.Error(t, err)
-		assert.EqualError(t, err, "invalid value for flag --log-format: invalid value \"xml\": must be one of text, json")
+		assert.EqualError(t, err, "invalid value for flag --log-format: must be one of: text, json.")
 	})
 
 	t.Run("valid retry count", func(t *testing.T) {
 		t.Parallel()
 		args := []string{"--retry-count", "1"}
-		_, err := ParseFlags(args, "", os.Getenv)
+		_, err := ParseFlags(args, "")
 
 		assert.NoError(t, err)
 	})
@@ -138,25 +137,25 @@ Flags:
 	t.Run("invalid retry count", func(t *testing.T) {
 		t.Parallel()
 		args := []string{"--retry-count", "0"}
-		_, err := ParseFlags(args, "", os.Getenv)
+		_, err := ParseFlags(args, "")
 
 		assert.Error(t, err)
-		assert.EqualError(t, err, "invalid value for flag --retry-count: invalid value \"0\": retry count must be -1 for infinite or >= 1, got 0")
+		assert.EqualError(t, err, "invalid value for flag --retry-count: retry count must be -1 for infinite or >= 1, got 0.")
 	})
 
 	t.Run("invalid retry delay", func(t *testing.T) {
 		t.Parallel()
 		args := []string{"--retry-delay", "50ms"}
-		_, err := ParseFlags(args, "", os.Getenv)
+		_, err := ParseFlags(args, "")
 
 		assert.Error(t, err)
-		assert.EqualError(t, err, "invalid value for flag --retry-delay: invalid value \"50ms\": retry delay must be at least 200ms, got 50ms")
+		assert.EqualError(t, err, "invalid value for flag --retry-delay: retry delay must be at least 200ms, got 50ms.")
 	})
 
 	t.Run("valid retry delay", func(t *testing.T) {
 		t.Parallel()
 		args := []string{"--retry-delay", "200ms"}
-		_, err := ParseFlags(args, "", os.Getenv)
+		_, err := ParseFlags(args, "")
 
 		assert.NoError(t, err)
 	})

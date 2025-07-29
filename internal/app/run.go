@@ -21,9 +21,9 @@ import (
 )
 
 // Run is the single entry point for the application.
-func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string, w io.Writer, getEnv func(string) string) error {
+func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string, w io.Writer) error {
 	// Parse and validate command-line flags.
-	flags, err := flag.ParseFlags(args, version, getEnv)
+	flags, err := flag.ParseFlags(args, version)
 	if err != nil {
 		if tinyflags.IsHelpRequested(err) || tinyflags.IsVersionRequested(err) {
 			fmt.Fprint(w, err.Error()) // nolint:errcheck
