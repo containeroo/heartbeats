@@ -43,7 +43,7 @@ func ParseFlags(args []string, version string) (Options, error) {
 		Placeholder("URL").
 		Value()
 	histSize := tf.Int("history-size", 10000, "Size of the history. Minimum is 100").
-		Validate(func(v int) error {
+		Finalize(func(v int) error {
 			if v < 100 {
 				return fmt.Errorf("history size must be at least 100, got %d", v)
 			}
@@ -69,7 +69,7 @@ func ParseFlags(args []string, version string) (Options, error) {
 		Value()
 
 	retryCount := tf.Int("retry-count", 3, "Retries for failed notifications (-1 = infinite)").
-		Validate(func(v int) error {
+		Finalize(func(v int) error {
 			if v < -1 || v == 0 {
 				return fmt.Errorf("retry count must be -1 for infinite or >= 1, got %d", v)
 			}
@@ -79,7 +79,7 @@ func ParseFlags(args []string, version string) (Options, error) {
 		Value()
 
 	retryDelay := tf.Duration("retry-delay", 2*time.Second, "Delay between retries").
-		Validate(func(v time.Duration) error {
+		Finalize(func(v time.Duration) error {
 			if v < 200*time.Millisecond {
 				return fmt.Errorf("retry delay must be at least 200ms, got %s", v)
 			}
