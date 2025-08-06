@@ -17,7 +17,7 @@ var (
 //go:embed web
 var webFS embed.FS
 
-// main sets up the application context and runs the proxy.
+// main sets up the application context and runs the main loop.
 func main() {
 	ctx := context.Background()
 
