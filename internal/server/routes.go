@@ -42,11 +42,9 @@ func NewRouter(
 	root.Handle("GET  /bump/{id}/fail", handlers.FailHandler(mgr, hist, logger))
 
 	// wrap the whole mux in logging if debug
-	var h http.Handler = root
 	if debug {
-		logMw := middleware.LoggingMiddleware(logger)
-		h = logMw(h)
+		return middleware.Chain(root, middleware.LoggingMiddleware(logger))
 	}
 
-	return h
+	return root
 }
