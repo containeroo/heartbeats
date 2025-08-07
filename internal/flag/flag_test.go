@@ -47,13 +47,13 @@ Flags:
     -a, --listen-address ADDR     Listen address (Default: :8080) (Env: HEARTBEATS_LISTEN_ADDRESS)
     -r, --site-root URL           Site root URL (Default: http://localhost:8080) (Env: HEARTBEATS_SITE_ROOT)
     -s, --history-size INT        Size of the history. Minimum is 100 (Default: 10000) (Env: HEARTBEATS_HISTORY_SIZE)
-        --skip-tls                Skip TLS verification (Default: false) (Env: HEARTBEATS_SKIP_TLS)
-    -d, --debug                   Enable debug logging (Default: false) (Env: HEARTBEATS_DEBUG)
+        --skip-tls                Skip TLS verification (Env: HEARTBEATS_SKIP_TLS)
+    -d, --debug                   Enable debug logging (Env: HEARTBEATS_DEBUG)
         --debug-server-port PORT  Port for the debug server (Default: 8081) (Env: HEARTBEATS_DEBUG_SERVER_PORT)
     -l, --log-format <text|json>  Log format (Allowed: text, json) (Default: json) (Env: HEARTBEATS_LOG_FORMAT)
         --retry-count INT         Retries for failed notifications (-1 = infinite) (Default: 3) (Env: HEARTBEATS_RETRY_COUNT)
         --retry-delay DUR         Delay between retries (Default: 2s) (Env: HEARTBEATS_RETRY_DELAY)
-    -h, --help                    show help (Default: false)
+    -h, --help                    Show help
 `
 		assert.EqualError(t, err, usage)
 	})
