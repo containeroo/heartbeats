@@ -1,6 +1,6 @@
 module github.com/containeroo/heartbeats
 
-go 1.24.4
+go 1.25.0
 
 require (
 	github.com/containeroo/resolver v0.1.0
