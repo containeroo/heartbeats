@@ -16,6 +16,7 @@ import (
 func NewRouter(
 	webFS fs.FS,
 	siteRoot string,
+	routePrefix string,
 	version string,
 	mgr *heartbeat.Manager,
 	hist history.Store,
@@ -41,10 +42,16 @@ func NewRouter(
 	root.Handle("POST /bump/{id}/fail", handlers.FailHandler(mgr, hist, logger))
 	root.Handle("GET  /bump/{id}/fail", handlers.FailHandler(mgr, hist, logger))
 
-	// wrap the whole mux in logging if debug
-	if debug {
-		return middleware.Chain(root, middleware.LoggingMiddleware(logger))
+	// Mount the whole app under the prefix if provided
+	var handler http.Handler = root
+	if routePrefix != "" {
+		handler = mountUnderPrefix(root, routePrefix)
 	}
 
-	return root
+	// wrap the whole mux in logging if debug
+	if debug {
+		return middleware.Chain(handler, middleware.LoggingMiddleware(logger))
+	}
+
+	return handler
 }

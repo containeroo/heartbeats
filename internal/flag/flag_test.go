@@ -6,6 +6,7 @@ import (
 	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/tinyflags"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseFlags(t *testing.T) {
@@ -45,6 +46,7 @@ func TestParseFlags(t *testing.T) {
 Flags:
     -c, --config CONFIG           Path to configuration file (Default: config.yaml) (Env: HEARTBEATS_CONFIG)
     -a, --listen-address ADDR     Listen address (Default: :8080) (Env: HEARTBEATS_LISTEN_ADDRESS)
+        --route-prefix PATH       Path prefix to mount the app (e.g., /heartbeats). Empty = root. (Env: HEARTBEATS_ROUTE_PREFIX)
     -r, --site-root URL           Site root URL (Default: http://localhost:8080) (Env: HEARTBEATS_SITE_ROOT)
     -s, --history-size INT        Size of the history. Minimum is 100 (Default: 10000) (Env: HEARTBEATS_HISTORY_SIZE)
         --skip-tls                Skip TLS verification (Env: HEARTBEATS_SKIP_TLS)
@@ -158,5 +160,15 @@ Flags:
 		_, err := ParseFlags(args, "")
 
 		assert.NoError(t, err)
+	})
+
+	t.Run("test route prefix", func(t *testing.T) {
+		t.Parallel()
+		args := []string{"--route-prefix", "heartbeats"}
+		flags, err := ParseFlags(args, "")
+
+		require.NoError(t, err)
+		assert.Equal(t, "/heartbeats", flags.RoutePrefix)
+		assert.Equal(t, "http://localhost:8080/heartbeats", flags.SiteRoot)
 	})
 }

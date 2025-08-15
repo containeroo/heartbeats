@@ -3,9 +3,11 @@ package flag
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/logging"
+	"github.com/containeroo/heartbeats/internal/routeutil"
 
 	"github.com/containeroo/tinyflags"
 )
@@ -18,6 +20,7 @@ type Options struct {
 	ConfigPath      string            // Path to the configuration file
 	ListenAddr      string            // Address to listen on
 	SiteRoot        string            // Root URL of the site
+	RoutePrefix     string            // Route prefix
 	HistorySize     int               // Size of the history ring buffer
 	SkipTLS         bool              // Skip TLS for all receivers
 	RetryCount      int               // Number of retries for notifications
@@ -38,6 +41,13 @@ func ParseFlags(args []string, version string) (Options, error) {
 	listenAddr := tf.TCPAddr("listen-address", &net.TCPAddr{IP: nil, Port: 8080}, "Listen address").
 		Short("a").
 		Placeholder("ADDR").
+		Value()
+
+	tf.StringVar(&opts.RoutePrefix, "route-prefix", "", "Path prefix to mount the app (e.g., /heartbeats). Empty = root.").
+		Finalize(func(input string) string {
+			return routeutil.NormalizeRoutePrefix(input) // canonical "" or "/heartbeats"
+		}).
+		Placeholder("PATH").
 		Value()
 
 	tf.StringVar(&opts.SiteRoot, "site-root", "http://localhost:8080", "Site root URL").
@@ -98,6 +108,11 @@ func ParseFlags(args []string, version string) (Options, error) {
 
 	opts.ListenAddr = (*listenAddr).String()
 	opts.LogFormat = logging.LogFormat(*logFormat)
+
+	// normalize and join SiteRoot + RoutePrefix
+	if opts.RoutePrefix != "" {
+		opts.SiteRoot = strings.TrimRight(opts.SiteRoot, "/") + opts.RoutePrefix
+	}
 
 	return opts, nil
 }

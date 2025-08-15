@@ -49,7 +49,7 @@ func TestNewRouter(t *testing.T) {
 
 	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
 
-	router := NewRouter(webFS, siteRoot, version, mgr, hist, disp, logger, true)
+	router := NewRouter(webFS, siteRoot, "", version, mgr, hist, disp, logger, true)
 
 	t.Run("GET /", func(t *testing.T) {
 		t.Parallel()

@@ -89,6 +89,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	router := server.NewRouter(
 		webFS,
 		flags.SiteRoot,
+		flags.RoutePrefix,
 		version,
 		mgr,
 		history,

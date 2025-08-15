@@ -35,6 +35,7 @@ A lightweight HTTP service for monitoring periodic "heartbeat" pings ("bumps") a
 | --------------------- | --------- | ----------------------- | ------------------------------ | ------------------------------------------------------------------------------------------- |
 | `--config`            | `-c`      | `heartbeats.yml`        | `HEARTBEATS_CONFIG`            | Path to configuration file                                                                  |
 | `--listen-address`    | `-a`      | `:8080`                 | `HEARTBEATS_LISTEN_ADDRESS`    | Address to listen on (host:port)                                                            |
+| `--route-prefix`      |           | ``                      | `HEARTBEATS_ROUTE_PREFIX`      | ath prefix to mount the app (e.g., /heartbeats).                                            |
 | `--site-root`         | `-r`      | `http://localhost:8080` | `HEARTBEATS_SITE_ROOT`         | Base URL for dashboard and link rendering                                                   |
 | `--history-size`      | `-s`      | `10000`                 | `HEARTBEATS_HISTORY_SIZE`      | Number of historical events to keep in memory (default ~1.73 MB for 10,000). Not persisted. |
 | `--skip-tls`          | -         | `false`                 | `HEARTBEATS_SKIP_TLS`          | Skip TLS verification for all receivers (can be overridden per receiver)                    |
