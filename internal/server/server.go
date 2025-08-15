@@ -10,7 +10,7 @@ import (
 
 // Run sets up and manages the reverse proxy HTTP server.
 func Run(ctx context.Context, listenAddr string, router http.Handler, logger *slog.Logger) error {
-	// Create server
+	// Create server with sensible timeouts.
 	server := &http.Server{
 		Addr:              listenAddr,
 		Handler:           router,
@@ -19,7 +19,7 @@ func Run(ctx context.Context, listenAddr string, router http.Handler, logger *sl
 		IdleTimeout:       60 * time.Second,
 	}
 
-	// Start server in a goroutine
+	// Start the server in the background.
 	go func() {
 		logger.Info("starting server", "listenAddr", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -27,23 +27,23 @@ func Run(ctx context.Context, listenAddr string, router http.Handler, logger *sl
 		}
 	}()
 
-	// Graceful shutdown on context cancel
+	// Graceful shutdown once the context is canceled.
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Go(func() {
+		<-ctx.Done() // wait for cancel/timeout
 
-	go func() {
-		defer wg.Done()
-		<-ctx.Done()
 		logger.Info("shutting down server")
 
-		shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		// Use a bounded timeout to finish in-flight requests.
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			logger.Error("shutdown error", "err", err)
 		}
-	}()
+	})
 
+	// Block until the shutdown goroutine finishes.
 	wg.Wait()
-
 	return nil
 }
