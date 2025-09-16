@@ -3,7 +3,7 @@ module github.com/containeroo/heartbeats
 go 1.25.0
 
 require (
-	github.com/containeroo/resolver v0.3.0
+	github.com/containeroo/resolver v0.3.1
 	github.com/containeroo/tinyflags v0.0.49
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
