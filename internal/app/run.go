@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -22,6 +23,10 @@ import (
 
 // Run is the single entry point for the application.
 func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string, w io.Writer) error {
+	// Create a context to listen for shutdown signals
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
 	// Parse and validate command-line flags.
 	flags, err := flag.ParseFlags(args, version)
 	if err != nil {
@@ -47,10 +52,6 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		"version", version,
 		"commit", commit,
 	)
-
-	// Create a context to listen for shutdown signals
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	// Create history cache
 	history, err := history.InitializeHistory(flags)
