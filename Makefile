@@ -10,7 +10,7 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 # renovate: datasource=github-releases depName=golangci/golangci-lint
-GOLANGCI_LINT_VERSION ?= v2.6.1
+GOLANGCI_LINT_VERSION ?= v2.6.2
 
 # Default: no prefix. Can be overridden via `make patch VERSION_PREFIX=v`
 VERSION_PREFIX ?= "v"
