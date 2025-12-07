@@ -141,7 +141,7 @@ func TestMSTeamsGraphConfig_Resolve(t *testing.T) {
 			Token: "env:INVALID_VAR",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "resolve token: environment variable \"INVALID_VAR\" not found")
+		assert.EqualError(t, err, "resolve token: resolver: not found: env \"INVALID_VAR\"")
 	})
 	t.Run("fails on missing team", func(t *testing.T) {
 		cfg := &MSTeamsGraphConfig{
@@ -149,7 +149,7 @@ func TestMSTeamsGraphConfig_Resolve(t *testing.T) {
 			TeamID: "env:INVALID_VAR",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "resolve teamID: environment variable \"INVALID_VAR\" not found")
+		assert.EqualError(t, err, "resolve teamID: resolver: not found: env \"INVALID_VAR\"")
 	})
 
 	t.Run("fails on missing team", func(t *testing.T) {
@@ -159,7 +159,7 @@ func TestMSTeamsGraphConfig_Resolve(t *testing.T) {
 			ChannelID: "env:INVALID_VAR",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "resolve channelID: environment variable \"INVALID_VAR\" not found")
+		assert.EqualError(t, err, "resolve channelID: resolver: not found: env \"INVALID_VAR\"")
 	})
 
 	t.Run("fails on title template resolution", func(t *testing.T) {
@@ -170,7 +170,7 @@ func TestMSTeamsGraphConfig_Resolve(t *testing.T) {
 			TitleTmpl: "env:INVALID_VAR",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "resolve title template: environment variable \"INVALID_VAR\" not found")
+		assert.EqualError(t, err, "resolve title template: resolver: not found: env \"INVALID_VAR\"")
 	})
 
 	t.Run("fails on text template resolution", func(t *testing.T) {
@@ -181,7 +181,7 @@ func TestMSTeamsGraphConfig_Resolve(t *testing.T) {
 			TextTmpl:  "env:INVALID_VAR",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "resolve text template: environment variable \"INVALID_VAR\" not found")
+		assert.EqualError(t, err, "resolve text template: resolver: not found: env \"INVALID_VAR\"")
 	})
 }
 

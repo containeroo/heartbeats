@@ -148,7 +148,7 @@ func TestMSTeamsConfig_Resolve(t *testing.T) {
 			WebhookURL: "env:INVALID",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve WebhookURL: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve WebhookURL: resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("fails on TitleTmpl", func(t *testing.T) {
@@ -159,7 +159,7 @@ func TestMSTeamsConfig_Resolve(t *testing.T) {
 			TitleTmpl:  "env:INVALID",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve title template: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve title template: resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("fails on TextTmpl", func(t *testing.T) {
@@ -170,7 +170,7 @@ func TestMSTeamsConfig_Resolve(t *testing.T) {
 			TextTmpl:   "env:INVALID",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve text template: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve text template: resolver: not found: env \"INVALID\"")
 	})
 }
 

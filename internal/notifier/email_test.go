@@ -208,7 +208,7 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		}
 
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve SMTP host: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve SMTP host: resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("fails on not resolvable 'From'", func(t *testing.T) {
@@ -222,7 +222,7 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		}
 
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve SMTP from: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve SMTP from: resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("fails on not resolvable 'Username'", func(t *testing.T) {
@@ -237,7 +237,7 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		}
 
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve SMTP username: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve SMTP username: resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("fails on not resolvable 'Password'", func(t *testing.T) {
@@ -252,7 +252,7 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		}
 
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve SMTP password: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve SMTP password: resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("fails on not resolvable 'To'", func(t *testing.T) {
@@ -270,7 +270,7 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		}
 
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve email recipient: resolve slice index 0 (\"env:INVALID\"): environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve email recipient: resolve slice index 0 (\"env:INVALID\"): resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("fails on not resolvable 'Cc'", func(t *testing.T) {
@@ -288,7 +288,7 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		}
 
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve email cc: resolve slice index 0 (\"env:INVALID\"): environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve email cc: resolve slice index 0 (\"env:INVALID\"): resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("fails on not resolvable 'Bcc'", func(t *testing.T) {
@@ -306,7 +306,7 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		}
 
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve email bcc: resolve slice index 0 (\"env:INVALID\"): environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve email bcc: resolve slice index 0 (\"env:INVALID\"): resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("fails on not resolvable 'SubjectTmpl'", func(t *testing.T) {
@@ -324,7 +324,7 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		}
 
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve subject template: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve subject template: resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("fails on not resolvable 'BodyTmpl'", func(t *testing.T) {
@@ -342,7 +342,7 @@ func TestEmailConfig_Resolve(t *testing.T) {
 		}
 
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "failed to resolve body template: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "failed to resolve body template: resolver: not found: env \"INVALID\"")
 	})
 }
 

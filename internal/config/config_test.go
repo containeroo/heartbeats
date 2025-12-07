@@ -159,7 +159,7 @@ func TestConfigValidate(t *testing.T) {
 		}
 		err := cfg.Validate()
 		assert.Error(t, err)
-		assert.EqualError(t, err, "receiver \"r\" slack config error: resolve channel: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "receiver \"r\" slack config error: resolve channel: resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("invalid email config - validate error", func(t *testing.T) {
@@ -235,7 +235,7 @@ func TestConfigValidate(t *testing.T) {
 
 		err := cfg.Validate()
 		assert.Error(t, err)
-		assert.EqualError(t, err, "receiver \"r\" email config error: failed to resolve SMTP host: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "receiver \"r\" email config error: failed to resolve SMTP host: resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("invalid teams config - validate", func(t *testing.T) {
@@ -281,7 +281,7 @@ func TestConfigValidate(t *testing.T) {
 
 		err := cfg.Validate()
 		assert.Error(t, err)
-		assert.EqualError(t, err, "receiver \"r\" MSTeams config error: failed to resolve WebhookURL: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "receiver \"r\" MSTeams config error: failed to resolve WebhookURL: resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("invalid teams graph config - validate", func(t *testing.T) {
@@ -327,7 +327,7 @@ func TestConfigValidate(t *testing.T) {
 
 		err := cfg.Validate()
 		assert.Error(t, err)
-		assert.EqualError(t, err, "receiver \"r\" MSTeams Graph config error: resolve token: environment variable \"INVALID\" not found")
+		assert.EqualError(t, err, "receiver \"r\" MSTeams Graph config error: resolve token: resolver: not found: env \"INVALID\"")
 	})
 
 	t.Run("No heartbeats", func(t *testing.T) {

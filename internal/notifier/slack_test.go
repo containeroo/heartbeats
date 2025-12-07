@@ -154,7 +154,7 @@ func TestSlackConfig_Resolve(t *testing.T) {
 			Token: "env:INVALID_VAR",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "resolve token: environment variable \"INVALID_VAR\" not found")
+		assert.EqualError(t, err, "resolve token: resolver: not found: env \"INVALID_VAR\"")
 	})
 
 	t.Run("fails on channel resolution", func(t *testing.T) {
@@ -163,7 +163,7 @@ func TestSlackConfig_Resolve(t *testing.T) {
 			Channel: "env:INVALID_VAR",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "resolve channel: environment variable \"INVALID_VAR\" not found")
+		assert.EqualError(t, err, "resolve channel: resolver: not found: env \"INVALID_VAR\"")
 	})
 
 	t.Run("fails on title template resolution", func(t *testing.T) {
@@ -173,7 +173,7 @@ func TestSlackConfig_Resolve(t *testing.T) {
 			TitleTmpl: "env:INVALID_VAR",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "resolve title template: environment variable \"INVALID_VAR\" not found")
+		assert.EqualError(t, err, "resolve title template: resolver: not found: env \"INVALID_VAR\"")
 	})
 
 	t.Run("fails on text template resolution", func(t *testing.T) {
@@ -183,7 +183,7 @@ func TestSlackConfig_Resolve(t *testing.T) {
 			TextTmpl: "env:INVALID_VAR",
 		}
 		err := cfg.Resolve()
-		assert.EqualError(t, err, "resolve text template: environment variable \"INVALID_VAR\" not found")
+		assert.EqualError(t, err, "resolve text template: resolver: not found: env \"INVALID_VAR\"")
 	})
 }
 
