@@ -1,28 +1,28 @@
 ---
-project_name: Heartbeats
+project_name: heartbeats
+version: 2
 before:
   hooks:
     - go mod tidy
 builds:
-  - main: ./main.go
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-      - arm
+  - id: heartbeats
+    main: ./main.go
+    binary: heartbeats
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64, arm64]
     ldflags:
       - -s -w
       - -X main.Version={{ .Tag }}
       - -X main.Commit={{ .FullCommit }}
-dockers:
-  - image_templates:
-      - ghcr.io/containeroo/heartbeats:{{ .Tag }}-amd64
-    use: buildx
-    dockerfile: Dockerfile
+dockers_v2:
+  - dockerfile: Dockerfile
+    platforms: [linux/amd64, linux/arm64]
+    images:
+      - ghcr.io/containeroo/heartbeats
+    tags:
+      - "{{ .Tag }}"
+      - latest
     extra_files:
       - go.mod
       - go.sum
@@ -30,50 +30,23 @@ dockers:
       - internal
       - pkg
       - web
-    build_flag_templates:
+    labels:
+      org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.description: "{{ .ProjectName }}"
+      org.opencontainers.image.url: https://github.com/containeroo/heartbeats
+      org.opencontainers.image.source: https://github.com/containeroo/heartbeats
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.created: '{{ time "2006-01-02T15:04:05Z07:00" }}'
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.licenses: "GNU General Public License v3.0"
+    flags:
+      - --pull
       - --build-arg
       - LDFLAGS=-s -w -X main.Version={{ .Tag }} -X main.Commit={{ .FullCommit }}
-      - --pull
-      - --platform=linux/amd64
-      - --label=org.opencontainers.image.title={{ .ProjectName }}
-      - --label=org.opencontainers.image.description={{ .ProjectName }}
-      - --label=org.opencontainers.image.url=https://github.com/containeroo/heartbeats
-      - --label=org.opencontainers.image.source=https://github.com/containeroo/heartbeats
-      - --label=org.opencontainers.image.version={{ .Version }}
-      - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
-      - --label=org.opencontainers.image.revision={{ .FullCommit }}
-      - --label=org.opencontainers.image.licenses="GNU General Public License v3.0"
-  - image_templates:
-      - ghcr.io/containeroo/heartbeats:{{ .Tag }}-arm64
-    use: buildx
-    dockerfile: Dockerfile
-    extra_files:
-      - go.mod
-      - go.sum
-      - main.go
-      - internal
-      - pkg
-      - web
-    goarch: arm64
-    build_flag_templates:
-      - --build-arg
-      - LDFLAGS=-s -w -X main.Version={{ .Tag }} -X main.Commit={{ .FullCommit }}
-      - --pull
-      - --platform=linux/arm64
-      - --label=org.opencontainers.image.title={{ .ProjectName }}
-      - --label=org.opencontainers.image.description={{ .ProjectName }}
-      - --label=org.opencontainers.image.url=https://github.com/containeroo/heartbeats
-      - --label=org.opencontainers.image.source=https://github.com/containeroo/heartbeats
-      - --label=org.opencontainers.image.version={{ .Version }}
-      - --label=org.opencontainers.image.created={{ time "2006-01-02T15:04:05Z07:00" }}
-      - --label=org.opencontainers.image.revision={{ .FullCommit }}
-      - --label=org.opencontainers.image.licenses="GNU General Public License v3.0"
-docker_manifests:
-  - name_template: ghcr.io/containeroo/heartbeats:{{ .Tag }}
-    image_templates:
-      - ghcr.io/containeroo/heartbeats:{{ .Tag }}-amd64
-      - ghcr.io/containeroo/heartbeats:{{ .Tag }}-arm64
-  - name_template: ghcr.io/containeroo/heartbeats:latest
-    image_templates:
-      - ghcr.io/containeroo/heartbeats:{{ .Tag }}-amd64
-      - ghcr.io/containeroo/heartbeats:{{ .Tag }}-arm64
+
+archives:
+  - formats: ["tar.gz"]
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
