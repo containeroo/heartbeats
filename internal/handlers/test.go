@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	testservice "github.com/containeroo/heartbeats/internal/service/test"
 )
 
 // TestReceiverHandler allows sending a test notification to a specific receiver
@@ -19,14 +19,7 @@ func TestReceiverHandler(dispatcher *notifier.Dispatcher, logger *slog.Logger) h
 			return
 		}
 
-		logger.Info("Test request received", "receiver", id)
-
-		dispatcher.Mailbox() <- notifier.NotificationData{
-			ID:        fmt.Sprintf("manual-test-%s", time.Now().Format(time.RFC3339)),
-			Receivers: []string{id},
-			Title:     "Test Notification",
-			Message:   "This is a test notification",
-		}
+		testservice.SendTestNotification(dispatcher, logger, id)
 
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "ok") // nolint:errcheck
@@ -42,9 +35,7 @@ func TestHeartbeatHandler(mgr *heartbeat.Manager, logger *slog.Logger) http.Hand
 			return
 		}
 
-		logger.Info("Test request heartbeat", "heartbeat", id)
-
-		if err := mgr.Test(id); err != nil {
+		if err := testservice.TriggerTestHeartbeat(mgr, logger, id); err != nil {
 			logger.Error("handle test failed", "id", id, "err", err)
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return

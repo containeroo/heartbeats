@@ -48,10 +48,12 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 
 	// Setup logger
 	logger := logging.SetupLogger(flags.LogFormat, flags.Debug, w)
-	logger.Info("Starting Heartbeats",
-		"version", version,
-		"commit", commit,
-	)
+	logger.Info("Starting Heartbeats", "version", version, "commit", commit)
+
+	// Log CLI overrides
+	if len(flags.OverriddenValues) > 0 {
+		logger.Info("CLI Overrides", "overrides", flags.OverriddenValues)
+	}
 
 	// Create history cache
 	history, err := history.InitializeHistory(flags)
