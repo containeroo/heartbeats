@@ -14,17 +14,18 @@ import (
 
 // Options holds the application configuration.
 type Options struct {
-	Debug           bool              // Set LogLevel to Debug
-	DebugServerPort int               // Port for the debug server
-	LogFormat       logging.LogFormat // Specify the log output format
-	ConfigPath      string            // Path to the configuration file
-	ListenAddr      string            // Address to listen on
-	SiteRoot        string            // Root URL of the site
-	RoutePrefix     string            // Route prefix
-	HistorySize     int               // Size of the history ring buffer
-	SkipTLS         bool              // Skip TLS for all receivers
-	RetryCount      int               // Number of retries for notifications
-	RetryDelay      time.Duration     // Delay between retries
+	Debug            bool              // Set LogLevel to Debug
+	DebugServerPort  int               // Port for the debug server
+	LogFormat        logging.LogFormat // Specify the log output format
+	ConfigPath       string            // Path to the configuration file
+	ListenAddr       string            // Address to listen on
+	SiteRoot         string            // Root URL of the site
+	RoutePrefix      string            // Route prefix
+	HistorySize      int               // Size of the history ring buffer
+	SkipTLS          bool              // Skip TLS for all receivers
+	RetryCount       int               // Number of retries for notifications
+	RetryDelay       time.Duration     // Delay between retries
+	OverriddenValues map[string]any    // Overridden values from environment
 }
 
 // ParseFlags parses flags and environment variables.
@@ -51,6 +52,9 @@ func ParseFlags(args []string, version string) (Options, error) {
 		Value()
 
 	tf.StringVar(&opts.SiteRoot, "site-root", "http://localhost:8080", "Site root URL").
+		Finalize(func(input string) string {
+			return strings.TrimRight(input, "/")
+		}).
 		Short("r").
 		Placeholder("URL").
 		Value()
@@ -108,10 +112,9 @@ func ParseFlags(args []string, version string) (Options, error) {
 
 	opts.ListenAddr = (*listenAddr).String()
 	opts.LogFormat = logging.LogFormat(*logFormat)
-
-	// normalize and join SiteRoot + RoutePrefix
-	if opts.RoutePrefix != "" {
-		opts.SiteRoot = strings.TrimRight(opts.SiteRoot, "/") + opts.RoutePrefix
+	opts.OverriddenValues = tf.OverriddenValues()
+	if opts.RoutePrefix != "" && !strings.HasSuffix(opts.SiteRoot, opts.RoutePrefix) {
+		opts.SiteRoot += opts.RoutePrefix
 	}
 
 	return opts, nil
