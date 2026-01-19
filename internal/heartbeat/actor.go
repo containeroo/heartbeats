@@ -6,10 +6,9 @@ import (
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/common"
-	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
-	"github.com/prometheus/client_golang/prometheus"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 )
 
 // transitionDelay adds buffer before state transitions to absorb late pings.
@@ -25,8 +24,9 @@ type Actor struct {
 	Receivers   []string                         // list of receiver IDs to notify upon alerts
 	mailbox     chan common.EventType            // incoming event channel for this actor
 	logger      *slog.Logger                     // structured logger scoped to this actor
-	hist        history.Store                    // history store for recording events
+	hist        *servicehistory.Recorder         // history store for recording events
 	dispatchCh  chan<- notifier.NotificationData // sends notifications to the dispatcher
+	metrics     *metrics.Registry                // metrics registry
 	LastBump    time.Time                        // timestamp of the last received heartbeat
 	checkTimer  *time.Timer                      // timer waiting for the next heartbeat
 	graceTimer  *time.Timer                      // timer for the grace period countdown
@@ -44,8 +44,9 @@ type ActorConfig struct {
 	Grace       time.Duration                    // grace period after a missed ping before triggering an alert
 	Receivers   []string                         // list of receiver IDs to notify on failure
 	Logger      *slog.Logger                     // logger scoped to this actor
-	History     history.Store                    // store to persist heartbeat and notification events
+	History     *servicehistory.Recorder         // store to persist heartbeat and notification events
 	DispatchCh  chan<- notifier.NotificationData // channel to send notifications through the dispatcher
+	Metrics     *metrics.Registry                // metrics registry
 }
 
 // NewActorFromConfig creates a new heartbeat actor.
@@ -61,6 +62,7 @@ func NewActorFromConfig(cfg ActorConfig) *Actor {
 		logger:      cfg.Logger,
 		hist:        cfg.History,
 		dispatchCh:  cfg.DispatchCh,
+		metrics:     cfg.Metrics,
 		State:       common.HeartbeatStateIdle,
 	}
 }
@@ -146,8 +148,8 @@ func (a *Actor) onReceive() {
 	a.LastBump = now
 	a.checkTimer = time.NewTimer(a.Interval)
 
-	metrics.ReceivedTotal.With(prometheus.Labels{"heartbeat": a.ID}).Inc()
-	metrics.LastStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.UP)
+	a.metrics.IncHeartbeatReceived(a.ID)
+	a.metrics.SetHeartbeatStatus(a.ID, metrics.UP)
 }
 
 // onFail handles a manual failure trigger.
@@ -173,7 +175,7 @@ func (a *Actor) onFail() {
 		a.logger.Error("failed to record state change", "err", err)
 	}
 
-	metrics.LastStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
+	a.metrics.SetHeartbeatStatus(a.ID, metrics.DOWN)
 }
 
 // onEnterGrace transitions to Grace state.
@@ -211,7 +213,7 @@ func (a *Actor) onEnterMissing() {
 		Receivers:   a.Receivers,
 	}
 
-	metrics.LastStatus.With(prometheus.Labels{"heartbeat": a.ID}).Set(metrics.DOWN)
+	a.metrics.SetHeartbeatStatus(a.ID, metrics.DOWN)
 }
 
 // onTest sends only a notification to the Actor without changing state.

@@ -7,7 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
-	"github.com/containeroo/heartbeats/internal/history"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 )
 
 // ErrUnknownHeartbeat signals that the heartbeat ID is not registered.
@@ -17,7 +17,7 @@ var ErrUnknownHeartbeat = errors.New("unknown heartbeat id")
 func Receive(
 	ctx context.Context,
 	mgr *heartbeat.Manager,
-	hist history.Store,
+	hist *servicehistory.Recorder,
 	logger *slog.Logger,
 	id string,
 	source string,
@@ -31,12 +31,8 @@ func Receive(
 
 	logger.Info("received bump", "id", id, "from", source)
 
-	payload := history.RequestMetadataPayload{
-		Source:    source,
-		Method:    method,
-		UserAgent: userAgent,
-	}
-	ev := history.MustNewEvent(history.EventTypeHeartbeatReceived, id, payload)
+	factory := servicehistory.NewFactory()
+	ev := factory.HeartbeatReceived(id, source, method, userAgent)
 
 	if err := hist.Append(ctx, ev); err != nil {
 		logger.Error("failed to record state change", "err", err)
@@ -53,7 +49,7 @@ func Receive(
 func Fail(
 	ctx context.Context,
 	mgr *heartbeat.Manager,
-	hist history.Store,
+	hist *servicehistory.Recorder,
 	logger *slog.Logger,
 	id string,
 	source string,
@@ -67,12 +63,8 @@ func Fail(
 
 	logger.Info("manual fail", "id", id, "from", source)
 
-	payload := history.RequestMetadataPayload{
-		Source:    source,
-		Method:    method,
-		UserAgent: userAgent,
-	}
-	ev := history.MustNewEvent(history.EventTypeHeartbeatFailed, id, payload)
+	factory := servicehistory.NewFactory()
+	ev := factory.HeartbeatFailed(id, source, method, userAgent)
 
 	if err := hist.Append(ctx, ev); err != nil {
 		logger.Error("failed to record state change", "err", err)

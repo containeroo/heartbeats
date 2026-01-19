@@ -6,10 +6,8 @@ import (
 	"net/http"
 
 	"github.com/containeroo/heartbeats/internal/handlers"
-	"github.com/containeroo/heartbeats/internal/heartbeat"
-	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/middleware"
-	"github.com/containeroo/heartbeats/internal/notifier"
+	"github.com/containeroo/heartbeats/internal/service/health"
 )
 
 // NewRouter creates a new HTTP router
@@ -18,9 +16,7 @@ func NewRouter(
 	siteRoot string,
 	routePrefix string,
 	version string,
-	mgr *heartbeat.Manager,
-	hist history.Store,
-	disp *notifier.Dispatcher,
+	api *handlers.API,
 	logger *slog.Logger,
 	debug bool,
 ) http.Handler {
@@ -31,16 +27,16 @@ func NewRouter(
 	fileServer := http.FileServer(http.FS(staticContent))
 	root.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
-	root.Handle("/", handlers.HomeHandler(webFS, version)) // no Method allowed, otherwise it crashes
-	root.Handle("GET /partials/", http.StripPrefix("/partials", handlers.PartialHandler(webFS, siteRoot, mgr, hist, disp, logger)))
-	root.Handle("GET /healthz", handlers.Healthz())
-	root.Handle("GET /metrics", handlers.Metrics(hist))
+	root.Handle("/", api.HomeHandler()) // no Method allowed, otherwise it crashes
+	root.Handle("GET /partials/", http.StripPrefix("/partials", api.PartialHandler(siteRoot)))
+	root.Handle("GET /healthz", api.Healthz(health.NewService()))
+	root.Handle("GET /metrics", api.Metrics())
 
 	// define your API routes on a sub-mux
-	root.Handle("POST /bump/{id}", handlers.BumpHandler(mgr, hist, logger))
-	root.Handle("GET  /bump/{id}", handlers.BumpHandler(mgr, hist, logger))
-	root.Handle("POST /bump/{id}/fail", handlers.FailHandler(mgr, hist, logger))
-	root.Handle("GET  /bump/{id}/fail", handlers.FailHandler(mgr, hist, logger))
+	root.Handle("POST /bump/{id}", api.BumpHandler())
+	root.Handle("GET  /bump/{id}", api.BumpHandler())
+	root.Handle("POST /bump/{id}/fail", api.FailHandler())
+	root.Handle("GET  /bump/{id}/fail", api.FailHandler())
 
 	// Mount the whole app under the prefix if provided
 	var handler http.Handler = root

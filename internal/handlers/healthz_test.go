@@ -1,17 +1,22 @@
 package handlers
 
 import (
+	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/containeroo/heartbeats/internal/service/health"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHealthz(t *testing.T) {
 	t.Parallel()
 
-	handler := Healthz()
+	api := NewAPI("test", "test", nil, slog.New(slog.NewTextHandler(&strings.Builder{}, nil)), nil, nil, nil, nil, nil)
+	handler := api.Healthz(health.NewService())
 
 	req := httptest.NewRequest("GET", "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -19,5 +24,7 @@ func TestHealthz(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code, "Expected status code 200")
-	assert.Equal(t, "ok", rec.Body.String(), "Expected response body 'ok'")
+	var resp statusResponse
+	assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+	assert.Equal(t, "ok", resp.Status, "Expected response status 'ok'")
 }

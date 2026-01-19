@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,7 +39,8 @@ func TestPartialHandler(t *testing.T) {
 		},
 	))
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+	recorder := servicehistory.NewRecorder(hist)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
 
 	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"hb1": {
@@ -46,7 +49,8 @@ func TestPartialHandler(t *testing.T) {
 			Grace:       5 * time.Second,
 			Receivers:   []string{"r1"},
 		},
-	}, disp.Mailbox(), hist, logger)
+	}, disp.Mailbox(), recorder, logger, nil)
+	api := NewAPI("test", "test", webFS, logger, mgr, hist, recorder, disp, nil)
 
 	t.Run("not found", func(t *testing.T) {
 		t.Parallel()
@@ -54,11 +58,13 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/invalid", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(webFS, "http://localhost", mgr, hist, disp, logger)
+		handler := api.PartialHandler("http://localhost")
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
-		assert.Equal(t, "404 page not found\n", rr.Body.String())
+		var resp errorResponse
+		assert.NoError(t, json.NewDecoder(rr.Body).Decode(&resp))
+		assert.Equal(t, "unknown partial \"invalid\"", resp.Error)
 	})
 
 	t.Run("heartbeats", func(t *testing.T) {
@@ -67,7 +73,7 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/heartbeats", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(webFS, "http://localhost", mgr, hist, disp, logger)
+		handler := api.PartialHandler("http://localhost")
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -80,7 +86,7 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/receivers", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(webFS, "http://localhost", mgr, hist, disp, logger)
+		handler := api.PartialHandler("http://localhost")
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -93,7 +99,7 @@ func TestPartialHandler(t *testing.T) {
 		req := httptest.NewRequest("GET", "/partials/history", nil)
 		rr := httptest.NewRecorder()
 
-		handler := PartialHandler(webFS, "http://localhost", mgr, hist, disp, logger)
+		handler := api.PartialHandler("http://localhost")
 		handler.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)

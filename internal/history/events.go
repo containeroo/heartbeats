@@ -25,6 +25,7 @@ type Event struct {
 	Timestamp   time.Time       `json:"timestamp"`         // when it happened
 	Type        EventType       `json:"type"`              // what kind of event
 	HeartbeatID string          `json:"heartbeat_id"`      // which heartbeat it belongs to
+	Version     int             `json:"version"`           // payload schema version
 	RawPayload  json.RawMessage `json:"payload,omitempty"` // optional payload
 }
 
@@ -51,6 +52,7 @@ func NewEvent(t EventType, id string, payload any) (Event, error) {
 		Timestamp:   time.Now(),
 		Type:        t,
 		HeartbeatID: id,
+		Version:     1,
 		RawPayload:  raw,
 	}, nil
 }
@@ -62,12 +64,4 @@ func MustNewEvent(t EventType, id string, payload any) Event {
 		panic(err)
 	}
 	return ev
-}
-
-// DecodePayload unmarshals the raw payload into the given target.
-func (e *Event) DecodePayload(v any) error {
-	if len(e.RawPayload) == 0 {
-		return fmt.Errorf("empty payload")
-	}
-	return json.Unmarshal(e.RawPayload, v)
 }

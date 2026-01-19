@@ -1,47 +1,41 @@
 package handlers
 
 import (
-	"fmt"
-	"log/slog"
 	"net/http"
 
-	"github.com/containeroo/heartbeats/internal/heartbeat"
-	"github.com/containeroo/heartbeats/internal/notifier"
 	testservice "github.com/containeroo/heartbeats/internal/service/test"
 )
 
 // TestReceiverHandler allows sending a test notification to a specific receiver
-func TestReceiverHandler(dispatcher *notifier.Dispatcher, logger *slog.Logger) http.Handler {
+func (a *API) TestReceiverHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		if id == "" {
-			http.Error(w, "missing id", http.StatusBadRequest)
+			a.respondJSON(w, http.StatusBadRequest, errorResponse{Error: "missing id"})
 			return
 		}
 
-		testservice.SendTestNotification(dispatcher, logger, id)
+		testservice.SendTestNotification(a.disp, a.Logger, id)
 
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "ok") // nolint:errcheck
+		a.respondJSON(w, http.StatusOK, statusResponse{Status: "ok"})
 	})
 }
 
 // TestHeartbeatHandler allows sending a test notification to a specific heartbeat
-func TestHeartbeatHandler(mgr *heartbeat.Manager, logger *slog.Logger) http.Handler {
+func (a *API) TestHeartbeatHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		if id == "" {
-			http.Error(w, "missing id", http.StatusBadRequest)
+			a.respondJSON(w, http.StatusBadRequest, errorResponse{Error: "missing id"})
 			return
 		}
 
-		if err := testservice.TriggerTestHeartbeat(mgr, logger, id); err != nil {
-			logger.Error("handle test failed", "id", id, "err", err)
-			http.Error(w, err.Error(), http.StatusNotFound)
+		if err := testservice.TriggerTestHeartbeat(a.mgr, a.Logger, id); err != nil {
+			a.Logger.Error("handle test failed", "id", id, "err", err)
+			a.respondJSON(w, http.StatusNotFound, errorResponse{Error: err.Error()})
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "ok") // nolint:errcheck
+		a.respondJSON(w, http.StatusOK, statusResponse{Status: "ok"})
 	})
 }

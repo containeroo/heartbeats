@@ -10,6 +10,7 @@ import (
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,7 +30,8 @@ func TestSendTestNotification(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+	recorder := servicehistory.NewRecorder(hist)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -55,7 +57,8 @@ func TestTriggerTestHeartbeat(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
 	store := notifier.NewReceiverStore()
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+	recorder := servicehistory.NewRecorder(hist)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
 
 	cfg := heartbeat.HeartbeatConfigMap{
 		"hb1": {
@@ -66,7 +69,7 @@ func TestTriggerTestHeartbeat(t *testing.T) {
 			Receivers:   []string{"r1"},
 		},
 	}
-	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), cfg, disp.Mailbox(), hist, logger)
+	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), cfg, disp.Mailbox(), recorder, logger, nil)
 
 	assert.NoError(t, TriggerTestHeartbeat(mgr, logger, "hb1"))
 	assert.EqualError(t, TriggerTestHeartbeat(mgr, logger, "missing"), "heartbeat ID \"missing\" not found")

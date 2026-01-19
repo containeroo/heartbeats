@@ -1,11 +1,15 @@
 package handlers
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/containeroo/heartbeats/internal/service/health"
+)
 
 // Healthz returns the HTTP handler for the /healthz endpoint.
-func Healthz() http.HandlerFunc {
+func (a *API) Healthz(service *health.Service) http.HandlerFunc {
+	status := service.Status()
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
+		a.respondJSON(w, http.StatusOK, statusResponse{Status: status.Status})
 	}
 }

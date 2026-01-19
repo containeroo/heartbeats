@@ -15,16 +15,16 @@ func TestNewMetrics(t *testing.T) {
 	t.Parallel()
 
 	hist := history.NewRingStore(10)
-	PromMetrics := NewMetrics(hist)
-	assert.NotNil(t, PromMetrics.Registry, "Registry should not be nil")
+	promMetrics := New(hist)
+	assert.NotNil(t, promMetrics.registry, "Registry should not be nil")
 
 	// Initialize metrics
-	LastStatus.With(prometheus.Labels{"heartbeat": "test_heartbeat"})
-	ReceivedTotal.With(prometheus.Labels{"heartbeat": "test_heartbeat"})
-	ReceiverErrorStatus.With(prometheus.Labels{"receiver": "recv1", "type": "test-type", "target": "test-target"})
+	promMetrics.SetHeartbeatStatus("test_heartbeat", UP)
+	promMetrics.IncHeartbeatReceived("test_heartbeat")
+	promMetrics.SetReceiverStatus("recv1", "test-type", "test-target", ERROR)
 
 	gatherers := prometheus.Gatherers{
-		PromMetrics.Registry,
+		promMetrics.registry,
 	}
 
 	mfs, err := gatherers.Gather()
@@ -57,16 +57,16 @@ func TestLastHeartbeatStatusMetric(t *testing.T) {
 	t.Parallel()
 
 	hist := history.NewRingStore(10)
-	promMetrics := NewMetrics(hist)
+	promMetrics := New(hist)
 
-	LastStatus.With(prometheus.Labels{"heartbeat": "test_heartbeat"}).Set(UP)
+	promMetrics.SetHeartbeatStatus("test_heartbeat", UP)
 
 	expected := `
 	# HELP heartbeats_heartbeat_last_status Most recent status of each heartbeat (0 = DOWN, 1 = UP)
 	# TYPE heartbeats_heartbeat_last_status gauge
 	heartbeats_heartbeat_last_status{heartbeat="test_heartbeat"} 1
 	`
-	err := testutil.GatherAndCompare(promMetrics.Registry, strings.NewReader(expected), "heartbeats_heartbeat_last_status")
+	err := testutil.GatherAndCompare(promMetrics.registry, strings.NewReader(expected), "heartbeats_heartbeat_last_status")
 	assert.NoError(t, err, "Expected no error while gathering and comparing metrics")
 }
 
@@ -74,16 +74,16 @@ func TestReceiverErrorStatusMetrics(t *testing.T) {
 	t.Parallel()
 
 	hist := history.NewRingStore(10)
-	promMetrics := NewMetrics(hist)
+	promMetrics := New(hist)
 
-	ReceiverErrorStatus.With(prometheus.Labels{"receiver": "recv1", "target": "test-target", "type": "test-type"}).Set(1)
+	promMetrics.SetReceiverStatus("recv1", "test-type", "test-target", 1)
 
 	expected := `
 	# HELP heartbeats_receiver_last_status Reports the status of the last notification attempt (1 = ERROR, 0 = SUCCESS)
 	# TYPE heartbeats_receiver_last_status gauge
 	heartbeats_receiver_last_status{receiver="recv1",target="test-target",type="test-type"} 1
 	`
-	err := testutil.GatherAndCompare(promMetrics.Registry, strings.NewReader(expected), "heartbeats_receiver_last_status")
+	err := testutil.GatherAndCompare(promMetrics.registry, strings.NewReader(expected), "heartbeats_receiver_last_status")
 	assert.NoError(t, err, "Expected no error while gathering and comparing metrics")
 }
 
@@ -91,9 +91,9 @@ func TestReceivedTotalMetric(t *testing.T) {
 	t.Parallel()
 
 	hist := history.NewRingStore(10)
-	promMetrics := NewMetrics(hist)
+	promMetrics := New(hist)
 
-	ReceivedTotal.With(prometheus.Labels{"heartbeat": "test_heartbeat"}).Inc()
+	promMetrics.IncHeartbeatReceived("test_heartbeat")
 
 	expected := `
   # HELP heartbeats_heartbeat_received_total Total number of received heartbeats per ID
@@ -101,7 +101,7 @@ func TestReceivedTotalMetric(t *testing.T) {
   heartbeats_heartbeat_received_total{heartbeat="test_heartbeat"} 1
 
 	`
-	err := testutil.GatherAndCompare(promMetrics.Registry, strings.NewReader(expected), "heartbeats_heartbeat_received_total")
+	err := testutil.GatherAndCompare(promMetrics.registry, strings.NewReader(expected), "heartbeats_heartbeat_received_total")
 	assert.NoError(t, err, "Expected no error while gathering and comparing metrics")
 }
 
@@ -110,7 +110,7 @@ func TestHistorySizeMetric(t *testing.T) {
 
 	size := 10_000
 	hist := history.NewRingStore(size)
-	promMetrics := NewMetrics(hist)
+	promMetrics := New(hist)
 	ctx := t.Context()
 
 	payload := history.RequestMetadataPayload{
@@ -133,8 +133,8 @@ func TestHistorySizeMetric(t *testing.T) {
   heartbeats_history_byte_size %f
   `, got)
 
-	err := testutil.GatherAndCompare(promMetrics.Registry, strings.NewReader(expected), "heartbeats_history_byte_size")
+	err := testutil.GatherAndCompare(promMetrics.registry, strings.NewReader(expected), "heartbeats_history_byte_size")
 	assert.NoError(t, err, "Expected no error while gathering and comparing metrics")
 
-	assert.Equal(t, float64(1.83e+06), got)
+	assert.Equal(t, float64(1.91e+06), got)
 }

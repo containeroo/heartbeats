@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"slices"
@@ -12,6 +13,7 @@ import (
 	"github.com/containeroo/heartbeats/internal/common"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +25,7 @@ func waitForPayloadEvent[T any](t *testing.T, hist history.Store, match func(T) 
 	for time.Now().Before(deadline) {
 		for _, ev := range hist.List() {
 			var payload T
-			if err := ev.DecodePayload(&payload); err != nil {
+			if len(ev.RawPayload) == 0 || json.Unmarshal(ev.RawPayload, &payload) != nil {
 				continue // skip non-matching or invalid payloads
 			}
 			if match(payload) {
@@ -67,7 +69,7 @@ func TestActor_Run_Smoke(t *testing.T) {
 			},
 		})
 
-		disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+		disp := notifier.NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1, 10, nil)
 		go disp.Run(ctx)
 
 		actor := NewActorFromConfig(ActorConfig{
@@ -78,7 +80,7 @@ func TestActor_Run_Smoke(t *testing.T) {
 			Grace:       100 * time.Millisecond,
 			Receivers:   []string{"r1"},
 			Logger:      logger,
-			History:     hist,
+			History:     servicehistory.NewRecorder(hist),
 			DispatchCh:  disp.Mailbox(),
 		})
 		go actor.Run(ctx)
@@ -119,7 +121,7 @@ func TestActor_Run_Smoke(t *testing.T) {
 				return nil
 			},
 		})
-		disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+		disp := notifier.NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1, 10, nil)
 		go disp.Run(ctx)
 
 		actor := NewActorFromConfig(ActorConfig{
@@ -130,7 +132,7 @@ func TestActor_Run_Smoke(t *testing.T) {
 			Grace:       100 * time.Millisecond,
 			Receivers:   []string{"r1"},
 			Logger:      logger,
-			History:     hist,
+			History:     servicehistory.NewRecorder(hist),
 			DispatchCh:  disp.Mailbox(),
 		})
 		go actor.Run(ctx)
@@ -195,7 +197,7 @@ func TestActor_OnReceive(t *testing.T) {
 			Grace:       50 * time.Millisecond,
 			Receivers:   []string{"r1"},
 			logger:      logger,
-			hist:        hist,
+			hist:        servicehistory.NewRecorder(hist),
 			dispatchCh:  dispatchCh,
 			State:       common.HeartbeatStateMissing,
 		}
@@ -234,7 +236,7 @@ func TestActor_OnReceive(t *testing.T) {
 			Grace:       50 * time.Millisecond,
 			Receivers:   []string{"r2"},
 			logger:      logger,
-			hist:        hist,
+			hist:        servicehistory.NewRecorder(hist),
 			dispatchCh:  dispatchCh,
 			State:       common.HeartbeatStateIdle,
 		}
@@ -278,7 +280,7 @@ func TestActor_OnReceive(t *testing.T) {
 			Grace:       50 * time.Millisecond,
 			Receivers:   []string{"r2"},
 			logger:      logger,
-			hist:        &mockHist,
+			hist:        servicehistory.NewRecorder(&mockHist),
 			dispatchCh:  dispatchCh,
 			State:       common.HeartbeatStateIdle,
 		}
@@ -306,7 +308,7 @@ func TestActor_OnFail(t *testing.T) {
 			Receivers:   []string{"r1"},
 			State:       common.HeartbeatStateActive,
 			dispatchCh:  recv,
-			hist:        hist,
+			hist:        servicehistory.NewRecorder(hist),
 			logger:      logger,
 		}
 
@@ -348,7 +350,7 @@ func TestActor_OnFail(t *testing.T) {
 			Grace:       50 * time.Millisecond,
 			Receivers:   []string{"r2"},
 			logger:      logger,
-			hist:        &mockHist,
+			hist:        servicehistory.NewRecorder(&mockHist),
 			dispatchCh:  dispatchCh,
 			State:       common.HeartbeatStateActive,
 		}
@@ -374,7 +376,7 @@ func TestActor_OnEnterGrace(t *testing.T) {
 			State:      common.HeartbeatStateActive,
 			Grace:      50 * time.Millisecond,
 			logger:     logger,
-			hist:       hist,
+			hist:       servicehistory.NewRecorder(hist),
 			mailbox:    make(chan common.EventType, 1),
 			dispatchCh: make(chan notifier.NotificationData, 1),
 		}
@@ -396,7 +398,7 @@ func TestActor_OnEnterGrace(t *testing.T) {
 			State:      common.HeartbeatStateIdle,
 			Grace:      50 * time.Millisecond,
 			logger:     logger,
-			hist:       hist,
+			hist:       servicehistory.NewRecorder(hist),
 			mailbox:    make(chan common.EventType, 1),
 			dispatchCh: make(chan notifier.NotificationData, 1),
 		}
@@ -424,7 +426,7 @@ func TestActor_OnEnterGrace(t *testing.T) {
 			State:      common.HeartbeatStateActive,
 			Grace:      50 * time.Millisecond,
 			logger:     logger,
-			hist:       &mockHist,
+			hist:       servicehistory.NewRecorder(&mockHist),
 			mailbox:    make(chan common.EventType, 1),
 			dispatchCh: make(chan notifier.NotificationData, 1),
 		}
@@ -455,7 +457,7 @@ func TestActor_OnEnterMissing(t *testing.T) {
 			LastBump:    now,
 			Receivers:   []string{"r1"},
 			dispatchCh:  recv,
-			hist:        hist,
+			hist:        servicehistory.NewRecorder(hist),
 			logger:      logger,
 		}
 
@@ -486,7 +488,7 @@ func TestActor_OnEnterMissing(t *testing.T) {
 			ID:         "x",
 			State:      common.HeartbeatStateActive,
 			dispatchCh: recv,
-			hist:       hist,
+			hist:       servicehistory.NewRecorder(hist),
 			logger:     logger,
 		}
 
@@ -517,7 +519,7 @@ func TestActor_OnEnterMissing(t *testing.T) {
 			ID:         "x",
 			State:      common.HeartbeatStateGrace,
 			dispatchCh: make(chan notifier.NotificationData, 1),
-			hist:       &mockHist,
+			hist:       servicehistory.NewRecorder(&mockHist),
 			logger:     logger,
 		}
 

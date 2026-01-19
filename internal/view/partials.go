@@ -1,6 +1,7 @@
 package view
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"sort"
@@ -118,7 +119,7 @@ func RenderHistory(
 	tmpl *template.Template,
 	hist history.Store,
 ) error {
-	raw := hist.List()
+	raw := history.ListRecent(hist, 0)
 
 	views := make([]HistoryView, 0, len(raw))
 	for _, e := range raw {
@@ -127,7 +128,7 @@ func RenderHistory(
 		switch e.Type {
 		case history.EventTypeNotificationSent, history.EventTypeNotificationFailed:
 			var p history.NotificationPayload
-			if err := e.DecodePayload(&p); err == nil {
+			if len(e.RawPayload) > 0 && json.Unmarshal(e.RawPayload, &p) == nil {
 				if p.Error != "" {
 					det = fmt.Sprintf("Notification to %q via %s (%s) failed: %s",
 						p.Receiver, p.Type, p.Target, p.Error,
@@ -143,7 +144,7 @@ func RenderHistory(
 
 		case history.EventTypeStateChanged:
 			var p history.StateChangePayload
-			if err := e.DecodePayload(&p); err == nil {
+			if len(e.RawPayload) > 0 && json.Unmarshal(e.RawPayload, &p) == nil {
 				det = fmt.Sprintf("%s → %s", p.From, p.To)
 			} else {
 				det = "Invalid state change payload"
@@ -151,7 +152,7 @@ func RenderHistory(
 
 		case history.EventTypeHeartbeatReceived, history.EventTypeHeartbeatFailed:
 			var p history.RequestMetadataPayload
-			if err := e.DecodePayload(&p); err == nil {
+			if len(e.RawPayload) > 0 && json.Unmarshal(e.RawPayload, &p) == nil {
 				det = fmt.Sprintf("%s from %s with %q", p.Method, p.Source, p.UserAgent)
 			} else {
 				det = "Invalid request metadata"
@@ -168,11 +169,6 @@ func RenderHistory(
 			Details:     det,
 		})
 	}
-
-	// Newest first
-	sort.Slice(views, func(i, j int) bool {
-		return views[j].Timestamp.Before(views[i].Timestamp)
-	})
 
 	return tmpl.ExecuteTemplate(w, "history", struct{ Events []HistoryView }{Events: views})
 }

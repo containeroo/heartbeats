@@ -6,8 +6,8 @@ import (
 	"log/slog"
 
 	"github.com/containeroo/heartbeats/internal/common"
-	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 )
 
 // Manager routes HTTP pings to Actors.
@@ -21,7 +21,7 @@ func NewManagerFromHeartbeatMap(
 	ctx context.Context,
 	heartbeatConfigs HeartbeatConfigMap,
 	dispatchCh chan<- notifier.NotificationData,
-	hist history.Store,
+	hist *servicehistory.Recorder,
 	logger *slog.Logger,
 ) *Manager {
 	m := &Manager{actors: make(map[string]*Actor, len(heartbeatConfigs)), logger: logger}

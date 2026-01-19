@@ -12,11 +12,13 @@ import (
 	"github.com/containeroo/heartbeats/internal/config"
 	"github.com/containeroo/heartbeats/internal/debugserver"
 	"github.com/containeroo/heartbeats/internal/flag"
+	"github.com/containeroo/heartbeats/internal/handlers"
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	"github.com/containeroo/heartbeats/internal/server"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 
 	"github.com/containeroo/tinyflags"
 )
@@ -56,10 +58,11 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	}
 
 	// Create history cache
-	history, err := history.InitializeHistory(flags)
+	histStore, err := history.InitializeHistory(flags)
 	if err != nil {
 		return fmt.Errorf("failed to initialize history: %w", err)
 	}
+	histRecorder := servicehistory.NewRecorder(histStore)
 
 	// Inizalize notification
 	store := notifier.InitializeStore(cfg.Receivers, flags.SkipTLS, version, logger)
@@ -67,7 +70,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	dispatcher := notifier.NewDispatcher(
 		store,
 		logger,
-		history,
+		histRecorder,
 		flags.RetryCount,
 		flags.RetryDelay,
 		bufferSize,
@@ -79,13 +82,24 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		ctx,
 		cfg.Heartbeats,
 		dispatcher.Mailbox(),
-		history,
+		histRecorder,
 		logger,
+	)
+
+	api := handlers.NewAPI(
+		version,
+		commit,
+		webFS,
+		logger,
+		mgr,
+		histStore,
+		histRecorder,
+		dispatcher,
 	)
 
 	// Run debug server if enabled
 	if flags.Debug {
-		debugserver.Run(ctx, flags.DebugServerPort, mgr, dispatcher, logger)
+		debugserver.Run(ctx, flags.DebugServerPort, api)
 	}
 
 	// Create server and run forever
@@ -94,9 +108,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		flags.SiteRoot,
 		flags.RoutePrefix,
 		version,
-		mgr,
-		history,
-		dispatcher,
+		api,
 		logger,
 		flags.Debug,
 	)

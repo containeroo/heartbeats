@@ -8,9 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/handlers"
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,8 +24,9 @@ func TestDebugServer_Run(t *testing.T) {
 	// Setup basic in-memory state
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(5)
+	recorder := servicehistory.NewRecorder(hist)
 	store := notifier.NewReceiverStore()
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1*time.Millisecond, 10)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1*time.Millisecond, 10, nil)
 
 	hbCfg := map[string]heartbeat.HeartbeatConfig{
 		"test-hb": {
@@ -33,11 +36,12 @@ func TestDebugServer_Run(t *testing.T) {
 			Receivers:   []string{"r1"},
 		},
 	}
-	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, hbCfg, disp.Mailbox(), hist, logger)
+	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, hbCfg, disp.Mailbox(), recorder, logger, nil)
+	api := handlers.NewAPI("test", "test", nil, logger, mgr, hist, recorder, disp, nil)
 
 	// Pick a random free port
 	port := 8089
-	Run(ctx, port, mgr, disp, logger)
+	Run(ctx, port, api)
 
 	// Wait for server to start
 	time.Sleep(100 * time.Millisecond)

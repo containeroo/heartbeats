@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/history"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +27,7 @@ func TestDispatcher_Dispatch(t *testing.T) {
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 
 		// Buffer size = 1 for test
-		dispatcher := NewDispatcher(store, logger, hist, 1, 1*time.Millisecond, 1)
+		dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1*time.Millisecond, 1, nil)
 
 		// Start dispatcher loop
 		ctx := t.Context()
@@ -58,7 +59,7 @@ func TestDispatcher_Dispatch(t *testing.T) {
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		store := NewReceiverStore()
 		hist := history.NewRingStore(10)
-		dispatcher := NewDispatcher(store, logger, hist, 1, 1*time.Millisecond, 1)
+		dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1*time.Millisecond, 1, nil)
 
 		// Start dispatcher loop
 		ctx := t.Context()
@@ -92,7 +93,7 @@ func TestDispatcher_Dispatch(t *testing.T) {
 			},
 		}
 
-		dispatcher := NewDispatcher(store, logger, &mockHist, 1, 1*time.Millisecond, 1)
+		dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(&mockHist), 1, 1*time.Millisecond, 1, nil)
 
 		// Start dispatcher loop
 		ctx := t.Context()
@@ -129,7 +130,7 @@ func TestDispatcher_ListAndGet(t *testing.T) {
 	hist := history.NewRingStore(10)
 
 	// Added buffer size (doesn't matter for this test since we don't use the mailbox)
-	dispatcher := NewDispatcher(store, logger, hist, 1, 1*time.Millisecond, 1)
+	dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1*time.Millisecond, 1, nil)
 
 	t.Run("lists all receivers", func(t *testing.T) {
 		t.Parallel()
@@ -166,10 +167,11 @@ func TestDispatcher_LogsErrorFromNotifier(t *testing.T) {
 	dispatcher := NewDispatcher(
 		store,
 		logger,
-		&history.MockStore{},
+		servicehistory.NewRecorder(&history.MockStore{}),
 		1,
 		1*time.Millisecond,
 		1, // buffer size
+		nil,
 	)
 
 	// Start dispatcher loop

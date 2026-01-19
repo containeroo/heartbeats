@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"testing/fstest"
 
@@ -23,7 +26,8 @@ func TestHomeHandler(t *testing.T) {
 		}
 
 		version := "v1.2.3"
-		handler := HomeHandler(webFS, version)
+		api := NewAPI(version, "test", webFS, slog.New(slog.NewTextHandler(&strings.Builder{}, nil)), nil, nil, nil, nil, nil)
+		handler := api.HomeHandler()
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
@@ -52,7 +56,8 @@ func TestHomeHandler(t *testing.T) {
 		}
 
 		version := "v1.2.3"
-		handler := HomeHandler(webFS, version)
+		api := NewAPI(version, "test", webFS, slog.New(slog.NewTextHandler(&strings.Builder{}, nil)), nil, nil, nil, nil, nil)
+		handler := api.HomeHandler()
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
@@ -63,6 +68,8 @@ func TestHomeHandler(t *testing.T) {
 		defer resp.Body.Close() // nolint:errcheck
 
 		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-		assert.Equal(t, "html/template: \"base\" is undefined\n", rec.Body.String())
+		var payload errorResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&payload))
+		assert.Equal(t, "html/template: \"base\" is undefined", payload.Error)
 	})
 }

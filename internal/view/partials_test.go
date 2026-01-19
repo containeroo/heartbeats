@@ -14,6 +14,7 @@ import (
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,7 +50,8 @@ func TestRenderHeartbeats(t *testing.T) {
 	hist := history.NewRingStore(10)
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, nil, hist, 1, 1, 10)
+	recorder := servicehistory.NewRecorder(hist)
+	disp := notifier.NewDispatcher(store, nil, recorder, 1, 1, 10, nil)
 	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"b": {
 			Description: "b-desc",
@@ -63,7 +65,7 @@ func TestRenderHeartbeats(t *testing.T) {
 			Grace:       1 * time.Second,
 			Receivers:   []string{"r1"},
 		},
-	}, disp.Mailbox(), hist, nil)
+	}, disp.Mailbox(), recorder, nil, nil)
 
 	var buf bytes.Buffer
 	a := mgr.Get("b")
@@ -88,7 +90,7 @@ func TestRenderReceivers(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	store := notifier.InitializeStore(rc, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, nil, nil, 1, 1, 10)
+	disp := notifier.NewDispatcher(store, nil, servicehistory.NewRecorder(nil), 1, 1, 10, nil)
 
 	var buf bytes.Buffer
 	err := RenderReceivers(&buf, tmpl, disp)

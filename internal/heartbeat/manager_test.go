@@ -11,6 +11,7 @@ import (
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,8 +21,9 @@ func TestManager_HandleReceive(t *testing.T) {
 	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(20)
+	recorder := servicehistory.NewRecorder(hist)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
 
 	t.Run("sends receive to known actor", func(t *testing.T) {
 		t.Parallel()
@@ -35,7 +37,7 @@ func TestManager_HandleReceive(t *testing.T) {
 			},
 		}
 
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
+		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
 		err := mgr.Receive("a1")
 		assert.NoError(t, err)
 
@@ -49,7 +51,7 @@ func TestManager_HandleReceive(t *testing.T) {
 
 		cfg := map[string]heartbeat.HeartbeatConfig{}
 
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
+		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
 		err := mgr.Receive("a1")
 		assert.Error(t, err)
 		assert.EqualError(t, err, "heartbeat ID \"a1\" not found")
@@ -62,8 +64,9 @@ func TestManager_HandleFail(t *testing.T) {
 	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(20)
+	recorder := servicehistory.NewRecorder(hist)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
 
 	t.Run("sends fail to known actor", func(t *testing.T) {
 		t.Parallel()
@@ -77,7 +80,7 @@ func TestManager_HandleFail(t *testing.T) {
 			},
 		}
 
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
+		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
 		err := mgr.Fail("a1")
 		assert.NoError(t, err)
 
@@ -91,7 +94,7 @@ func TestManager_HandleFail(t *testing.T) {
 
 		cfg := map[string]heartbeat.HeartbeatConfig{}
 
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
+		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
 		err := mgr.Fail("a1")
 		assert.Error(t, err)
 		assert.EqualError(t, err, "heartbeat ID \"a1\" not found")
@@ -104,8 +107,9 @@ func TestManager_HandleTest(t *testing.T) {
 	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
+	recorder := servicehistory.NewRecorder(hist)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
 
 	t.Run("sends test event to known actor", func(t *testing.T) {
 		t.Parallel()
@@ -119,7 +123,7 @@ func TestManager_HandleTest(t *testing.T) {
 			},
 		}
 
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
+		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
 		err := mgr.Test("a1")
 		assert.NoError(t, err)
 
@@ -132,7 +136,7 @@ func TestManager_HandleTest(t *testing.T) {
 		t.Parallel()
 
 		cfg := map[string]heartbeat.HeartbeatConfig{}
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
+		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
 
 		err := mgr.Test("does-not-exist")
 		assert.Error(t, err)
@@ -146,8 +150,9 @@ func TestManager_Get(t *testing.T) {
 	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(20)
+	recorder := servicehistory.NewRecorder(hist)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 0, 0, 10)
+	disp := notifier.NewDispatcher(store, logger, recorder, 0, 0, 10, nil)
 
 	cfg := map[string]heartbeat.HeartbeatConfig{
 		"a1": {
@@ -164,7 +169,7 @@ func TestManager_Get(t *testing.T) {
 		},
 	}
 
-	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
+	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
 
 	result := mgr.List()
 	assert.Len(t, result, 2)
@@ -176,8 +181,9 @@ func TestManager_List(t *testing.T) {
 	ctx := context.Background()
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(20)
+	recorder := servicehistory.NewRecorder(hist)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 0, 0, 10)
+	disp := notifier.NewDispatcher(store, logger, recorder, 0, 0, 10, nil)
 
 	cfg := map[string]heartbeat.HeartbeatConfig{
 		"a1": {
@@ -194,7 +200,7 @@ func TestManager_List(t *testing.T) {
 		},
 	}
 
-	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
+	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
 
 	t.Run("Get found", func(t *testing.T) {
 		t.Parallel()
