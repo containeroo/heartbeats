@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/common"
 	"github.com/containeroo/heartbeats/pkg/notify/slack"
 	"github.com/containeroo/resolver"
 )
@@ -59,15 +58,19 @@ func (s *SlackConfig) Notify(ctx context.Context, data NotificationData) error {
 	s.lastSent = time.Now()
 	s.lastErr = nil
 
-	formatted, err := s.Format(data)
-	if err != nil {
-		s.lastErr = err
-		return fmt.Errorf("format notification: %w", err)
+	formatted := data
+	if formatted.Title == "" || formatted.Message == "" {
+		var err error
+		formatted, err = s.Format(data)
+		if err != nil {
+			s.lastErr = err
+			return fmt.Errorf("format notification: %w", err)
+		}
 	}
 
-	status := common.HeartbeatState(formatted.Status)
+	status := strings.ToLower(formatted.Status)
 	color := "danger"
-	if status == common.HeartbeatStateActive || status == common.HeartbeatStateRecovered {
+	if status == "active" || status == "recovered" {
 		color = "good"
 	}
 

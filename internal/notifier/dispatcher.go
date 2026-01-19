@@ -4,30 +4,34 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/metrics"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 )
 
 // Dispatcher handles queued notifications via mailbox.
 type Dispatcher struct {
-	store   *ReceiverStore        // maps receiver IDs → []Notifier
-	history history.Store         // stores notifications
-	logger  *slog.Logger          // logs any notify errors
-	retries int                   // number of retries for notifications
-	delay   time.Duration         // delay between retries
-	mailbox chan NotificationData // channel for receiving notifications
+	store   *ReceiverStore           // maps receiver IDs → []Notifier
+	storeMu sync.RWMutex             // guards store
+	history *servicehistory.Recorder // stores notifications
+	logger  *slog.Logger             // logs any notify errors
+	retries int                      // number of retries for notifications
+	delay   time.Duration            // delay between retries
+	mailbox chan NotificationData    // channel for receiving notifications
+	metrics *metrics.Registry        // metrics registry
 }
 
 // NewDispatcher returns a Dispatcher backed by the given store.
 func NewDispatcher(
 	store *ReceiverStore,
 	logger *slog.Logger,
-	hist history.Store,
+	hist *servicehistory.Recorder,
 	retries int,
 	delay time.Duration,
 	bufferSize int,
+	metricsReg *metrics.Registry,
 ) *Dispatcher {
 	return &Dispatcher{
 		store:   store,
@@ -36,6 +40,7 @@ func NewDispatcher(
 		retries: retries,
 		delay:   delay,
 		mailbox: make(chan NotificationData, bufferSize),
+		metrics: metricsReg,
 	}
 }
 
@@ -58,8 +63,12 @@ func (d *Dispatcher) Mailbox() chan<- NotificationData { return d.mailbox }
 
 // dispatch looks up receivers and sends notifications in parallel.
 func (d *Dispatcher) dispatch(ctx context.Context, data NotificationData) {
+	d.storeMu.RLock()
+	store := d.store
+	d.storeMu.RUnlock()
+
 	for _, rid := range data.Receivers {
-		notifiers := d.store.getNotifiers(rid)
+		notifiers := store.getNotifiers(rid)
 		if len(notifiers) == 0 {
 			d.logger.Warn("no notifiers for receiver", "receiver", rid)
 			continue
@@ -76,28 +85,64 @@ func (d *Dispatcher) dispatch(ctx context.Context, data NotificationData) {
 
 // List returns all configured notifiers.
 func (d *Dispatcher) List() map[string][]Notifier {
+	d.storeMu.RLock()
+	defer d.storeMu.RUnlock()
 	return d.store.notifiers
 }
 
 // Get returns notifiers for a receiver.
 func (d *Dispatcher) Get(id string) []Notifier {
+	d.storeMu.RLock()
+	defer d.storeMu.RUnlock()
 	return d.store.notifiers[id]
+}
+
+// UpdateStore swaps the receiver store used by the dispatcher.
+func (d *Dispatcher) UpdateStore(store *ReceiverStore) {
+	d.storeMu.Lock()
+	d.store = store
+	d.storeMu.Unlock()
 }
 
 // sendWithRetry retries a notification and records its outcome.
 func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Notifier, data NotificationData) {
-	payload := history.NotificationPayload{
+	factory := servicehistory.NewFactory()
+	payload := servicehistory.NotificationPayload{
 		Receiver: receiverID,
 		Type:     n.Type(),
 		Target:   n.Target(),
 	}
 
-	eventType := history.EventTypeNotificationSent
+	eventType := servicehistory.EventTypeNotificationSent
 	receiverStatus := metrics.SUCCESS
 
-	if err := d.retryNotify(ctx, n, data, receiverID); err != nil {
+	formatted := data
+	if f, ok := n.(Formatter); ok {
+		var err error
+		formatted, err = f.Format(data)
+		if err != nil {
+			payload.Error = err.Error()
+
+			d.logger.Error("notification format error",
+				"receiver", receiverID,
+				"type", n.Type(),
+				"target", n.Target(),
+				"error", err,
+			)
+
+			d.metrics.SetReceiverStatus(receiverID, n.Type(), n.Target(), metrics.ERROR)
+
+			ev := factory.NotificationFailed(data.ID, payload.Receiver, payload.Type, payload.Target, payload.Error)
+			if err := d.history.Append(ctx, ev); err != nil {
+				d.logger.Error("failed to record state change", "err", err)
+			}
+			return
+		}
+	}
+
+	if err := d.retryNotify(ctx, n, formatted, receiverID); err != nil {
 		payload.Error = err.Error()
-		eventType = history.EventTypeNotificationFailed
+		eventType = servicehistory.EventTypeNotificationFailed
 
 		receiverStatus = metrics.ERROR
 
@@ -109,11 +154,14 @@ func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Not
 		)
 	}
 
-	metrics.ReceiverErrorStatus.
-		WithLabelValues(receiverID, n.Type(), n.Target()).
-		Set(receiverStatus)
+	d.metrics.SetReceiverStatus(receiverID, n.Type(), n.Target(), receiverStatus)
 
-	ev := history.MustNewEvent(eventType, data.ID, payload)
+	var ev servicehistory.Event
+	if eventType == servicehistory.EventTypeNotificationFailed {
+		ev = factory.NotificationFailed(data.ID, payload.Receiver, payload.Type, payload.Target, payload.Error)
+	} else {
+		ev = factory.NotificationSent(data.ID, payload.Receiver, payload.Type, payload.Target)
+	}
 	if err := d.history.Append(ctx, ev); err != nil {
 		d.logger.Error("failed to record state change", "err", err)
 	}

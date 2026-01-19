@@ -1,7 +1,8 @@
-package handlers
+package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -12,7 +13,9 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,10 +24,27 @@ func TestTestReceiverHandler(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
+	metricsReg := metrics.New(hist)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+	recorder := servicehistory.NewRecorder(hist)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, metricsReg)
+	api := NewAPI(
+		"test",
+		"test",
+		nil,
+		"",
+		"",
+		true,
+		logger,
+		nil,
+		hist,
+		recorder,
+		disp,
+		nil,
+		nil,
+	)
 
-	handler := TestReceiverHandler(disp, logger)
+	handler := api.TestReceiverHandler()
 
 	t.Run("missing id", func(t *testing.T) {
 		t.Parallel()
@@ -37,7 +57,9 @@ func TestTestReceiverHandler(t *testing.T) {
 		handler.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		assert.Equal(t, "missing id\n", rec.Body.String())
+		var resp errorResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "missing id", resp.Error)
 	})
 
 	t.Run("sends test notification", func(t *testing.T) {
@@ -50,7 +72,9 @@ func TestTestReceiverHandler(t *testing.T) {
 		handler.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "ok", rec.Body.String())
+		var resp statusResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "ok", resp.Status)
 	})
 }
 
@@ -59,8 +83,10 @@ func TestTestHeartbeatHandler(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
+	metricsReg := metrics.New(hist)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+	recorder := servicehistory.NewRecorder(hist)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, metricsReg)
 
 	hbName := "test-hb"
 	cfg := heartbeat.HeartbeatConfigMap{
@@ -72,8 +98,35 @@ func TestTestHeartbeatHandler(t *testing.T) {
 			Receivers:   []string{"r1"},
 		},
 	}
-	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), cfg, disp.Mailbox(), hist, logger)
-	handler := TestHeartbeatHandler(mgr, logger)
+	factory := heartbeat.DefaultActorFactory{
+		Logger:     logger,
+		History:    recorder,
+		Metrics:    metricsReg,
+		DispatchCh: disp.Mailbox(),
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
+		context.Background(),
+		cfg,
+		logger,
+		factory,
+	)
+	assert.NoError(t, err)
+	api := NewAPI(
+		"test",
+		"test",
+		nil,
+		"",
+		"",
+		true,
+		logger,
+		mgr,
+		hist,
+		recorder,
+		disp,
+		nil,
+		nil,
+	)
+	handler := api.TestHeartbeatHandler()
 
 	t.Run("missing id", func(t *testing.T) {
 		t.Parallel()
@@ -85,7 +138,9 @@ func TestTestHeartbeatHandler(t *testing.T) {
 		handler.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		assert.Equal(t, "missing id\n", rec.Body.String())
+		var resp errorResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "missing id", resp.Error)
 	})
 
 	t.Run("unknown id", func(t *testing.T) {
@@ -98,7 +153,9 @@ func TestTestHeartbeatHandler(t *testing.T) {
 		handler.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusNotFound, rec.Code)
-		assert.Equal(t, "heartbeat ID \"invalid\" not found\n", rec.Body.String())
+		var resp errorResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "heartbeat ID \"invalid\" not found", resp.Error)
 	})
 
 	t.Run("trigger test heartbeat", func(t *testing.T) {
@@ -111,6 +168,8 @@ func TestTestHeartbeatHandler(t *testing.T) {
 		handler.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "ok", rec.Body.String())
+		var resp statusResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "ok", resp.Status)
 	})
 }

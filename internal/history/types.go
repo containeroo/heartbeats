@@ -1,10 +1,6 @@
 package history
 
-import (
-	"context"
-
-	"github.com/containeroo/heartbeats/internal/flag"
-)
+import "context"
 
 type BackendType string
 
@@ -19,6 +15,6 @@ type Store interface {
 }
 
 // InitializeHistory initializes a new history store.
-func InitializeHistory(flags flag.Options) (Store, error) {
-	return NewRingStore(flags.HistorySize), nil
+func InitializeHistory(size int) (Store, error) {
+	return NewRingStore(size), nil
 }

@@ -13,7 +13,9 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,9 +37,7 @@ func loadTestTemplate(t *testing.T, name string, content string) *template.Templ
 func encodePayload(t *testing.T, payload any) json.RawMessage {
 	t.Helper()
 	data, err := json.Marshal(payload)
-	if err != nil {
-		t.Fatalf("failed to marshal payload: %v", err)
-	}
+	assert.NoError(t, err)
 	return data
 }
 
@@ -47,10 +47,18 @@ func TestRenderHeartbeats(t *testing.T) {
 	tmpl := loadTestTemplate(t, "heartbeats", `{{define "heartbeats"}}{{range .Heartbeats}}{{.ID}}:{{.Status}};{{end}}{{end}}`)
 
 	hist := history.NewRingStore(10)
+	metricsReg := metrics.New(hist)
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, nil, hist, 1, 1, 10)
-	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), map[string]heartbeat.HeartbeatConfig{
+	recorder := servicehistory.NewRecorder(hist)
+	disp := notifier.NewDispatcher(store, nil, recorder, 1, 1, 10, metricsReg)
+	factory := heartbeat.DefaultActorFactory{
+		Logger:     nil,
+		History:    recorder,
+		Metrics:    metricsReg,
+		DispatchCh: disp.Mailbox(),
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"b": {
 			Description: "b-desc",
 			Interval:    1 * time.Second,
@@ -63,13 +71,17 @@ func TestRenderHeartbeats(t *testing.T) {
 			Grace:       1 * time.Second,
 			Receivers:   []string{"r1"},
 		},
-	}, disp.Mailbox(), hist, nil)
+	},
+		logger,
+		factory,
+	)
+	assert.NoError(t, err)
 
 	var buf bytes.Buffer
 	a := mgr.Get("b")
 	a.LastBump = time.Now()
 
-	err := RenderHeartbeats(&buf, tmpl, "http://localhost", mgr, hist)
+	err = RenderHeartbeats(&buf, tmpl, "http://localhost", mgr, hist)
 	assert.NoError(t, err)
 	assert.Contains(t, buf.String(), "a:idle;b:idle")
 }
@@ -88,7 +100,8 @@ func TestRenderReceivers(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	store := notifier.InitializeStore(rc, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, nil, nil, 1, 1, 10)
+	metricsReg := metrics.New(history.NewRingStore(1))
+	disp := notifier.NewDispatcher(store, nil, servicehistory.NewRecorder(nil), 1, 1, 10, metricsReg)
 
 	var buf bytes.Buffer
 	err := RenderReceivers(&buf, tmpl, disp)

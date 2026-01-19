@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/common"
 	"github.com/containeroo/heartbeats/pkg/notify/slack"
 	"github.com/stretchr/testify/assert"
 )
@@ -110,7 +109,7 @@ func TestSlackConfig_Notify(t *testing.T) {
 
 		data := NotificationData{
 			ID:          "api-check",
-			Status:      common.HeartbeatStateRecovered.String(),
+			Status:      "recovered",
 			Description: "Heartbeat failed",
 			LastBump:    time.Now().Add(-10 * time.Minute),
 		}

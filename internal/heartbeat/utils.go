@@ -3,8 +3,7 @@ package heartbeat
 import (
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/common"
-	"github.com/containeroo/heartbeats/internal/history"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 )
 
 // stopTimer stops a running timer and ensures its channel is drained.
@@ -40,7 +39,7 @@ func (a *Actor) stopAllTimers() {
 }
 
 // recordStateChange logs and records a state change if it actually changed.
-func (a *Actor) recordStateChange(prev, next common.HeartbeatState) error {
+func (a *Actor) recordStateChange(prev, next HeartbeatState) error {
 	if prev == next {
 		// avoid noisy logs when state hasn’t changed (e.g. repeated heartbeats in active state)
 		return nil
@@ -55,11 +54,8 @@ func (a *Actor) recordStateChange(prev, next common.HeartbeatState) error {
 		"to", to,
 	)
 
-	payload := history.StateChangePayload{
-		From: from,
-		To:   to,
-	}
-	ev := history.MustNewEvent(history.EventTypeStateChanged, a.ID, payload)
+	factory := servicehistory.NewFactory()
+	ev := factory.StateChanged(a.ID, from, to)
 
 	return a.hist.Append(a.ctx, ev)
 }

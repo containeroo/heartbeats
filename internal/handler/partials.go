@@ -1,32 +1,24 @@
-package handlers
+package handler
 
 import (
-	"io/fs"
-	"log/slog"
+	"fmt"
 	"net/http"
 	"path"
 	"strings"
 	"text/template"
 
-	"github.com/containeroo/heartbeats/internal/heartbeat"
-	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	"github.com/containeroo/heartbeats/internal/view"
 )
 
 // PartialHandler serves HTML snippets for dashboard sections: heartbeats, receivers, history.
-func PartialHandler(
-	webFS fs.FS,
+func (a *API) PartialHandler(
 	siteRoot string,
-	mgr *heartbeat.Manager,
-	hist history.Store,
-	disp *notifier.Dispatcher,
-	logger *slog.Logger,
 ) http.HandlerFunc {
 	tmpl := template.Must(
 		template.New("partials").
 			Funcs(notifier.FuncMap()).
-			ParseFS(webFS,
+			ParseFS(a.webFS,
 				"web/templates/heartbeats.html",
 				"web/templates/receivers.html",
 				"web/templates/history.html",
@@ -41,19 +33,19 @@ func PartialHandler(
 
 		switch section {
 		case "heartbeats":
-			err = view.RenderHeartbeats(w, tmpl, bumpURL, mgr, hist)
+			err = view.RenderHeartbeats(w, tmpl, bumpURL, a.mgr, a.hist)
 		case "receivers":
-			err = view.RenderReceivers(w, tmpl, disp)
+			err = view.RenderReceivers(w, tmpl, a.disp)
 		case "history":
-			err = view.RenderHistory(w, tmpl, hist)
+			err = view.RenderHistory(w, tmpl, a.hist)
 		default:
-			http.NotFound(w, r)
+			a.respondJSON(w, http.StatusNotFound, errorResponse{Error: fmt.Sprintf("unknown partial %q", section)})
 			return
 		}
 
 		if err != nil {
-			logger.Error("render "+section+" partial", "error", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			a.Logger.Error("render "+section+" partial", "error", err)
+			a.respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
 		}
 	}
 }

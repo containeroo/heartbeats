@@ -1,4 +1,4 @@
-package common
+package heartbeat
 
 // HeartbeatState represents the internal state of a heartbeat actor.
 type HeartbeatState string

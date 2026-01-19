@@ -1,7 +1,8 @@
-package handlers
+package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -13,7 +14,9 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,15 +35,44 @@ func setupRouter(t *testing.T, hbName string, hist history.Store) http.Handler {
 	}
 
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
-	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), heartbeats, disp.Mailbox(), hist, logger)
+	recorder := servicehistory.NewRecorder(hist)
+	metricsReg := metrics.New(hist)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, metricsReg)
+	factory := heartbeat.DefaultActorFactory{
+		Logger:     logger,
+		History:    recorder,
+		Metrics:    metricsReg,
+		DispatchCh: disp.Mailbox(),
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
+		context.Background(),
+		heartbeats,
+		logger,
+		factory,
+	)
+	assert.NoError(t, err)
+	api := NewAPI(
+		"test",
+		"test",
+		nil,
+		"",
+		"",
+		true,
+		logger,
+		mgr,
+		hist,
+		recorder,
+		disp,
+		nil,
+		nil,
+	)
 	router := http.NewServeMux()
-	router.Handle("GET /no-id/", BumpHandler(mgr, hist, logger))
-	router.Handle("GET /no-id/fail", FailHandler(mgr, hist, logger))
-	router.Handle("GET /bump/{id}", BumpHandler(mgr, hist, logger))
-	router.Handle("POST /bump/{id}", BumpHandler(mgr, hist, logger))
-	router.Handle("GET /bump/{id}/fail", FailHandler(mgr, hist, logger))
-	router.Handle("POST /bump/{id}/fail", FailHandler(mgr, hist, logger))
+	router.Handle("GET /no-id/", api.BumpHandler())
+	router.Handle("GET /no-id/fail", api.FailHandler())
+	router.Handle("GET /bump/{id}", api.BumpHandler())
+	router.Handle("POST /bump/{id}", api.BumpHandler())
+	router.Handle("GET /bump/{id}/fail", api.FailHandler())
+	router.Handle("POST /bump/{id}/fail", api.FailHandler())
 	return router
 }
 
@@ -59,7 +91,9 @@ func TestBumpHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		assert.Equal(t, "missing id\n", rec.Body.String())
+		var resp errorResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "missing id", resp.Error)
 	})
 
 	t.Run("not found id", func(t *testing.T) {
@@ -72,7 +106,9 @@ func TestBumpHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusNotFound, rec.Code)
-		assert.Equal(t, "unknown heartbeat id \"not-found\"\n", rec.Body.String())
+		var resp errorResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "unknown heartbeat id \"not-found\"", resp.Error)
 	})
 
 	t.Run("successful bump GET", func(t *testing.T) {
@@ -89,7 +125,9 @@ func TestBumpHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "ok", rec.Body.String())
+		var resp statusResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "ok", resp.Status)
 
 		e := hist.ListByID(hbName)
 
@@ -98,7 +136,7 @@ func TestBumpHandler(t *testing.T) {
 		assert.Equal(t, hbName, ev.HeartbeatID)
 
 		var meta history.RequestMetadataPayload
-		assert.NoError(t, ev.DecodePayload(&meta))
+		assert.NoError(t, json.Unmarshal(ev.RawPayload, &meta))
 		assert.Equal(t, "GET", meta.Method)
 		assert.Equal(t, "1.2.3.4:5678", meta.Source)
 		assert.Equal(t, "Go-test", meta.UserAgent)
@@ -117,7 +155,9 @@ func TestBumpHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "ok", rec.Body.String())
+		var resp statusResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "ok", resp.Status)
 
 		e := hist.ListByID(hbName)
 		ev := e[0]
@@ -126,7 +166,7 @@ func TestBumpHandler(t *testing.T) {
 		assert.Equal(t, hbName, ev.HeartbeatID)
 
 		var meta history.RequestMetadataPayload
-		assert.NoError(t, ev.DecodePayload(&meta))
+		assert.NoError(t, json.Unmarshal(ev.RawPayload, &meta))
 		assert.Equal(t, "POST", meta.Method)
 	})
 }
@@ -146,7 +186,9 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		assert.Equal(t, "missing id\n", rec.Body.String())
+		var resp errorResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "missing id", resp.Error)
 	})
 
 	t.Run("not found id", func(t *testing.T) {
@@ -159,7 +201,9 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusNotFound, rec.Code)
-		assert.Equal(t, "unknown heartbeat id \"not-found\"\n", rec.Body.String())
+		var resp errorResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "unknown heartbeat id \"not-found\"", resp.Error)
 	})
 
 	t.Run("successful fail GET", func(t *testing.T) {
@@ -176,7 +220,9 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "ok", rec.Body.String())
+		var resp statusResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "ok", resp.Status)
 
 		events := hist.ListByID(hbName)
 		assert.Len(t, events, 1)
@@ -186,7 +232,7 @@ func TestFailHandler(t *testing.T) {
 		assert.Equal(t, hbName, ev.HeartbeatID)
 
 		var meta history.RequestMetadataPayload
-		assert.NoError(t, ev.DecodePayload(&meta))
+		assert.NoError(t, json.Unmarshal(ev.RawPayload, &meta))
 
 		assert.Equal(t, "GET", meta.Method)
 		assert.Equal(t, "1.2.3.4:5678", meta.Source)
@@ -206,7 +252,9 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "ok", rec.Body.String())
+		var resp statusResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "ok", resp.Status)
 
 		e := hist.ListByID(hbName)
 		ev := e[0]
@@ -215,7 +263,7 @@ func TestFailHandler(t *testing.T) {
 		assert.Equal(t, hbName, ev.HeartbeatID)
 
 		var meta history.RequestMetadataPayload
-		assert.NoError(t, ev.DecodePayload(&meta))
+		assert.NoError(t, json.Unmarshal(ev.RawPayload, &meta))
 		assert.Equal(t, "POST", meta.Method)
 	})
 
@@ -238,7 +286,9 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		assert.Equal(t, "fail!\n", rec.Body.String())
+		var resp errorResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "fail!", resp.Error)
 	})
 
 	t.Run("fail - record event error", func(t *testing.T) {
@@ -260,6 +310,8 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		assert.Equal(t, "fail!\n", rec.Body.String())
+		var resp errorResponse
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "fail!", resp.Error)
 	})
 }

@@ -135,7 +135,7 @@ func TestRingStore_ByteSize(t *testing.T) {
 	}
 
 	got := store.ByteSize()
-	assert.Equal(t, 1730000, got)
+	assert.Equal(t, 1810000, got)
 }
 
 func TestRingStore_ByteSizePerformance(t *testing.T) {

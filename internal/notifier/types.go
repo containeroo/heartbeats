@@ -36,11 +36,15 @@ type NotificationInfo struct {
 // Notifier defines methods for sending notifications.
 type Notifier interface {
 	Notify(ctx context.Context, data NotificationData) error // Notify sends a notification.
-	Format(data NotificationData) (NotificationData, error)  // Format formats the notification title and text.
 	Validate() error                                         // Validate checks whether the notifier is correctly configured.
 	Resolve() error                                          // Resolve performs any necessary resolution (e.g., secrets, tokens).
 	LastErr() error                                          // LastError reports whether the last notification attempt succeeded.
 	Type() string                                            // Type returns the notifier's type, e.g., "slack", "email", "teams".
 	Target() string                                          // Target returns safely masked or display version
 	LastSent() time.Time                                     // LastSent returns the timestamp of the last notification attempt.
+}
+
+// Formatter optionally formats notifications before sending.
+type Formatter interface {
+	Format(data NotificationData) (NotificationData, error)
 }

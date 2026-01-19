@@ -61,6 +61,16 @@ A lightweight HTTP service for monitoring periodic "heartbeat" pings ("bumps") a
 | `/bump/{id}/fail` | `POST`, `GET` | Manually mark heartbeat as failed |
 | `/healthz`        | `GET`         | Liveness probe                    |
 | `/metrics`        | `GET`         | Prometheus metrics endpoint       |
+| `/-/reload`       | `POST`        | Reload configuration              |
+
+## 🔄 Reloading Configuration
+
+Heartbeats supports hot-reload of the YAML config without restarting the process:
+
+- **Signal:** send `SIGHUP` to the process
+- **HTTP:** `POST /-/reload`
+
+Reloading re-reads the config file, validates it, updates receiver configuration, and reconciles heartbeat actors.
 
 ## ⚙️ Configuration
 

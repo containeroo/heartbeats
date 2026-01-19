@@ -9,8 +9,11 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSendTestNotification(t *testing.T) {
@@ -29,7 +32,9 @@ func TestSendTestNotification(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+	metricsReg := metrics.New(hist)
+	recorder := servicehistory.NewRecorder(hist)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, metricsReg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
@@ -45,7 +50,7 @@ func TestSendTestNotification(t *testing.T) {
 		assert.Equal(t, "This is a test notification", data.Message)
 		assert.True(t, strings.HasPrefix(data.ID, "manual-test-"))
 	case <-time.After(2 * time.Second):
-		t.Fatal("timeout waiting for notification")
+		require.Fail(t, "timeout waiting for notification")
 	}
 }
 
@@ -55,7 +60,9 @@ func TestTriggerTestHeartbeat(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
 	store := notifier.NewReceiverStore()
-	disp := notifier.NewDispatcher(store, logger, hist, 1, 1, 10)
+	recorder := servicehistory.NewRecorder(hist)
+	metricsReg := metrics.New(hist)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, metricsReg)
 
 	cfg := heartbeat.HeartbeatConfigMap{
 		"hb1": {
@@ -66,7 +73,19 @@ func TestTriggerTestHeartbeat(t *testing.T) {
 			Receivers:   []string{"r1"},
 		},
 	}
-	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), cfg, disp.Mailbox(), hist, logger)
+	factory := heartbeat.DefaultActorFactory{
+		Logger:     logger,
+		History:    recorder,
+		Metrics:    metricsReg,
+		DispatchCh: disp.Mailbox(),
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
+		context.Background(),
+		cfg,
+		logger,
+		factory,
+	)
+	assert.NoError(t, err)
 
 	assert.NoError(t, TriggerTestHeartbeat(mgr, logger, "hb1"))
 	assert.EqualError(t, TriggerTestHeartbeat(mgr, logger, "missing"), "heartbeat ID \"missing\" not found")

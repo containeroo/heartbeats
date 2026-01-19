@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -10,9 +11,12 @@ import (
 	"testing/fstest"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/handler"
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
+	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -44,12 +48,41 @@ func TestNewRouter(t *testing.T) {
 	}
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
-	disp := notifier.NewDispatcher(store, logger, nil, 0, 0, 10)
 	hist := history.NewRingStore(10)
+	metricsReg := metrics.New(hist)
+	recorder := servicehistory.NewRecorder(hist)
+	disp := notifier.NewDispatcher(store, logger, recorder, 0, 0, 10, metricsReg)
 
-	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), hist, logger)
+	factory := heartbeat.DefaultActorFactory{
+		Logger:     logger,
+		History:    recorder,
+		Metrics:    metricsReg,
+		DispatchCh: disp.Mailbox(),
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
+		ctx,
+		cfg,
+		logger,
+		factory,
+	)
+	assert.NoError(t, err)
 
-	router := NewRouter(webFS, siteRoot, "", version, mgr, hist, disp, logger, true)
+	api := handler.NewAPI(
+		version,
+		"test",
+		webFS,
+		siteRoot,
+		"",
+		true,
+		logger,
+		mgr,
+		hist,
+		recorder,
+		disp,
+		metricsReg,
+		nil,
+	)
+	router := NewRouter(webFS, api, logger)
 
 	t.Run("GET /", func(t *testing.T) {
 		t.Parallel()
@@ -81,7 +114,11 @@ func TestNewRouter(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "ok", rec.Body.String())
+		var resp struct {
+			Status string `json:"status"`
+		}
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "ok", resp.Status)
 	})
 
 	t.Run("GET /bump/test", func(t *testing.T) {
@@ -92,6 +129,10 @@ func TestNewRouter(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		assert.Equal(t, "ok", rec.Body.String())
+		var resp struct {
+			Status string `json:"status"`
+		}
+		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+		assert.Equal(t, "ok", resp.Status)
 	})
 }

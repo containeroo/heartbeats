@@ -29,9 +29,10 @@ func TestNewEvent(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "HeartbeatReceived", ev.Type.String())
 		assert.Equal(t, "hb1", ev.HeartbeatID)
+		assert.Equal(t, 1, ev.Version)
 
 		var dp dummyPayload
-		assert.NoError(t, ev.DecodePayload(&dp))
+		assert.NoError(t, json.Unmarshal(ev.RawPayload, &dp))
 		assert.Equal(t, "ping", dp.Message)
 	})
 
@@ -39,6 +40,7 @@ func TestNewEvent(t *testing.T) {
 		ev, err := NewEvent(EventTypeNotificationSent, "hb2", nil)
 		assert.NoError(t, err)
 		assert.Nil(t, ev.RawPayload)
+		assert.Equal(t, 1, ev.Version)
 	})
 
 	t.Run("invalid payload", func(t *testing.T) {
@@ -71,33 +73,5 @@ func TestEvent_ToJSON(t *testing.T) {
 	t.Run("returns empty string for nil payload", func(t *testing.T) {
 		ev := Event{}
 		assert.Equal(t, "", ev.ToJSON())
-	})
-}
-
-func TestEvent_DecodePayload(t *testing.T) {
-	t.Parallel()
-
-	t.Run("decodes valid payload", func(t *testing.T) {
-		ev := MustNewEvent(EventTypeNotificationSent, "hbZ", dummyPayload{Message: "hello"})
-		var dp dummyPayload
-		err := ev.DecodePayload(&dp)
-		assert.NoError(t, err)
-		assert.Equal(t, "hello", dp.Message)
-	})
-
-	t.Run("errors on empty payload", func(t *testing.T) {
-		ev := Event{}
-		var dp dummyPayload
-		err := ev.DecodePayload(&dp)
-		assert.EqualError(t, err, "empty payload")
-	})
-
-	t.Run("errors on invalid JSON", func(t *testing.T) {
-		ev := Event{
-			RawPayload: json.RawMessage(`{invalid-json}`),
-		}
-		var dp dummyPayload
-		err := ev.DecodePayload(&dp)
-		assert.Error(t, err)
 	})
 }

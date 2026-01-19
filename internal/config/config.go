@@ -1,8 +1,11 @@
 package config
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"os"
+	"sync"
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/notifier"
@@ -81,4 +84,77 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("at least one heartbeat must be defined")
 	}
 	return nil
+}
+
+// Reload loads, validates, and applies the config to the dispatcher and manager.
+func Reload(
+	filePath string,
+	skipTLS bool,
+	version string,
+	logger *slog.Logger,
+	dispatcher *notifier.Dispatcher,
+	mgr *heartbeat.Manager,
+) (heartbeat.ReconcileResult, error) {
+	cfg, err := LoadConfig(filePath)
+	if err != nil {
+		return heartbeat.ReconcileResult{}, fmt.Errorf("failed to load config: %w", err)
+	}
+	if err := cfg.Validate(); err != nil {
+		return heartbeat.ReconcileResult{}, fmt.Errorf("invalid YAML config: %w", err)
+	}
+
+	newStore := notifier.InitializeStore(cfg.Receivers, skipTLS, version, logger)
+	dispatcher.UpdateStore(newStore)
+
+	res, err := mgr.Reconcile(cfg.Heartbeats)
+	if err != nil {
+		return res, err
+	}
+	return res, nil
+}
+
+// NewReloadFunc builds a reload function with logging and serialization.
+func NewReloadFunc(
+	filePath string,
+	skipTLS bool,
+	version string,
+	logger *slog.Logger,
+	dispatcher *notifier.Dispatcher,
+	mgr *heartbeat.Manager,
+) func() error {
+	var reloadMu sync.Mutex
+	return func() error {
+		reloadMu.Lock()
+		defer reloadMu.Unlock()
+
+		res, err := Reload(filePath, skipTLS, version, logger, dispatcher, mgr)
+		if err != nil {
+			return err
+		}
+		if res.Added+res.Updated+res.Removed > 0 {
+			logger.Info("heartbeats reloaded",
+				"added", res.Added,
+				"updated", res.Updated,
+				"removed", res.Removed,
+			)
+		}
+		return nil
+	}
+}
+
+// WatchReload listens for reload signals and invokes the reload function.
+func WatchReload(ctx context.Context, reloadCh <-chan os.Signal, logger *slog.Logger, reloadFn func() error) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-reloadCh:
+			logger.Info("reload requested")
+			if err := reloadFn(); err != nil {
+				logger.Error("reload failed", "err", err)
+			} else {
+				logger.Info("reload completed")
+			}
+		}
+	}
 }
