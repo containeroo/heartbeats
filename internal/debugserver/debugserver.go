@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/containeroo/heartbeats/internal/handlers"
+	"github.com/containeroo/heartbeats/internal/handler"
 )
 
 // Run starts the local-only debug server for manual testing.
-func Run(ctx context.Context, port int, api *handlers.API) {
+func Run(ctx context.Context, port int, api *handler.API) {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /internal/receiver/{id}", api.TestReceiverHandler())

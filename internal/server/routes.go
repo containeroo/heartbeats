@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/containeroo/heartbeats/internal/handlers"
+	"github.com/containeroo/heartbeats/internal/handler"
 	"github.com/containeroo/heartbeats/internal/middleware"
 	"github.com/containeroo/heartbeats/internal/service/health"
 )
@@ -13,7 +13,7 @@ import (
 // NewRouter creates a new HTTP router
 func NewRouter(
 	webFS fs.FS,
-	api *handlers.API,
+	api *handler.API,
 	logger *slog.Logger,
 ) http.Handler {
 	root := http.NewServeMux()

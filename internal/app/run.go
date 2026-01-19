@@ -12,7 +12,7 @@ import (
 	"github.com/containeroo/heartbeats/internal/config"
 	"github.com/containeroo/heartbeats/internal/debugserver"
 	"github.com/containeroo/heartbeats/internal/flag"
-	"github.com/containeroo/heartbeats/internal/handlers"
+	"github.com/containeroo/heartbeats/internal/handler"
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/logging"
@@ -98,7 +98,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	reloadConfig := config.NewReloadFunc(flags.ConfigPath, flags.SkipTLS, version, logger, dispatcher, mgr)
 	go config.WatchReload(ctx, reloadCh, logger, reloadConfig)
 
-	api := handlers.NewAPI(
+	api := handler.NewAPI(
 		version,
 		commit,
 		webFS,

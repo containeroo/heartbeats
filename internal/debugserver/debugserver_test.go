@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/handlers"
+	"github.com/containeroo/heartbeats/internal/handler"
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/metrics"
@@ -51,7 +51,7 @@ func TestDebugServer_Run(t *testing.T) {
 		factory,
 	)
 	require.NoError(t, err)
-	api := handlers.NewAPI(
+	api := handler.NewAPI(
 		"test",
 		"test",
 		nil,
