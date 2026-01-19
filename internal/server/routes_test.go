@@ -51,25 +51,38 @@ func TestNewRouter(t *testing.T) {
 	hist := history.NewRingStore(10)
 	metricsReg := metrics.New(hist)
 	recorder := servicehistory.NewRecorder(hist)
-	disp := notifier.NewDispatcher(store, logger, recorder, 0, 0, 10, nil)
+	disp := notifier.NewDispatcher(store, logger, recorder, 0, 0, 10, metricsReg)
 
 	factory := heartbeat.DefaultActorFactory{
-		Deps: heartbeat.ActorDeps{
-			Logger:     logger,
-			History:    recorder,
-			Metrics:    nil,
-			DispatchCh: disp.Mailbox(),
-		},
+		Logger:     logger,
+		History:    recorder,
+		Metrics:    metricsReg,
+		DispatchCh: disp.Mailbox(),
 	}
 	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
 		ctx,
 		cfg,
-		heartbeat.ManagerConfig{Logger: logger, Factory: factory},
+		logger,
+		factory,
 	)
 	assert.NoError(t, err)
 
-	api := handlers.NewAPI(version, "test", webFS, logger, mgr, hist, recorder, disp, metricsReg)
-	router := NewRouter(webFS, siteRoot, "", version, api, logger, true)
+	api := handlers.NewAPI(
+		version,
+		"test",
+		webFS,
+		siteRoot,
+		"",
+		true,
+		logger,
+		mgr,
+		hist,
+		recorder,
+		disp,
+		metricsReg,
+		nil,
+	)
+	router := NewRouter(webFS, api, logger)
 
 	t.Run("GET /", func(t *testing.T) {
 		t.Parallel()

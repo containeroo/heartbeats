@@ -3,7 +3,6 @@ package heartbeat
 import (
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/common"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 )
 
@@ -40,7 +39,7 @@ func (a *Actor) stopAllTimers() {
 }
 
 // recordStateChange logs and records a state change if it actually changed.
-func (a *Actor) recordStateChange(prev, next common.HeartbeatState) error {
+func (a *Actor) recordStateChange(prev, next HeartbeatState) error {
 	if prev == next {
 		// avoid noisy logs when state hasn’t changed (e.g. repeated heartbeats in active state)
 		return nil

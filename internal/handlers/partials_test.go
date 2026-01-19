@@ -13,6 +13,7 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
@@ -29,6 +30,7 @@ func TestPartialHandler(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
+	metricsReg := metrics.New(hist)
 	_ = hist.Append(context.Background(), history.MustNewEvent(
 		history.EventTypeHeartbeatReceived,
 		"hb1",
@@ -40,15 +42,13 @@ func TestPartialHandler(t *testing.T) {
 	))
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	recorder := servicehistory.NewRecorder(hist)
-	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, metricsReg)
 
 	factory := heartbeat.DefaultActorFactory{
-		Deps: heartbeat.ActorDeps{
-			Logger:     logger,
-			History:    recorder,
-			Metrics:    nil,
-			DispatchCh: disp.Mailbox(),
-		},
+		Logger:     logger,
+		History:    recorder,
+		Metrics:    metricsReg,
+		DispatchCh: disp.Mailbox(),
 	}
 	mgr, err := heartbeat.NewManagerFromHeartbeatMap(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"hb1": {
@@ -57,9 +57,26 @@ func TestPartialHandler(t *testing.T) {
 			Grace:       5 * time.Second,
 			Receivers:   []string{"r1"},
 		},
-	}, heartbeat.ManagerConfig{Logger: logger, Factory: factory})
+	},
+		logger,
+		factory,
+	)
 	assert.NoError(t, err)
-	api := NewAPI("test", "test", webFS, logger, mgr, hist, recorder, disp, nil)
+	api := NewAPI(
+		"test",
+		"test",
+		webFS,
+		"",
+		"",
+		true,
+		logger,
+		mgr,
+		hist,
+		recorder,
+		disp,
+		nil,
+		nil,
+	)
 
 	t.Run("not found", func(t *testing.T) {
 		t.Parallel()

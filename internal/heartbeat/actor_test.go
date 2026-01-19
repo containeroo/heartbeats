@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/common"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
@@ -69,7 +69,9 @@ func TestActor_Run_Smoke(t *testing.T) {
 			},
 		})
 
-		disp := notifier.NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1, 10, nil)
+		metricsReg := metrics.New(hist)
+
+		disp := notifier.NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1, 10, metricsReg)
 		go disp.Run(ctx)
 
 		actor := NewActorFromConfig(ActorConfig{
@@ -81,11 +83,12 @@ func TestActor_Run_Smoke(t *testing.T) {
 			Logger:      logger,
 			History:     servicehistory.NewRecorder(hist),
 			DispatchCh:  disp.Mailbox(),
+			Metrics:     metricsReg,
 		})
 		go actor.Run(ctx)
 
 		// First receive to transition out of idle
-		actor.Mailbox() <- common.EventReceive
+		actor.Mailbox() <- EventReceive
 
 		timeout := transitionDelay + 150*time.Millisecond
 
@@ -120,7 +123,8 @@ func TestActor_Run_Smoke(t *testing.T) {
 				return nil
 			},
 		})
-		disp := notifier.NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1, 10, nil)
+		metricsReg := metrics.New(hist)
+		disp := notifier.NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1, 10, metricsReg)
 		go disp.Run(ctx)
 
 		actor := NewActorFromConfig(ActorConfig{
@@ -132,10 +136,11 @@ func TestActor_Run_Smoke(t *testing.T) {
 			Logger:      logger,
 			History:     servicehistory.NewRecorder(hist),
 			DispatchCh:  disp.Mailbox(),
+			Metrics:     metricsReg,
 		})
 		go actor.Run(ctx)
 
-		actor.Mailbox() <- common.EventReceive
+		actor.Mailbox() <- EventReceive
 		timeout := transitionDelay + 200*time.Millisecond
 
 		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
@@ -147,7 +152,7 @@ func TestActor_Run_Smoke(t *testing.T) {
 		}, timeout), "expected Active → Grace")
 
 		timeout += 500 * time.Millisecond // allow time before recover
-		actor.Mailbox() <- common.EventReceive
+		actor.Mailbox() <- EventReceive
 
 		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
 			return p.From == "grace" && p.To == "active"
@@ -168,7 +173,7 @@ func TestActor_Run_Smoke(t *testing.T) {
 		}, timeout))
 
 		timeout += time.Second // final recover
-		actor.Mailbox() <- common.EventReceive
+		actor.Mailbox() <- EventReceive
 
 		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
 			return p.From == "missing" && p.To == "active"
@@ -186,6 +191,7 @@ func TestActor_OnReceive(t *testing.T) {
 		dispatchCh := make(chan notifier.NotificationData, 1)
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(10)
+		metricsReg := metrics.New(hist)
 
 		a := &Actor{
 			ctx:         ctx,
@@ -193,22 +199,23 @@ func TestActor_OnReceive(t *testing.T) {
 			Description: "Test Heartbeat",
 			Interval:    100 * time.Millisecond,
 			Grace:       50 * time.Millisecond,
+			metrics:     metricsReg,
 			Receivers:   []string{"r1"},
 			logger:      logger,
 			hist:        servicehistory.NewRecorder(hist),
 			dispatchCh:  dispatchCh,
-			State:       common.HeartbeatStateMissing,
+			State:       HeartbeatStateMissing,
 		}
 
 		a.onReceive()
 
-		assert.Equal(t, common.HeartbeatStateActive, a.State)
+		assert.Equal(t, HeartbeatStateActive, a.State)
 		assert.WithinDuration(t, time.Now(), a.LastBump, 50*time.Millisecond)
 
 		select {
 		case msg := <-dispatchCh:
 			assert.Equal(t, "hb1", msg.ID)
-			assert.Equal(t, common.HeartbeatStateRecovered.String(), msg.Status)
+			assert.Equal(t, HeartbeatStateRecovered.String(), msg.Status)
 		default:
 			t.Fatal("expected recovery notification to be sent")
 		}
@@ -225,23 +232,25 @@ func TestActor_OnReceive(t *testing.T) {
 		dispatchCh := make(chan notifier.NotificationData, 1)
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(10)
+		metricsReg := metrics.New(hist)
 
 		a := &Actor{
 			ctx:         ctx,
 			ID:          "hb2",
 			Description: "Test Heartbeat",
 			Interval:    100 * time.Millisecond,
+			metrics:     metricsReg,
 			Grace:       50 * time.Millisecond,
 			Receivers:   []string{"r2"},
 			logger:      logger,
 			hist:        servicehistory.NewRecorder(hist),
 			dispatchCh:  dispatchCh,
-			State:       common.HeartbeatStateIdle,
+			State:       HeartbeatStateIdle,
 		}
 
 		a.onReceive()
 
-		assert.Equal(t, common.HeartbeatStateActive, a.State)
+		assert.Equal(t, HeartbeatStateActive, a.State)
 		assert.WithinDuration(t, time.Now(), a.LastBump, 50*time.Millisecond)
 
 		select {
@@ -269,6 +278,7 @@ func TestActor_OnReceive(t *testing.T) {
 				return errors.New("fail!")
 			},
 		}
+		metricsReg := metrics.New(&mockHist)
 
 		a := &Actor{
 			ctx:         ctx,
@@ -276,16 +286,17 @@ func TestActor_OnReceive(t *testing.T) {
 			Description: "Test Heartbeat",
 			Interval:    100 * time.Millisecond,
 			Grace:       50 * time.Millisecond,
+			metrics:     metricsReg,
 			Receivers:   []string{"r2"},
 			logger:      logger,
 			hist:        servicehistory.NewRecorder(&mockHist),
 			dispatchCh:  dispatchCh,
-			State:       common.HeartbeatStateIdle,
+			State:       HeartbeatStateIdle,
 		}
 
 		a.onReceive()
 
-		assert.Equal(t, common.HeartbeatStateActive, a.State)
+		assert.Equal(t, HeartbeatStateActive, a.State)
 		assert.Contains(t, buf.String(), "level=ERROR msg=\"failed to record state change\" err=fail!\n")
 	})
 }
@@ -299,26 +310,28 @@ func TestActor_OnFail(t *testing.T) {
 		recv := make(chan notifier.NotificationData, 1)
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(10)
+		metricsReg := metrics.New(hist)
 
 		act := &Actor{
 			ID:          "x",
 			Description: "test",
 			Receivers:   []string{"r1"},
-			State:       common.HeartbeatStateActive,
+			State:       HeartbeatStateActive,
 			dispatchCh:  recv,
 			hist:        servicehistory.NewRecorder(hist),
+			metrics:     metricsReg,
 			logger:      logger,
 		}
 
 		act.onFail()
 
-		assert.Equal(t, common.HeartbeatStateFailed, act.State)
+		assert.Equal(t, HeartbeatStateFailed, act.State)
 
 		select {
 		case n := <-recv:
 			assert.Equal(t, "x", n.ID)
 			assert.Equal(t, "test", n.Description)
-			assert.Equal(t, common.HeartbeatStateFailed.String(), n.Status)
+			assert.Equal(t, HeartbeatStateFailed.String(), n.Status)
 			assert.Equal(t, []string{"r1"}, n.Receivers)
 			assert.WithinDuration(t, time.Now(), n.LastBump, time.Second)
 		case <-time.After(10 * time.Millisecond):
@@ -339,6 +352,7 @@ func TestActor_OnFail(t *testing.T) {
 				return errors.New("fail!")
 			},
 		}
+		metricsReg := metrics.New(&mockHist)
 
 		a := &Actor{
 			ctx:         ctx,
@@ -350,12 +364,13 @@ func TestActor_OnFail(t *testing.T) {
 			logger:      logger,
 			hist:        servicehistory.NewRecorder(&mockHist),
 			dispatchCh:  dispatchCh,
-			State:       common.HeartbeatStateActive,
+			State:       HeartbeatStateActive,
+			metrics:     metricsReg,
 		}
 
 		a.onFail()
 
-		assert.Equal(t, common.HeartbeatStateFailed, a.State)
+		assert.Equal(t, HeartbeatStateFailed, a.State)
 		assert.Contains(t, buf.String(), "level=ERROR msg=\"failed to record state change\" err=fail!\n")
 	})
 }
@@ -368,20 +383,22 @@ func TestActor_OnEnterGrace(t *testing.T) {
 
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(10)
+		metricsReg := metrics.New(hist)
 
 		act := &Actor{
 			ID:         "x",
-			State:      common.HeartbeatStateActive,
+			State:      HeartbeatStateActive,
 			Grace:      50 * time.Millisecond,
 			logger:     logger,
 			hist:       servicehistory.NewRecorder(hist),
-			mailbox:    make(chan common.EventType, 1),
+			mailbox:    make(chan EventType, 1),
 			dispatchCh: make(chan notifier.NotificationData, 1),
+			metrics:    metricsReg,
 		}
 
 		act.onEnterGrace()
 
-		assert.Equal(t, common.HeartbeatStateGrace, act.State)
+		assert.Equal(t, HeartbeatStateGrace, act.State)
 		assert.NotNil(t, act.graceTimer)
 	})
 
@@ -390,20 +407,22 @@ func TestActor_OnEnterGrace(t *testing.T) {
 
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(10)
+		metricsReg := metrics.New(hist)
 
 		act := &Actor{
 			ID:         "x",
-			State:      common.HeartbeatStateIdle,
+			State:      HeartbeatStateIdle,
 			Grace:      50 * time.Millisecond,
 			logger:     logger,
+			metrics:    metricsReg,
 			hist:       servicehistory.NewRecorder(hist),
-			mailbox:    make(chan common.EventType, 1),
+			mailbox:    make(chan EventType, 1),
 			dispatchCh: make(chan notifier.NotificationData, 1),
 		}
 
 		act.onEnterGrace()
 
-		assert.Equal(t, common.HeartbeatStateIdle, act.State)
+		assert.Equal(t, HeartbeatStateIdle, act.State)
 		assert.Nil(t, act.graceTimer)
 	})
 
@@ -418,20 +437,22 @@ func TestActor_OnEnterGrace(t *testing.T) {
 				return errors.New("fail!")
 			},
 		}
+		metricsReg := metrics.New(&mockHist)
 
 		act := &Actor{
 			ID:         "x",
-			State:      common.HeartbeatStateActive,
+			State:      HeartbeatStateActive,
 			Grace:      50 * time.Millisecond,
 			logger:     logger,
 			hist:       servicehistory.NewRecorder(&mockHist),
-			mailbox:    make(chan common.EventType, 1),
+			mailbox:    make(chan EventType, 1),
 			dispatchCh: make(chan notifier.NotificationData, 1),
+			metrics:    metricsReg,
 		}
 
 		act.onEnterGrace()
 
-		assert.Equal(t, common.HeartbeatStateGrace, act.State)
+		assert.Equal(t, HeartbeatStateGrace, act.State)
 		assert.Contains(t, buf.String(), "level=ERROR msg=\"failed to record state change\" err=fail!\n")
 	})
 }
@@ -445,30 +466,32 @@ func TestActor_OnEnterMissing(t *testing.T) {
 		recv := make(chan notifier.NotificationData, 1)
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(10)
+		metricsReg := metrics.New(hist)
 
 		now := time.Now()
 
 		act := &Actor{
 			ID:          "x",
 			Description: "test",
-			State:       common.HeartbeatStateGrace,
+			State:       HeartbeatStateGrace,
 			LastBump:    now,
 			Receivers:   []string{"r1"},
 			dispatchCh:  recv,
 			hist:        servicehistory.NewRecorder(hist),
 			logger:      logger,
+			metrics:     metricsReg,
 		}
 
 		act.onEnterMissing()
 
-		assert.Equal(t, common.HeartbeatStateMissing, act.State)
+		assert.Equal(t, HeartbeatStateMissing, act.State)
 
 		select {
 		case n := <-recv:
 			assert.Equal(t, "x", n.ID)
 			assert.Equal(t, "test", n.Description)
 			assert.Equal(t, now, n.LastBump)
-			assert.Equal(t, common.HeartbeatStateMissing.String(), n.Status)
+			assert.Equal(t, HeartbeatStateMissing.String(), n.Status)
 			assert.Equal(t, []string{"r1"}, n.Receivers)
 		case <-time.After(10 * time.Millisecond):
 			t.Fatal("expected notification not sent")
@@ -481,18 +504,20 @@ func TestActor_OnEnterMissing(t *testing.T) {
 		recv := make(chan notifier.NotificationData, 1)
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewRingStore(10)
+		metricsReg := metrics.New(hist)
 
 		act := &Actor{
 			ID:         "x",
-			State:      common.HeartbeatStateActive,
+			State:      HeartbeatStateActive,
 			dispatchCh: recv,
 			hist:       servicehistory.NewRecorder(hist),
 			logger:     logger,
+			metrics:    metricsReg,
 		}
 
 		act.onEnterMissing()
 
-		assert.Equal(t, common.HeartbeatStateActive, act.State)
+		assert.Equal(t, HeartbeatStateActive, act.State)
 
 		select {
 		case n := <-recv:
@@ -512,18 +537,20 @@ func TestActor_OnEnterMissing(t *testing.T) {
 				return errors.New("fail!")
 			},
 		}
+		metricsReg := metrics.New(&mockHist)
 
 		act := &Actor{
 			ID:         "x",
-			State:      common.HeartbeatStateGrace,
+			State:      HeartbeatStateGrace,
 			dispatchCh: make(chan notifier.NotificationData, 1),
 			hist:       servicehistory.NewRecorder(&mockHist),
 			logger:     logger,
+			metrics:    metricsReg,
 		}
 
 		act.onEnterMissing()
 
-		assert.Equal(t, common.HeartbeatStateMissing, act.State)
+		assert.Equal(t, HeartbeatStateMissing, act.State)
 		assert.Contains(t, buf.String(), "level=ERROR msg=\"failed to record state change\" err=fail!\n")
 	})
 }
@@ -540,7 +567,7 @@ func TestActor_OnTest(t *testing.T) {
 			ID:          "test-hb",
 			Description: "desc",
 			LastBump:    time.Now().Add(-5 * time.Minute),
-			State:       common.HeartbeatStateIdle,
+			State:       HeartbeatStateIdle,
 			Receivers:   []string{"r1", "r2"},
 			dispatchCh:  dispatchCh,
 		}
@@ -554,7 +581,7 @@ func TestActor_OnTest(t *testing.T) {
 			assert.Equal(t, a.LastBump, msg.LastBump)
 			assert.Equal(t, "idle", msg.Status)
 			assert.Equal(t, []string{"r1", "r2"}, msg.Receivers)
-			assert.Equal(t, common.HeartbeatStateIdle.String(), msg.Status)
+			assert.Equal(t, HeartbeatStateIdle.String(), msg.Status)
 		default:
 			t.Fatal("expected notification to be sent")
 		}

@@ -15,7 +15,21 @@ import (
 func TestHealthz(t *testing.T) {
 	t.Parallel()
 
-	api := NewAPI("test", "test", nil, slog.New(slog.NewTextHandler(&strings.Builder{}, nil)), nil, nil, nil, nil, nil)
+	api := NewAPI(
+		"test",
+		"test",
+		nil,
+		"",
+		"",
+		true,
+		slog.New(slog.NewTextHandler(&strings.Builder{}, nil)),
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+		nil,
+	)
 	handler := api.Healthz(health.NewService())
 
 	req := httptest.NewRequest("GET", "/healthz", nil)

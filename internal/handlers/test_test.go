@@ -13,6 +13,7 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
@@ -23,10 +24,25 @@ func TestTestReceiverHandler(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
+	metricsReg := metrics.New(hist)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	recorder := servicehistory.NewRecorder(hist)
-	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
-	api := NewAPI("test", "test", nil, logger, nil, hist, recorder, disp, nil)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, metricsReg)
+	api := NewAPI(
+		"test",
+		"test",
+		nil,
+		"",
+		"",
+		true,
+		logger,
+		nil,
+		hist,
+		recorder,
+		disp,
+		nil,
+		nil,
+	)
 
 	handler := api.TestReceiverHandler()
 
@@ -67,9 +83,10 @@ func TestTestHeartbeatHandler(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(10)
+	metricsReg := metrics.New(hist)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	recorder := servicehistory.NewRecorder(hist)
-	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, metricsReg)
 
 	hbName := "test-hb"
 	cfg := heartbeat.HeartbeatConfigMap{
@@ -82,20 +99,33 @@ func TestTestHeartbeatHandler(t *testing.T) {
 		},
 	}
 	factory := heartbeat.DefaultActorFactory{
-		Deps: heartbeat.ActorDeps{
-			Logger:     logger,
-			History:    recorder,
-			Metrics:    nil,
-			DispatchCh: disp.Mailbox(),
-		},
+		Logger:     logger,
+		History:    recorder,
+		Metrics:    metricsReg,
+		DispatchCh: disp.Mailbox(),
 	}
 	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
 		context.Background(),
 		cfg,
-		heartbeat.ManagerConfig{Logger: logger, Factory: factory},
+		logger,
+		factory,
 	)
 	assert.NoError(t, err)
-	api := NewAPI("test", "test", nil, logger, mgr, hist, recorder, disp, nil)
+	api := NewAPI(
+		"test",
+		"test",
+		nil,
+		"",
+		"",
+		true,
+		logger,
+		mgr,
+		hist,
+		recorder,
+		disp,
+		nil,
+		nil,
+	)
 	handler := api.TestHeartbeatHandler()
 
 	t.Run("missing id", func(t *testing.T) {

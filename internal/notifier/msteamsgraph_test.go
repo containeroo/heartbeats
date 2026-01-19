@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/common"
 	"github.com/containeroo/heartbeats/pkg/notify/msteamsgraph"
 	"github.com/stretchr/testify/assert"
 )
@@ -102,7 +101,7 @@ func TestMSTeamsGraphConfig_Notify(t *testing.T) {
 
 		err := cfg.Notify(context.Background(), NotificationData{
 			ID:          "check-1",
-			Status:      common.HeartbeatStateRecovered.String(),
+			Status:      "recovered",
 			Description: "OK now",
 			LastBump:    time.Now().Add(-2 * time.Minute),
 		})

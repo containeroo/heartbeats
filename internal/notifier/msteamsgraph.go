@@ -61,10 +61,14 @@ func (m *MSTeamsGraphConfig) Notify(ctx context.Context, data NotificationData) 
 	m.lastSent = time.Now()
 	m.lastErr = nil
 
-	formatted, err := m.Format(data)
-	if err != nil {
-		m.lastErr = err
-		return fmt.Errorf("format notification: %w", err)
+	formatted := data
+	if formatted.Title == "" || formatted.Message == "" {
+		var err error
+		formatted, err = m.Format(data)
+		if err != nil {
+			m.lastErr = err
+			return fmt.Errorf("format notification: %w", err)
+		}
 	}
 
 	body := msteamsgraph.ItemBody{

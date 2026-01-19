@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,9 +26,10 @@ func TestDispatcher_Dispatch(t *testing.T) {
 		store.Register("r1", n)
 		hist := history.NewRingStore(10)
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
+		metricsReg := metrics.New(hist)
 
 		// Buffer size = 1 for test
-		dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1*time.Millisecond, 1, nil)
+		dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1*time.Millisecond, 1, metricsReg)
 
 		// Start dispatcher loop
 		ctx := t.Context()
@@ -59,7 +61,9 @@ func TestDispatcher_Dispatch(t *testing.T) {
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		store := NewReceiverStore()
 		hist := history.NewRingStore(10)
-		dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1*time.Millisecond, 1, nil)
+		metricsReg := metrics.New(hist)
+
+		dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1*time.Millisecond, 1, metricsReg)
 
 		// Start dispatcher loop
 		ctx := t.Context()
@@ -92,8 +96,9 @@ func TestDispatcher_Dispatch(t *testing.T) {
 				return errors.New("fail!")
 			},
 		}
+		metricsReg := metrics.New(&mockHist)
 
-		dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(&mockHist), 1, 1*time.Millisecond, 1, nil)
+		dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(&mockHist), 1, 1*time.Millisecond, 1, metricsReg)
 
 		// Start dispatcher loop
 		ctx := t.Context()
@@ -128,9 +133,10 @@ func TestDispatcher_ListAndGet(t *testing.T) {
 	store.Register("b", n1)
 
 	hist := history.NewRingStore(10)
+	metricsReg := metrics.New(hist)
 
 	// Added buffer size (doesn't matter for this test since we don't use the mailbox)
-	dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1*time.Millisecond, 1, nil)
+	dispatcher := NewDispatcher(store, logger, servicehistory.NewRecorder(hist), 1, 1*time.Millisecond, 1, metricsReg)
 
 	t.Run("lists all receivers", func(t *testing.T) {
 		t.Parallel()
@@ -163,6 +169,7 @@ func TestDispatcher_LogsErrorFromNotifier(t *testing.T) {
 
 	var logBuf strings.Builder
 	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
+	metricsReg := metrics.New(&history.MockStore{})
 
 	dispatcher := NewDispatcher(
 		store,
@@ -171,7 +178,7 @@ func TestDispatcher_LogsErrorFromNotifier(t *testing.T) {
 		1,
 		1*time.Millisecond,
 		1, // buffer size
-		nil,
+		metricsReg,
 	)
 
 	// Start dispatcher loop

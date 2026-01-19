@@ -14,38 +14,50 @@ import (
 
 // API bundles shared handler dependencies and runtime configuration.
 type API struct {
-	Version string // Version is the build version string.
-	Commit  string // Commit is the build commit SHA.
-	webFS   fs.FS
-	Logger  *slog.Logger
-	mgr     *heartbeat.Manager
-	hist    history.Store
-	rec     *servicehistory.Recorder
-	disp    *notifier.Dispatcher
-	metrics *metrics.Registry
+	Version     string // Version is the build version string.
+	Commit      string // Commit is the build commit SHA.
+	webFS       fs.FS
+	SiteRoot    string
+	RoutePrefix string
+	Debug       bool
+	Logger      *slog.Logger
+	mgr         *heartbeat.Manager
+	hist        history.Store
+	rec         *servicehistory.Recorder
+	disp        *notifier.Dispatcher
+	metrics     *metrics.Registry
+	reload      func() error
 }
 
 // NewAPI builds a handler container with shared dependencies.
 func NewAPI(
 	version, commit string,
 	webFS fs.FS,
+	siteRoot string,
+	routePrefix string,
+	debug bool,
 	logger *slog.Logger,
 	mgr *heartbeat.Manager,
 	hist history.Store,
 	rec *servicehistory.Recorder,
 	disp *notifier.Dispatcher,
 	metricsReg *metrics.Registry,
+	configReloadFn func() error,
 ) *API {
 	return &API{
-		Version: version,
-		Commit:  commit,
-		webFS:   webFS,
-		Logger:  logger,
-		mgr:     mgr,
-		hist:    hist,
-		rec:     rec,
-		disp:    disp,
-		metrics: metricsReg,
+		Version:     version,
+		Commit:      commit,
+		webFS:       webFS,
+		SiteRoot:    siteRoot,
+		RoutePrefix: routePrefix,
+		Debug:       debug,
+		Logger:      logger,
+		mgr:         mgr,
+		hist:        hist,
+		rec:         rec,
+		disp:        disp,
+		metrics:     metricsReg,
+		reload:      configReloadFn,
 	}
 }
 

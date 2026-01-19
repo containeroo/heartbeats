@@ -13,12 +13,8 @@ import (
 // NewRouter creates a new HTTP router
 func NewRouter(
 	webFS fs.FS,
-	siteRoot string,
-	routePrefix string,
-	version string,
 	api *handlers.API,
 	logger *slog.Logger,
-	debug bool,
 ) http.Handler {
 	root := http.NewServeMux()
 
@@ -28,9 +24,10 @@ func NewRouter(
 	root.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
 	root.Handle("/", api.HomeHandler()) // no Method allowed, otherwise it crashes
-	root.Handle("GET /partials/", http.StripPrefix("/partials", api.PartialHandler(siteRoot)))
+	root.Handle("GET /partials/", http.StripPrefix("/partials", api.PartialHandler(api.SiteRoot)))
 	root.Handle("GET /healthz", api.Healthz(health.NewService()))
 	root.Handle("GET /metrics", api.Metrics())
+	root.Handle("POST /-/reload", api.ReloadHandler())
 
 	// define your API routes on a sub-mux
 	root.Handle("POST /bump/{id}", api.BumpHandler())
@@ -40,12 +37,12 @@ func NewRouter(
 
 	// Mount the whole app under the prefix if provided
 	var handler http.Handler = root
-	if routePrefix != "" {
-		handler = mountUnderPrefix(root, routePrefix)
+	if api.RoutePrefix != "" {
+		handler = mountUnderPrefix(root, api.RoutePrefix)
 	}
 
 	// wrap the whole mux in logging if debug
-	if debug {
+	if api.Debug {
 		return middleware.Chain(handler, middleware.LoggingMiddleware(logger))
 	}
 

@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/common"
 	"github.com/containeroo/heartbeats/internal/history"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
@@ -71,7 +70,7 @@ func TestRecordStateChange_ChangesState(t *testing.T) {
 			hist:   recorder,
 		}
 
-		a.recordStateChange(common.HeartbeatStateGrace, common.HeartbeatStateActive) // nolint:errcheck
+		a.recordStateChange(HeartbeatStateGrace, HeartbeatStateActive) // nolint:errcheck
 
 		assert.True(t, waitForPayloadEvent(t, hist, func(p history.StateChangePayload) bool {
 			return p.From == "grace" && p.To == "active"
@@ -93,7 +92,7 @@ func TestRecordStateChange_ChangesState(t *testing.T) {
 			hist:   recorder,
 		}
 
-		a.recordStateChange(common.HeartbeatStateActive, common.HeartbeatStateActive) // nolint:errcheck
+		a.recordStateChange(HeartbeatStateActive, HeartbeatStateActive) // nolint:errcheck
 
 		assert.Empty(t, logBuf.String())
 	})
@@ -117,7 +116,7 @@ func TestRecordStateChange_ChangesState(t *testing.T) {
 			hist:   recorder,
 		}
 
-		a.recordStateChange(common.HeartbeatStateActive, common.HeartbeatStateActive) // nolint:errcheck
+		a.recordStateChange(HeartbeatStateActive, HeartbeatStateActive) // nolint:errcheck
 
 		assert.Empty(t, logBuf.String())
 	})

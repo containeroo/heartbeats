@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/common"
 	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
@@ -22,7 +21,7 @@ type Actor struct {
 	Description string                           // human‐friendly description of this heartbeat
 	Grace       time.Duration                    // grace period before triggering an alert
 	Receivers   []string                         // list of receiver IDs to notify upon alerts
-	mailbox     chan common.EventType            // incoming event channel for this actor
+	mailbox     chan EventType                   // incoming event channel for this actor
 	logger      *slog.Logger                     // structured logger scoped to this actor
 	hist        *servicehistory.Recorder         // history store for recording events
 	dispatchCh  chan<- notifier.NotificationData // sends notifications to the dispatcher
@@ -32,7 +31,7 @@ type Actor struct {
 	graceTimer  *time.Timer                      // timer for the grace period countdown
 	delayTimer  *time.Timer                      // timer for deferring transitions (e.g. active → grace)
 	pending     func()                           // next transition to run after delay
-	State       common.HeartbeatState            // current state (idle, active, grace, missing, etc.)
+	State       HeartbeatState                   // current state (idle, active, grace, missing, etc.)
 }
 
 // ActorConfig holds all parameters required to construct a heartbeat Actor.
@@ -57,17 +56,17 @@ func NewActorFromConfig(cfg ActorConfig) *Actor {
 		Interval:    cfg.Interval,
 		Grace:       cfg.Grace,
 		Receivers:   cfg.Receivers,
-		mailbox:     make(chan common.EventType, 1),
+		mailbox:     make(chan EventType, 1),
 		logger:      cfg.Logger,
 		hist:        cfg.History,
 		dispatchCh:  cfg.DispatchCh,
 		metrics:     cfg.Metrics,
-		State:       common.HeartbeatStateIdle,
+		State:       HeartbeatStateIdle,
 	}
 }
 
 // Mailbox returns the actor's event channel.
-func (a *Actor) Mailbox() chan<- common.EventType { return a.mailbox }
+func (a *Actor) Mailbox() chan<- EventType { return a.mailbox }
 
 // Run starts the actor loop and handles incoming events and timers.
 func (a *Actor) Run(ctx context.Context) {
@@ -93,23 +92,23 @@ func (a *Actor) Run(ctx context.Context) {
 		case ev := <-a.mailbox:
 			// handle heartbeat, manual failure and test
 			switch ev {
-			case common.EventReceive:
+			case EventReceive:
 				a.onReceive()
-			case common.EventFail:
+			case EventFail:
 				a.onFail()
-			case common.EventTest:
+			case EventTest:
 				a.onTest()
 			}
 
 		case <-checkCh:
 			// missed expected ping → defer grace transition
-			if a.State == common.HeartbeatStateActive {
+			if a.State == HeartbeatStateActive {
 				a.setPending(a.onEnterGrace)
 			}
 
 		case <-graceCh:
 			// grace expired → defer missing transition
-			if a.State == common.HeartbeatStateGrace {
+			if a.State == HeartbeatStateGrace {
 				a.setPending(a.onEnterMissing)
 			}
 
@@ -130,18 +129,18 @@ func (a *Actor) onReceive() {
 	a.pending = nil // clear pending state change
 
 	// if recovering from missing, send recovery notice
-	if prev == common.HeartbeatStateMissing {
+	if prev == HeartbeatStateMissing {
 		// send notification
 		a.dispatchCh <- notifier.NotificationData{
 			ID:          a.ID,
 			Description: a.Description,
 			LastBump:    now,
-			Status:      common.HeartbeatStateRecovered.String(),
+			Status:      HeartbeatStateRecovered.String(),
 			Receivers:   a.Receivers,
 		}
 	}
 
-	a.State = common.HeartbeatStateActive
+	a.State = HeartbeatStateActive
 	if err := a.recordStateChange(prev, a.State); err != nil {
 		a.logger.Error("failed to record state change", "err", err)
 	}
@@ -166,11 +165,11 @@ func (a *Actor) onFail() {
 		ID:          a.ID,
 		Description: a.Description,
 		LastBump:    now,
-		Status:      common.HeartbeatStateFailed.String(),
+		Status:      HeartbeatStateFailed.String(),
 		Receivers:   a.Receivers,
 	}
 
-	a.State = common.HeartbeatStateFailed
+	a.State = HeartbeatStateFailed
 	if err := a.recordStateChange(prev, a.State); err != nil {
 		a.logger.Error("failed to record state change", "err", err)
 	}
@@ -180,12 +179,12 @@ func (a *Actor) onFail() {
 
 // onEnterGrace transitions to Grace state.
 func (a *Actor) onEnterGrace() {
-	if a.State != common.HeartbeatStateActive {
+	if a.State != HeartbeatStateActive {
 		return
 	}
 
 	prev := a.State
-	a.State = common.HeartbeatStateGrace
+	a.State = HeartbeatStateGrace
 	if err := a.recordStateChange(prev, a.State); err != nil {
 		a.logger.Error("failed to record state change", "err", err)
 	}
@@ -195,11 +194,11 @@ func (a *Actor) onEnterGrace() {
 
 // onEnterMissing transitions to Missing state and sends alert.
 func (a *Actor) onEnterMissing() {
-	if a.State != common.HeartbeatStateGrace {
+	if a.State != HeartbeatStateGrace {
 		return
 	}
 	prev := a.State
-	a.State = common.HeartbeatStateMissing
+	a.State = HeartbeatStateMissing
 	if err := a.recordStateChange(prev, a.State); err != nil {
 		a.logger.Error("failed to record state change", "err", err)
 	}
@@ -209,7 +208,7 @@ func (a *Actor) onEnterMissing() {
 		ID:          a.ID,
 		Description: a.Description,
 		LastBump:    a.LastBump,
-		Status:      common.HeartbeatStateMissing.String(),
+		Status:      HeartbeatStateMissing.String(),
 		Receivers:   a.Receivers,
 	}
 

@@ -25,7 +25,22 @@ func TestMetricsHandler(t *testing.T) {
 
 	// Create metrics handler with injected store
 	metricsReg := metrics.New(store)
-	api := NewAPI("test", "test", nil, slog.New(slog.NewTextHandler(&strings.Builder{}, nil)), nil, store, nil, nil, metricsReg)
+	api := NewAPI(
+		"test",
+		"test",
+		nil,
+		"",
+		"",
+		true,
+		slog.New(slog.NewTextHandler(&strings.Builder{}, nil)),
+		nil,
+		store,
+		nil,
+		nil,
+		metricsReg,
+		nil,
+	)
+
 	handler := api.Metrics()
 
 	req := httptest.NewRequest("GET", "/metrics", nil)

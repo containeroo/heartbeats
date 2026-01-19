@@ -66,10 +66,14 @@ func (e *EmailConfig) Notify(ctx context.Context, data NotificationData) error {
 	e.lastSent = time.Now()
 	e.lastErr = nil
 
-	formatted, err := e.Format(data)
-	if err != nil {
-		e.lastErr = err
-		return fmt.Errorf("failed to format notification: %w", err)
+	formatted := data
+	if formatted.Title == "" || formatted.Message == "" {
+		var err error
+		formatted, err = e.Format(data)
+		if err != nil {
+			e.lastErr = err
+			return fmt.Errorf("failed to format notification: %w", err)
+		}
 	}
 
 	msg := email.Message{

@@ -11,6 +11,7 @@ import (
 	"github.com/containeroo/heartbeats/internal/handlers"
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/require"
@@ -24,9 +25,10 @@ func TestDebugServer_Run(t *testing.T) {
 	// Setup basic in-memory state
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	hist := history.NewRingStore(5)
+	metricsReg := metrics.New(hist)
 	recorder := servicehistory.NewRecorder(hist)
 	store := notifier.NewReceiverStore()
-	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1*time.Millisecond, 10, nil)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1*time.Millisecond, 10, metricsReg)
 
 	hbCfg := map[string]heartbeat.HeartbeatConfig{
 		"test-hb": {
@@ -37,20 +39,33 @@ func TestDebugServer_Run(t *testing.T) {
 		},
 	}
 	factory := heartbeat.DefaultActorFactory{
-		Deps: heartbeat.ActorDeps{
-			Logger:     logger,
-			History:    recorder,
-			Metrics:    nil,
-			DispatchCh: disp.Mailbox(),
-		},
+		Logger:     logger,
+		History:    recorder,
+		Metrics:    metricsReg,
+		DispatchCh: disp.Mailbox(),
 	}
 	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
 		ctx,
 		hbCfg,
-		heartbeat.ManagerConfig{Logger: logger, Factory: factory},
+		logger,
+		factory,
 	)
 	require.NoError(t, err)
-	api := handlers.NewAPI("test", "test", nil, logger, mgr, hist, recorder, disp, nil)
+	api := handlers.NewAPI(
+		"test",
+		"test",
+		nil,
+		"",
+		"",
+		true,
+		logger,
+		mgr,
+		hist,
+		recorder,
+		disp,
+		nil,
+		nil,
+	)
 
 	// Pick a random free port
 	port := 8089

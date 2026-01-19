@@ -26,7 +26,21 @@ func TestHomeHandler(t *testing.T) {
 		}
 
 		version := "v1.2.3"
-		api := NewAPI(version, "test", webFS, slog.New(slog.NewTextHandler(&strings.Builder{}, nil)), nil, nil, nil, nil, nil)
+		api := NewAPI(
+			version,
+			"test",
+			webFS,
+			"",
+			"",
+			true,
+			slog.New(slog.NewTextHandler(&strings.Builder{}, nil)),
+			nil,
+			nil,
+			nil,
+			nil,
+			nil,
+			nil,
+		)
 		handler := api.HomeHandler()
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -56,7 +70,21 @@ func TestHomeHandler(t *testing.T) {
 		}
 
 		version := "v1.2.3"
-		api := NewAPI(version, "test", webFS, slog.New(slog.NewTextHandler(&strings.Builder{}, nil)), nil, nil, nil, nil, nil)
+		api := NewAPI(
+			version,
+			"test",
+			webFS,
+			"",
+			"",
+			true,
+			slog.New(slog.NewTextHandler(&strings.Builder{}, nil)),
+			nil,
+			nil,
+			nil,
+			nil,
+			nil,
+			nil,
+		)
 		handler := api.HomeHandler()
 
 		req := httptest.NewRequest(http.MethodGet, "/", nil)

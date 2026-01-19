@@ -14,6 +14,7 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 	"github.com/stretchr/testify/assert"
@@ -35,22 +36,36 @@ func setupRouter(t *testing.T, hbName string, hist history.Store) http.Handler {
 
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	recorder := servicehistory.NewRecorder(hist)
-	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
+	metricsReg := metrics.New(hist)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, metricsReg)
 	factory := heartbeat.DefaultActorFactory{
-		Deps: heartbeat.ActorDeps{
-			Logger:     logger,
-			History:    recorder,
-			Metrics:    nil,
-			DispatchCh: disp.Mailbox(),
-		},
+		Logger:     logger,
+		History:    recorder,
+		Metrics:    metricsReg,
+		DispatchCh: disp.Mailbox(),
 	}
 	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
 		context.Background(),
 		heartbeats,
-		heartbeat.ManagerConfig{Logger: logger, Factory: factory},
+		logger,
+		factory,
 	)
 	assert.NoError(t, err)
-	api := NewAPI("test", "test", nil, logger, mgr, hist, recorder, disp, nil)
+	api := NewAPI(
+		"test",
+		"test",
+		nil,
+		"",
+		"",
+		true,
+		logger,
+		mgr,
+		hist,
+		recorder,
+		disp,
+		nil,
+		nil,
+	)
 	router := http.NewServeMux()
 	router.Handle("GET /no-id/", api.BumpHandler())
 	router.Handle("GET /no-id/fail", api.FailHandler())
