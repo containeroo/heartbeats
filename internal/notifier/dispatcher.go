@@ -29,6 +29,7 @@ func NewDispatcher(
 	retries int,
 	delay time.Duration,
 	bufferSize int,
+	metricsReg *metrics.Registry,
 ) *Dispatcher {
 	return &Dispatcher{
 		store:   store,
@@ -37,6 +38,7 @@ func NewDispatcher(
 		retries: retries,
 		delay:   delay,
 		mailbox: make(chan NotificationData, bufferSize),
+		metrics: metricsReg,
 	}
 }
 

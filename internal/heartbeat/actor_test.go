@@ -73,7 +73,6 @@ func TestActor_Run_Smoke(t *testing.T) {
 		go disp.Run(ctx)
 
 		actor := NewActorFromConfig(ActorConfig{
-			Ctx:         ctx,
 			ID:          "heartbeat-1",
 			Description: "Test Actor",
 			Interval:    100 * time.Millisecond,
@@ -125,7 +124,6 @@ func TestActor_Run_Smoke(t *testing.T) {
 		go disp.Run(ctx)
 
 		actor := NewActorFromConfig(ActorConfig{
-			Ctx:         ctx,
 			ID:          "heartbeat-2",
 			Description: "Test Actor",
 			Interval:    100 * time.Millisecond,

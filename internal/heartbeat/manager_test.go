@@ -15,6 +15,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func newTestManager(
+	t *testing.T,
+	ctx context.Context,
+	cfg heartbeat.HeartbeatConfigMap,
+	disp *notifier.Dispatcher,
+	recorder *servicehistory.Recorder,
+	logger *slog.Logger,
+) *heartbeat.Manager {
+	t.Helper()
+
+	factory := heartbeat.DefaultActorFactory{
+		Deps: heartbeat.ActorDeps{
+			Logger:     logger,
+			History:    recorder,
+			Metrics:    nil,
+			DispatchCh: disp.Mailbox(),
+		},
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
+		ctx,
+		cfg,
+		heartbeat.ManagerConfig{Logger: logger, Factory: factory},
+	)
+	assert.NoError(t, err)
+	return mgr
+}
+
 func TestManager_HandleReceive(t *testing.T) {
 	t.Parallel()
 
@@ -37,7 +64,8 @@ func TestManager_HandleReceive(t *testing.T) {
 			},
 		}
 
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
+		mgr := newTestManager(t, ctx, cfg, disp, recorder, logger)
+		mgr.StartAll()
 		err := mgr.Receive("a1")
 		assert.NoError(t, err)
 
@@ -51,7 +79,7 @@ func TestManager_HandleReceive(t *testing.T) {
 
 		cfg := map[string]heartbeat.HeartbeatConfig{}
 
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
+		mgr := newTestManager(t, ctx, cfg, disp, recorder, logger)
 		err := mgr.Receive("a1")
 		assert.Error(t, err)
 		assert.EqualError(t, err, "heartbeat ID \"a1\" not found")
@@ -80,7 +108,8 @@ func TestManager_HandleFail(t *testing.T) {
 			},
 		}
 
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
+		mgr := newTestManager(t, ctx, cfg, disp, recorder, logger)
+		mgr.StartAll()
 		err := mgr.Fail("a1")
 		assert.NoError(t, err)
 
@@ -94,7 +123,7 @@ func TestManager_HandleFail(t *testing.T) {
 
 		cfg := map[string]heartbeat.HeartbeatConfig{}
 
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
+		mgr := newTestManager(t, ctx, cfg, disp, recorder, logger)
 		err := mgr.Fail("a1")
 		assert.Error(t, err)
 		assert.EqualError(t, err, "heartbeat ID \"a1\" not found")
@@ -123,7 +152,8 @@ func TestManager_HandleTest(t *testing.T) {
 			},
 		}
 
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
+		mgr := newTestManager(t, ctx, cfg, disp, recorder, logger)
+		mgr.StartAll()
 		err := mgr.Test("a1")
 		assert.NoError(t, err)
 
@@ -136,7 +166,7 @@ func TestManager_HandleTest(t *testing.T) {
 		t.Parallel()
 
 		cfg := map[string]heartbeat.HeartbeatConfig{}
-		mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
+		mgr := newTestManager(t, ctx, cfg, disp, recorder, logger)
 
 		err := mgr.Test("does-not-exist")
 		assert.Error(t, err)
@@ -169,7 +199,7 @@ func TestManager_Get(t *testing.T) {
 		},
 	}
 
-	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
+	mgr := newTestManager(t, ctx, cfg, disp, recorder, logger)
 
 	result := mgr.List()
 	assert.Len(t, result, 2)
@@ -200,7 +230,7 @@ func TestManager_List(t *testing.T) {
 		},
 	}
 
-	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
+	mgr := newTestManager(t, ctx, cfg, disp, recorder, logger)
 
 	t.Run("Get found", func(t *testing.T) {
 		t.Parallel()

@@ -36,7 +36,20 @@ func setupRouter(t *testing.T, hbName string, hist history.Store) http.Handler {
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	recorder := servicehistory.NewRecorder(hist)
 	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
-	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), heartbeats, disp.Mailbox(), recorder, logger, nil)
+	factory := heartbeat.DefaultActorFactory{
+		Deps: heartbeat.ActorDeps{
+			Logger:     logger,
+			History:    recorder,
+			Metrics:    nil,
+			DispatchCh: disp.Mailbox(),
+		},
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
+		context.Background(),
+		heartbeats,
+		heartbeat.ManagerConfig{Logger: logger, Factory: factory},
+	)
+	assert.NoError(t, err)
 	api := NewAPI("test", "test", nil, logger, mgr, hist, recorder, disp, nil)
 	router := http.NewServeMux()
 	router.Handle("GET /no-id/", api.BumpHandler())
@@ -63,7 +76,7 @@ func TestBumpHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		var resp domain.ErrorResponse
+		var resp errorResponse
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "missing id", resp.Error)
 	})
@@ -78,7 +91,7 @@ func TestBumpHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusNotFound, rec.Code)
-		var resp domain.ErrorResponse
+		var resp errorResponse
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "unknown heartbeat id \"not-found\"", resp.Error)
 	})
@@ -97,7 +110,7 @@ func TestBumpHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		var resp domain.StatusResponse
+		var resp statusResponse
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "ok", resp.Status)
 
@@ -127,7 +140,7 @@ func TestBumpHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		var resp domain.StatusResponse
+		var resp statusResponse
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "ok", resp.Status)
 
@@ -158,7 +171,7 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		var resp domain.ErrorResponse
+		var resp errorResponse
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "missing id", resp.Error)
 	})
@@ -173,7 +186,7 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusNotFound, rec.Code)
-		var resp domain.ErrorResponse
+		var resp errorResponse
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "unknown heartbeat id \"not-found\"", resp.Error)
 	})
@@ -192,7 +205,7 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		var resp domain.StatusResponse
+		var resp statusResponse
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "ok", resp.Status)
 
@@ -224,7 +237,7 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		var resp domain.StatusResponse
+		var resp statusResponse
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "ok", resp.Status)
 
@@ -258,7 +271,7 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		var resp domain.ErrorResponse
+		var resp errorResponse
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "fail!", resp.Error)
 	})
@@ -282,7 +295,7 @@ func TestFailHandler(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		var resp domain.ErrorResponse
+		var resp errorResponse
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "fail!", resp.Error)
 	})

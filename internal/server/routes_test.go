@@ -11,10 +11,10 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/domain"
 	"github.com/containeroo/heartbeats/internal/handlers"
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 
@@ -49,12 +49,26 @@ func TestNewRouter(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	hist := history.NewRingStore(10)
+	metricsReg := metrics.New(hist)
 	recorder := servicehistory.NewRecorder(hist)
 	disp := notifier.NewDispatcher(store, logger, recorder, 0, 0, 10, nil)
 
-	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, cfg, disp.Mailbox(), recorder, logger, nil)
+	factory := heartbeat.DefaultActorFactory{
+		Deps: heartbeat.ActorDeps{
+			Logger:     logger,
+			History:    recorder,
+			Metrics:    nil,
+			DispatchCh: disp.Mailbox(),
+		},
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
+		ctx,
+		cfg,
+		heartbeat.ManagerConfig{Logger: logger, Factory: factory},
+	)
+	assert.NoError(t, err)
 
-	api := handlers.NewAPI(version, "test", webFS, logger, mgr, hist, recorder, disp, nil)
+	api := handlers.NewAPI(version, "test", webFS, logger, mgr, hist, recorder, disp, metricsReg)
 	router := NewRouter(webFS, siteRoot, "", version, api, logger, true)
 
 	t.Run("GET /", func(t *testing.T) {
@@ -87,7 +101,9 @@ func TestNewRouter(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		var resp domain.StatusResponse
+		var resp struct {
+			Status string `json:"status"`
+		}
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "ok", resp.Status)
 	})
@@ -100,7 +116,9 @@ func TestNewRouter(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		var resp domain.StatusResponse
+		var resp struct {
+			Status string `json:"status"`
+		}
 		assert.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
 		assert.Equal(t, "ok", resp.Status)
 	})

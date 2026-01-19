@@ -33,7 +33,21 @@ func setupManager(t *testing.T, hist history.Store, hbName string) (*heartbeat.M
 			Receivers:   []string{"r1"},
 		},
 	}
-	return heartbeat.NewManagerFromHeartbeatMap(context.Background(), cfg, disp.Mailbox(), recorder, logger, nil), recorder
+	factory := heartbeat.DefaultActorFactory{
+		Deps: heartbeat.ActorDeps{
+			Logger:     logger,
+			History:    recorder,
+			Metrics:    nil,
+			DispatchCh: disp.Mailbox(),
+		},
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
+		context.Background(),
+		cfg,
+		heartbeat.ManagerConfig{Logger: logger, Factory: factory},
+	)
+	assert.NoError(t, err)
+	return mgr, recorder
 }
 
 func findEventByType(t *testing.T, events []history.Event, h history.EventType) *history.Event {

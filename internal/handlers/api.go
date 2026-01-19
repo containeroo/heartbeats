@@ -34,6 +34,7 @@ func NewAPI(
 	hist history.Store,
 	rec *servicehistory.Recorder,
 	disp *notifier.Dispatcher,
+	metricsReg *metrics.Registry,
 ) *API {
 	return &API{
 		Version: version,
@@ -44,7 +45,7 @@ func NewAPI(
 		hist:    hist,
 		rec:     rec,
 		disp:    disp,
-		metrics: metrics.New(hist),
+		metrics: metricsReg,
 	}
 }
 

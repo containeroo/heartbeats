@@ -36,7 +36,20 @@ func TestDebugServer_Run(t *testing.T) {
 			Receivers:   []string{"r1"},
 		},
 	}
-	mgr := heartbeat.NewManagerFromHeartbeatMap(ctx, hbCfg, disp.Mailbox(), recorder, logger, nil)
+	factory := heartbeat.DefaultActorFactory{
+		Deps: heartbeat.ActorDeps{
+			Logger:     logger,
+			History:    recorder,
+			Metrics:    nil,
+			DispatchCh: disp.Mailbox(),
+		},
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
+		ctx,
+		hbCfg,
+		heartbeat.ManagerConfig{Logger: logger, Factory: factory},
+	)
+	require.NoError(t, err)
 	api := handlers.NewAPI("test", "test", nil, logger, mgr, hist, recorder, disp, nil)
 
 	// Pick a random free port

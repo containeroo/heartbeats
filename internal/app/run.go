@@ -16,6 +16,7 @@ import (
 	"github.com/containeroo/heartbeats/internal/heartbeat"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/logging"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	"github.com/containeroo/heartbeats/internal/server"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
@@ -63,6 +64,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		return fmt.Errorf("failed to initialize history: %w", err)
 	}
 	histRecorder := servicehistory.NewRecorder(histStore)
+	metricsReg := metrics.New(histStore)
 
 	// Inizalize notification
 	store := notifier.InitializeStore(cfg.Receivers, flags.SkipTLS, version, logger)
@@ -74,17 +76,31 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		flags.RetryCount,
 		flags.RetryDelay,
 		bufferSize,
+		metricsReg,
 	)
 	go dispatcher.Run(ctx)
 
 	// Create Heartbeat Manager
-	mgr := heartbeat.NewManagerFromHeartbeatMap(
+	actorFactory := heartbeat.DefaultActorFactory{
+		Deps: heartbeat.ActorDeps{
+			Logger:     logger,
+			History:    histRecorder,
+			Metrics:    metricsReg,
+			DispatchCh: dispatcher.Mailbox(),
+		},
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
 		ctx,
 		cfg.Heartbeats,
-		dispatcher.Mailbox(),
-		histRecorder,
-		logger,
+		heartbeat.ManagerConfig{
+			Logger:  logger,
+			Factory: actorFactory,
+		},
 	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize heartbeats: %w", err)
+	}
+	mgr.StartAll()
 
 	api := handlers.NewAPI(
 		version,
@@ -95,6 +111,7 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 		histStore,
 		histRecorder,
 		dispatcher,
+		metricsReg,
 	)
 
 	// Run debug server if enabled

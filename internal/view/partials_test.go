@@ -52,7 +52,15 @@ func TestRenderHeartbeats(t *testing.T) {
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	recorder := servicehistory.NewRecorder(hist)
 	disp := notifier.NewDispatcher(store, nil, recorder, 1, 1, 10, nil)
-	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), map[string]heartbeat.HeartbeatConfig{
+	factory := heartbeat.DefaultActorFactory{
+		Deps: heartbeat.ActorDeps{
+			Logger:     nil,
+			History:    recorder,
+			Metrics:    nil,
+			DispatchCh: disp.Mailbox(),
+		},
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"b": {
 			Description: "b-desc",
 			Interval:    1 * time.Second,
@@ -65,13 +73,14 @@ func TestRenderHeartbeats(t *testing.T) {
 			Grace:       1 * time.Second,
 			Receivers:   []string{"r1"},
 		},
-	}, disp.Mailbox(), recorder, nil, nil)
+	}, heartbeat.ManagerConfig{Factory: factory})
+	assert.NoError(t, err)
 
 	var buf bytes.Buffer
 	a := mgr.Get("b")
 	a.LastBump = time.Now()
 
-	err := RenderHeartbeats(&buf, tmpl, "http://localhost", mgr, hist)
+	err = RenderHeartbeats(&buf, tmpl, "http://localhost", mgr, hist)
 	assert.NoError(t, err)
 	assert.Contains(t, buf.String(), "a:idle;b:idle")
 }

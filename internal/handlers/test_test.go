@@ -25,8 +25,8 @@ func TestTestReceiverHandler(t *testing.T) {
 	hist := history.NewRingStore(10)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	recorder := servicehistory.NewRecorder(hist)
-	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10)
-	api := NewAPI("test", "test", nil, logger, nil, hist, recorder, disp)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
+	api := NewAPI("test", "test", nil, logger, nil, hist, recorder, disp, nil)
 
 	handler := api.TestReceiverHandler()
 
@@ -69,7 +69,7 @@ func TestTestHeartbeatHandler(t *testing.T) {
 	hist := history.NewRingStore(10)
 	store := notifier.InitializeStore(nil, false, "0.0.0", logger)
 	recorder := servicehistory.NewRecorder(hist)
-	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10)
+	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
 
 	hbName := "test-hb"
 	cfg := heartbeat.HeartbeatConfigMap{
@@ -81,8 +81,21 @@ func TestTestHeartbeatHandler(t *testing.T) {
 			Receivers:   []string{"r1"},
 		},
 	}
-	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), cfg, disp.Mailbox(), recorder, logger)
-	api := NewAPI(logger, "test", "test", nil, mgr, hist, recorder, disp)
+	factory := heartbeat.DefaultActorFactory{
+		Deps: heartbeat.ActorDeps{
+			Logger:     logger,
+			History:    recorder,
+			Metrics:    nil,
+			DispatchCh: disp.Mailbox(),
+		},
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
+		context.Background(),
+		cfg,
+		heartbeat.ManagerConfig{Logger: logger, Factory: factory},
+	)
+	assert.NoError(t, err)
+	api := NewAPI("test", "test", nil, logger, mgr, hist, recorder, disp, nil)
 	handler := api.TestHeartbeatHandler()
 
 	t.Run("missing id", func(t *testing.T) {

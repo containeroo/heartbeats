@@ -69,7 +69,20 @@ func TestTriggerTestHeartbeat(t *testing.T) {
 			Receivers:   []string{"r1"},
 		},
 	}
-	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), cfg, disp.Mailbox(), recorder, logger, nil)
+	factory := heartbeat.DefaultActorFactory{
+		Deps: heartbeat.ActorDeps{
+			Logger:     logger,
+			History:    recorder,
+			Metrics:    nil,
+			DispatchCh: disp.Mailbox(),
+		},
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(
+		context.Background(),
+		cfg,
+		heartbeat.ManagerConfig{Logger: logger, Factory: factory},
+	)
+	assert.NoError(t, err)
 
 	assert.NoError(t, TriggerTestHeartbeat(mgr, logger, "hb1"))
 	assert.EqualError(t, TriggerTestHeartbeat(mgr, logger, "missing"), "heartbeat ID \"missing\" not found")

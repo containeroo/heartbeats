@@ -42,14 +42,23 @@ func TestPartialHandler(t *testing.T) {
 	recorder := servicehistory.NewRecorder(hist)
 	disp := notifier.NewDispatcher(store, logger, recorder, 1, 1, 10, nil)
 
-	mgr := heartbeat.NewManagerFromHeartbeatMap(context.Background(), map[string]heartbeat.HeartbeatConfig{
+	factory := heartbeat.DefaultActorFactory{
+		Deps: heartbeat.ActorDeps{
+			Logger:     logger,
+			History:    recorder,
+			Metrics:    nil,
+			DispatchCh: disp.Mailbox(),
+		},
+	}
+	mgr, err := heartbeat.NewManagerFromHeartbeatMap(context.Background(), map[string]heartbeat.HeartbeatConfig{
 		"hb1": {
 			Description: "desc",
 			Interval:    10 * time.Second,
 			Grace:       5 * time.Second,
 			Receivers:   []string{"r1"},
 		},
-	}, disp.Mailbox(), recorder, logger, nil)
+	}, heartbeat.ManagerConfig{Logger: logger, Factory: factory})
+	assert.NoError(t, err)
 	api := NewAPI("test", "test", webFS, logger, mgr, hist, recorder, disp, nil)
 
 	t.Run("not found", func(t *testing.T) {

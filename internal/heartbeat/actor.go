@@ -37,7 +37,6 @@ type Actor struct {
 
 // ActorConfig holds all parameters required to construct a heartbeat Actor.
 type ActorConfig struct {
-	Ctx         context.Context                  // context for cancellation and lifecycle control
 	ID          string                           // unique heartbeat identifier
 	Description string                           // human-readable description of the heartbeat
 	Interval    time.Duration                    // expected interval between heartbeat pings
@@ -52,7 +51,7 @@ type ActorConfig struct {
 // NewActorFromConfig creates a new heartbeat actor.
 func NewActorFromConfig(cfg ActorConfig) *Actor {
 	return &Actor{
-		ctx:         cfg.Ctx,
+		ctx:         context.Background(),
 		ID:          cfg.ID,
 		Description: cfg.Description,
 		Interval:    cfg.Interval,
@@ -72,6 +71,7 @@ func (a *Actor) Mailbox() chan<- common.EventType { return a.mailbox }
 
 // Run starts the actor loop and handles incoming events and timers.
 func (a *Actor) Run(ctx context.Context) {
+	a.ctx = ctx
 	for {
 		// prepare active channels
 		var checkCh, graceCh, delayCh <-chan time.Time
