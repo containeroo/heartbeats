@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/containeroo/heartbeats/internal/handler"
+	"github.com/containeroo/heartbeats/internal/logging"
 )
 
 // Run starts the local-only debug server for manual testing.
@@ -16,7 +17,7 @@ func Run(ctx context.Context, port int, api *handler.API) {
 	mux.Handle("GET /internal/heartbeat/{id}", api.TestHeartbeatHandler())
 
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
-	api.Logger.Info("starting debug server", "listenAddr", addr)
+	logging.SystemLogger(api.Logger, nil).Info("starting debug server", "listenAddr", addr)
 
 	server := &http.Server{
 		Addr:    addr,
@@ -32,7 +33,7 @@ func Run(ctx context.Context, port int, api *handler.API) {
 	// Serve requests on 127.0.0.1 until shutdown.
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			api.Logger.Error("debug server error", "error", err)
+			logging.SystemLogger(api.Logger, nil).Error("debug server error", "error", err)
 		}
 	}()
 }

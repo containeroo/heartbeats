@@ -26,6 +26,7 @@ func (a *API) HomeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// execute the "base" template
 		if err := tmpl.ExecuteTemplate(w, "base", data); err != nil {
+			a.logRequestError(r, "render_home_failed", "render home failed", err)
 			a.respondJSON(w, http.StatusInternalServerError, errorResponse{Error: err.Error()})
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/internal/metrics"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 )
@@ -123,7 +124,7 @@ func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Not
 		if err != nil {
 			payload.Error = err.Error()
 
-			d.logger.Error("notification format error",
+			logging.SystemLogger(d.logger, nil).Error("notification format error",
 				"receiver", receiverID,
 				"type", n.Type(),
 				"target", n.Target(),
@@ -134,7 +135,7 @@ func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Not
 
 			ev := factory.NotificationFailed(data.ID, payload.Receiver, payload.Type, payload.Target, payload.Error)
 			if err := d.history.Append(ctx, ev); err != nil {
-				d.logger.Error("failed to record state change", "err", err)
+				logging.SystemLogger(d.logger, nil).Error("failed to record state change", "err", err)
 			}
 			return
 		}
@@ -146,7 +147,7 @@ func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Not
 
 		receiverStatus = metrics.ERROR
 
-		d.logger.Error("notification error",
+		logging.SystemLogger(d.logger, nil).Error("notification error",
 			"receiver", receiverID,
 			"type", n.Type(),
 			"target", n.Target(),
@@ -163,7 +164,7 @@ func (d *Dispatcher) sendWithRetry(ctx context.Context, receiverID string, n Not
 		ev = factory.NotificationSent(data.ID, payload.Receiver, payload.Type, payload.Target)
 	}
 	if err := d.history.Append(ctx, ev); err != nil {
-		d.logger.Error("failed to record state change", "err", err)
+		logging.SystemLogger(d.logger, nil).Error("failed to record state change", "err", err)
 	}
 }
 
@@ -181,7 +182,7 @@ func (d *Dispatcher) retryNotify(
 			return nil // success
 		}
 
-		d.logger.Debug("retrying", "attempt", i+1, "receiver", receiverID)
+		logging.SystemLogger(d.logger, nil).Debug("retrying", "attempt", i+1, "receiver", receiverID)
 		// Wait unless it's the last attempt
 		if i < d.retries-1 {
 			select {

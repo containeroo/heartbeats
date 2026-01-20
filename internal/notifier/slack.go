@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/pkg/notify/slack"
 	"github.com/containeroo/resolver"
 )
@@ -90,7 +91,7 @@ func (s *SlackConfig) Notify(ctx context.Context, data NotificationData) error {
 		return fmt.Errorf("send Slack notification: %w", err)
 	}
 
-	s.logger.Info("Notification sent",
+	logging.BusinessLogger(s.logger, nil).Info("Notification sent",
 		"receiver", s.id,
 		"type", s.Type(),
 		"channel", s.Target(),

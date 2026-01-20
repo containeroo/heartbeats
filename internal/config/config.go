@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
+	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	"gopkg.in/yaml.v3"
 )
@@ -132,7 +133,7 @@ func NewReloadFunc(
 			return err
 		}
 		if res.Added+res.Updated+res.Removed > 0 {
-			logger.Info("heartbeats reloaded",
+			logging.SystemLogger(logger, nil).Info("heartbeats reloaded",
 				"added", res.Added,
 				"updated", res.Updated,
 				"removed", res.Removed,
@@ -149,11 +150,11 @@ func WatchReload(ctx context.Context, reloadCh <-chan os.Signal, logger *slog.Lo
 		case <-ctx.Done():
 			return
 		case <-reloadCh:
-			logger.Info("reload requested")
+			logging.SystemLogger(logger, nil).Info("reload requested")
 			if err := reloadFn(); err != nil {
-				logger.Error("reload failed", "err", err)
+				logging.SystemLogger(logger, nil).Error("reload failed", "err", err)
 			} else {
-				logger.Info("reload completed")
+				logging.SystemLogger(logger, nil).Info("reload completed")
 			}
 		}
 	}

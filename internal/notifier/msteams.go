@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/pkg/notify/msteams"
 
 	"github.com/containeroo/resolver"
@@ -76,7 +77,7 @@ func (m *MSTeamsConfig) Notify(ctx context.Context, data NotificationData) error
 		return fmt.Errorf("cannot send MSTeams notification. %w", err)
 	}
 
-	m.logger.Info("Notification sent",
+	logging.BusinessLogger(m.logger, nil).Info("Notification sent",
 		"receiver", m.id,
 		"type", m.Type(),
 		"webhook_url", m.Target(),

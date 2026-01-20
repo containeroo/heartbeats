@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/containeroo/heartbeats/internal/heartbeat"
+	"github.com/containeroo/heartbeats/internal/logging"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 )
 
@@ -29,13 +30,13 @@ func Receive(
 		return fmt.Errorf("%w: %s", ErrUnknownHeartbeat, id)
 	}
 
-	logger.Info("received bump", "id", id, "from", source)
+	logging.BusinessLogger(logger, ctx).Info("received bump", "id", id, "from", source)
 
 	factory := servicehistory.NewFactory()
 	ev := factory.HeartbeatReceived(id, source, method, userAgent)
 
 	if err := hist.Append(ctx, ev); err != nil {
-		logger.Error("failed to record state change", "err", err)
+		logging.BusinessLogger(logger, ctx).Error("failed to record state change", "err", err)
 		return err
 	}
 
@@ -61,13 +62,13 @@ func Fail(
 		return fmt.Errorf("%w: %s", ErrUnknownHeartbeat, id)
 	}
 
-	logger.Info("manual fail", "id", id, "from", source)
+	logging.BusinessLogger(logger, ctx).Info("manual fail", "id", id, "from", source)
 
 	factory := servicehistory.NewFactory()
 	ev := factory.HeartbeatFailed(id, source, method, userAgent)
 
 	if err := hist.Append(ctx, ev); err != nil {
-		logger.Error("failed to record state change", "err", err)
+		logging.BusinessLogger(logger, ctx).Error("failed to record state change", "err", err)
 		return err
 	}
 

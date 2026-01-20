@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/pkg/notify/msteamsgraph"
 	"github.com/containeroo/resolver"
 )
@@ -84,7 +85,7 @@ func (m *MSTeamsGraphConfig) Notify(ctx context.Context, data NotificationData) 
 		return fmt.Errorf("send MS Teams message: %w", err)
 	}
 
-	m.logger.Info("Notification sent",
+	logging.BusinessLogger(m.logger, nil).Info("Notification sent",
 		"receiver", m.id,
 		"type", m.Type(),
 		"team", MaskedTail(m.TeamID, 4),
