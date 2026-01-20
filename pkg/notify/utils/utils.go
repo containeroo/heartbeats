@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 // HTTPDoer defines the interface required to perform an HTTP request.
@@ -30,7 +31,11 @@ type HTTPDoer interface {
 type HttpClient struct {
 	Headers      map[string]string // Headers are added to each outbound HTTP request.
 	SkipInsecure bool              // SkipInsecure disables TLS certificate validation when true.
+	Timeout      time.Duration     // Timeout is the per-request timeout.
 }
+
+// DefaultTimeout is the default per-request timeout.
+const DefaultTimeout = 10 * time.Second
 
 // NewHttpClient creates a configured HTTP client for issuing requests.
 //
@@ -44,6 +49,7 @@ func NewHttpClient(headers map[string]string, skipInsecure bool) *HttpClient {
 	return &HttpClient{
 		Headers:      headers,
 		SkipInsecure: skipInsecure,
+		Timeout:      DefaultTimeout,
 	}
 }
 
@@ -60,6 +66,14 @@ func NewHttpClient(headers map[string]string, skipInsecure bool) *HttpClient {
 //   - error: An error if the request fails to be built or sent.
 func (hc *HttpClient) DoRequest(ctx context.Context, method, url string, body []byte) (*http.Response, error) {
 	client := hc.createHTTPClient()
+
+	if hc.Timeout > 0 {
+		if _, ok := ctx.Deadline(); !ok {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, hc.Timeout)
+			defer cancel()
+		}
+	}
 
 	// Build the HTTP request using the provided context.
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(body))
@@ -95,5 +109,6 @@ func (hc *HttpClient) createHTTPClient() *http.Client {
 
 	return &http.Client{
 		Transport: transport,
+		Timeout:   hc.Timeout,
 	}
 }

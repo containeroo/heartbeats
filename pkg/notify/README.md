@@ -10,6 +10,8 @@ The `notify` package provides pluggable implementations for sending notification
   - Incoming webhook
   - Graph API (channel messages)
 - Configurable headers, TLS settings, and authentication
+- Typed error semantics for transient vs permanent failures
+- Shared HTTP client defaults and per-request timeouts
 
 ## Package Overview
 
@@ -28,6 +30,24 @@ The `notify` package provides pluggable implementations for sending notification
 - [`msteams`](./msteams.go) – Sends cards via Microsoft Teams webhook
 - [`msteamsgraph`](./msteamspgrahapi.go) – Sends rich messages using Graph API
 - [`utils`](./utils.go) – Shared HTTP client abstraction
+- [`utils/errors.go`](./utils/errors.go) – Typed error helpers (`transient` vs `permanent`)
+
+## Error Semantics
+
+All HTTP-based notifiers return typed errors via `utils.Wrap`:
+
+- `transient`: safe to retry (timeouts, 5xx, 429, 408, network errors)
+- `permanent`: do not retry (4xx, invalid payloads, auth errors)
+
+Use `utils.IsTransient(err)` to decide whether to retry.
+
+## Defaults & Timeouts
+
+HTTP clients share a default per-request timeout of 10s. You can override it via:
+
+- `slack.WithTimeout(...)`
+- `msteams.WithTimeout(...)`
+- `msteamsgraph.WithTimeout(...)`
 
 ## Usage
 

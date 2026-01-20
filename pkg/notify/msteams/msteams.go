@@ -7,6 +7,7 @@ import (
 	"io"
 	"maps"
 	"net/http"
+	"time"
 
 	"github.com/containeroo/heartbeats/pkg/notify/utils"
 )
@@ -53,6 +54,15 @@ func WithInsecureTLS(skipInsecure bool) Option {
 	}
 }
 
+// WithTimeout sets the per-request timeout.
+func WithTimeout(timeout time.Duration) Option {
+	return func(c *Client) {
+		if hc, ok := c.HttpClient.(*utils.HttpClient); ok {
+			hc.Timeout = timeout
+		}
+	}
+}
+
 // New creates a new MS Teams client with functional options.
 //
 // Use options like WithHeaders or WithInsecureTLS to customize behavior.
@@ -80,13 +90,13 @@ func (c *Client) Send(ctx context.Context, message MSTeams, webhookURL string) (
 	// Serialize the message to JSON.
 	data, err := json.Marshal(message)
 	if err != nil {
-		return "", fmt.Errorf("error marshalling MS Teams message: %w", err)
+		return "", utils.Wrap(utils.ErrorPermanent, "msteams marshal", err)
 	}
 
 	// Execute the POST request using the configured HTTP client.
 	resp, err := c.HttpClient.DoRequest(ctx, "POST", webhookURL, data)
 	if err != nil {
-		return "", fmt.Errorf("error sending HTTP request: %w", err)
+		return "", utils.Wrap(utils.ErrorTransient, "msteams request", err)
 	}
 	defer resp.Body.Close() // nolint:errcheck
 
@@ -95,7 +105,7 @@ func (c *Client) Send(ctx context.Context, message MSTeams, webhookURL string) (
 
 	// Verify the HTTP status code is 200 OK.
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("received non-200 response: %d, body: %s", resp.StatusCode, string(body))
+		return "", utils.Wrap(utils.KindFromStatus(resp.StatusCode), "msteams http status", fmt.Errorf("%d: %s", resp.StatusCode, string(body)))
 	}
 
 	return "Message sent successfully", nil
