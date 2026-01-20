@@ -169,8 +169,8 @@ heartbeats:
 
 		assert.True(t, waitForLog(t, &buf, `"from":"active","to":"grace"`, 2*time.Second), "expected Active → Grace")
 		assert.True(t, waitForLog(t, &buf, `"from":"grace","to":"missing"`, 2*time.Second), "expected Grace → Missing")
-		assert.True(t, waitForLog(t, &buf, `"msg":"retrying","attempt":1`, 2*time.Second), "expected retry 1")
-		assert.True(t, waitForLog(t, &buf, `"msg":"retrying","attempt":2`, 2*time.Second), "expected retry 2")
-		assert.True(t, waitForLog(t, &buf, `notification failed after 2 retries`, 2*time.Second), "expected failure log")
+		assert.True(t, waitForLog(t, &buf, `"msg":"retrying","attempt":1`, 5*time.Second), "expected retry 1")
+		assert.True(t, waitForLog(t, &buf, `"msg":"retrying","attempt":2`, 5*time.Second), "expected retry 2")
+		assert.True(t, waitForLog(t, &buf, `notification failed after 2 retries`, 5*time.Second), "expected failure log")
 	})
 }

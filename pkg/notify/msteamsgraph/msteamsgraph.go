@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"time"
 
@@ -134,7 +135,7 @@ func (c *Client) send(ctx context.Context, url string, msg Message) (*Response, 
 	defer resp.Body.Close() // nolint:errcheck
 
 	var parsed Response
-	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, utils.MaxResponseBody)).Decode(&parsed); err != nil {
 		return nil, utils.Wrap(utils.ErrorPermanent, "msteamsgraph decode", err)
 	}
 

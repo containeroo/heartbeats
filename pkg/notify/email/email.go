@@ -5,8 +5,10 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/smtp"
 	"strings"
+	"time"
 
 	"github.com/containeroo/heartbeats/pkg/notify/utils"
 )
@@ -37,6 +39,11 @@ type Dialer interface {
 	Dial(addr string) (Client, error)
 }
 
+// ContextDialer establishes SMTP connections with a context.
+type ContextDialer interface {
+	DialContext(ctx context.Context, addr string) (Client, error)
+}
+
 // Client represents a low-level connection to an SMTP server.
 type Client interface {
 	Mail(from string) error
@@ -59,7 +66,19 @@ type DefaultDialer struct{}
 //   - Client: An active SMTP connection.
 //   - error: If the connection fails.
 func (DefaultDialer) Dial(addr string) (Client, error) {
-	return smtp.Dial(addr)
+	return dialSMTP(context.Background(), addr, utils.DefaultTimeout)
+}
+
+// DialContext connects to the SMTP server with a context.
+func (DefaultDialer) DialContext(ctx context.Context, addr string) (Client, error) {
+	timeout := utils.DefaultTimeout
+	if deadline, ok := ctx.Deadline(); ok {
+		timeout = time.Until(deadline)
+		if timeout <= 0 {
+			return nil, ctx.Err()
+		}
+	}
+	return dialSMTP(ctx, addr, timeout)
 }
 
 // MailClient sends email messages using SMTP.
@@ -94,7 +113,13 @@ func (c *MailClient) Send(ctx context.Context, msg Message) error {
 	raw := buildMIMEMessage(msg, c.SMTPConfig.From)
 	addr := fmt.Sprintf("%s:%d", c.SMTPConfig.Host, c.SMTPConfig.Port)
 
-	conn, err := c.Dialer.Dial(addr)
+	var conn Client
+	var err error
+	if d, ok := c.Dialer.(ContextDialer); ok {
+		conn, err = d.DialContext(ctx, addr)
+	} else {
+		conn, err = c.Dialer.Dial(addr)
+	}
 	if err != nil {
 		return utils.Wrap(utils.ErrorTransient, "smtp connect", err)
 	}
@@ -137,6 +162,19 @@ func (c *MailClient) Send(ctx context.Context, msg Message) error {
 	}
 
 	return nil
+}
+
+func dialSMTP(ctx context.Context, addr string, timeout time.Duration) (Client, error) {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+	d := net.Dialer{Timeout: timeout}
+	netConn, err := d.DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	return smtp.NewClient(netConn, host)
 }
 
 // SMTPConfig contains connection and authentication settings for an SMTP server.

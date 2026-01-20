@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"maps"
 	"net/http"
 	"time"
@@ -101,11 +100,12 @@ func (c *Client) Send(ctx context.Context, message MSTeams, webhookURL string) (
 	defer resp.Body.Close() // nolint:errcheck
 
 	// Read response body regardless of status
-	body, _ := io.ReadAll(resp.Body)
+	body, _ := utils.ReadBodyLimited(resp.Body)
+	bodyStr := utils.RedactSecrets(string(body))
 
 	// Verify the HTTP status code is 200 OK.
 	if resp.StatusCode != http.StatusOK {
-		return "", utils.Wrap(utils.KindFromStatus(resp.StatusCode), "msteams http status", fmt.Errorf("%d: %s", resp.StatusCode, string(body)))
+		return "", utils.Wrap(utils.KindFromStatus(resp.StatusCode), "msteams http status", fmt.Errorf("%d: %s", resp.StatusCode, bodyStr))
 	}
 
 	return "Message sent successfully", nil

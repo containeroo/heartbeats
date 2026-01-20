@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"net/http"
 	"time"
@@ -151,7 +152,7 @@ func (c *Client) Send(ctx context.Context, slackMessage Slack) (*Response, error
 	}
 
 	var parsed Response
-	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, utils.MaxResponseBody)).Decode(&parsed); err != nil {
 		return nil, utils.Wrap(utils.ErrorPermanent, "slack decode", err)
 	}
 
