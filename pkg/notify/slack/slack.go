@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"net/http"
+	"time"
 
 	"github.com/containeroo/heartbeats/pkg/notify/utils"
 )
@@ -48,6 +50,7 @@ type Sender interface {
 // Client sends Slack messages using the official chat.postMessage API.
 type Client struct {
 	HttpClient utils.HTTPDoer // HttpClient is used to send HTTP requests (mockable for testing).
+	Endpoint   string         // Endpoint is the Slack API endpoint to use.
 }
 
 // Option configures a Slack client.
@@ -71,6 +74,20 @@ func WithInsecureTLS(skipInsecure bool) Option {
 	}
 }
 
+// WithEndpoint overrides the Slack API endpoint.
+func WithEndpoint(endpoint string) Option {
+	return func(c *Client) {
+		c.Endpoint = endpoint
+	}
+}
+
+// WithTimeout sets the per-request timeout.
+func WithTimeout(timeout time.Duration) Option {
+	return func(c *Client) {
+		c.HttpClient.(*utils.HttpClient).Timeout = timeout
+	}
+}
+
 // New creates a Slack API client with optional configuration.
 //
 // Options can be used to set headers or disable TLS verification.
@@ -78,6 +95,7 @@ func New(opts ...Option) *Client {
 	// start with empty headers + default TLS settings
 	client := &Client{
 		HttpClient: utils.NewHttpClient(make(map[string]string), false),
+		Endpoint:   slackAPIEndpoint,
 	}
 
 	for _, opt := range opts {
@@ -114,28 +132,32 @@ func (c *Client) Send(ctx context.Context, slackMessage Slack) (*Response, error
 	// Encode the Slack message to JSON
 	data, err := json.Marshal(slackMessage)
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling Slack message: %w", err)
+		return nil, utils.Wrap(utils.ErrorPermanent, "slack marshal", err)
 	}
 
 	// Send the HTTP request using the injected HTTP client
-	resp, err := c.HttpClient.DoRequest(ctx, "POST", slackAPIEndpoint, data)
+	endpoint := c.Endpoint
+	if endpoint == "" {
+		endpoint = slackAPIEndpoint
+	}
+	resp, err := c.HttpClient.DoRequest(ctx, "POST", endpoint, data)
 	if err != nil {
-		return nil, fmt.Errorf("error sending HTTP request: %w", err)
+		return nil, utils.Wrap(utils.ErrorTransient, "slack request", err)
 	}
 	defer resp.Body.Close() // nolint:errcheck
 
 	// Slack returns 200 OK even for some failures—check explicitly
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("received non-200 response: %d", resp.StatusCode)
+		return nil, utils.Wrap(utils.KindFromStatus(resp.StatusCode), "slack http status", fmt.Errorf("%d", resp.StatusCode))
 	}
 
 	var parsed Response
-	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+	if err := json.NewDecoder(io.LimitReader(resp.Body, utils.MaxResponseBody)).Decode(&parsed); err != nil {
+		return nil, utils.Wrap(utils.ErrorPermanent, "slack decode", err)
 	}
 
 	if !parsed.Ok {
-		return &parsed, fmt.Errorf("Slack API error: %s", parsed.Error)
+		return &parsed, utils.Wrap(utils.ErrorPermanent, "slack api", fmt.Errorf("%s", parsed.Error))
 	}
 
 	return &parsed, nil

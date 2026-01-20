@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
+	"time"
 
 	"github.com/containeroo/heartbeats/pkg/notify/utils"
 )
 
-const channelEndpoint string = "https://graph.microsoft.com/v1.0/teams/%s/channels/%s/messages"
+const defaultEndpointBase string = "https://graph.microsoft.com/v1.0"
 
 // Message represents the payload structure for a Teams message.
 type Message struct {
@@ -45,6 +47,7 @@ type Sender interface {
 // Client posts messages using the Microsoft Graph API.
 type Client struct {
 	HttpClient utils.HTTPDoer // HTTP client for sending requests
+	Endpoint   string         // Endpoint base URL for the Graph API
 }
 
 // Option configures the Teams client.
@@ -69,10 +72,26 @@ func WithInsecureTLS(skipInsecure bool) Option {
 	}
 }
 
+// WithEndpointBase overrides the default Graph API base URL.
+func WithEndpointBase(endpoint string) Option {
+	return func(c *Client) {
+		c.Endpoint = endpoint
+	}
+}
+
+// WithTimeout sets the per-request timeout.
+func WithTimeout(timeout time.Duration) Option {
+	return func(c *Client) {
+		hc := c.HttpClient.(*utils.HttpClient)
+		hc.Timeout = timeout
+	}
+}
+
 // New returns a new Client with optional configuration.
 func New(opts ...Option) *Client {
 	c := &Client{
 		HttpClient: utils.NewHttpClient(make(map[string]string), false),
+		Endpoint:   defaultEndpointBase,
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -94,7 +113,11 @@ func NewWithToken(token string, opts ...Option) *Client {
 // teamID: ID of the team.
 // channelID: ID of the channel inside the team.
 func (c *Client) SendChannel(ctx context.Context, teamID, channelID string, msg Message) (*Response, error) {
-	endpoint := fmt.Sprintf(channelEndpoint, teamID, channelID)
+	base := c.Endpoint
+	if base == "" {
+		base = defaultEndpointBase
+	}
+	endpoint := fmt.Sprintf("%s/teams/%s/channels/%s/messages", base, teamID, channelID)
 	return c.send(ctx, endpoint, msg)
 }
 
@@ -102,22 +125,22 @@ func (c *Client) SendChannel(ctx context.Context, teamID, channelID string, msg 
 func (c *Client) send(ctx context.Context, url string, msg Message) (*Response, error) {
 	data, err := json.Marshal(msg)
 	if err != nil {
-		return nil, fmt.Errorf("marshal error: %w", err)
+		return nil, utils.Wrap(utils.ErrorPermanent, "msteamsgraph marshal", err)
 	}
 
 	resp, err := c.HttpClient.DoRequest(ctx, "POST", url, data)
 	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
+		return nil, utils.Wrap(utils.ErrorTransient, "msteamsgraph request", err)
 	}
 	defer resp.Body.Close() // nolint:errcheck
 
 	var parsed Response
-	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
-		return nil, fmt.Errorf("decode error: %w", err)
+	if err := json.NewDecoder(io.LimitReader(resp.Body, utils.MaxResponseBody)).Decode(&parsed); err != nil {
+		return nil, utils.Wrap(utils.ErrorPermanent, "msteamsgraph decode", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return &parsed, fmt.Errorf("teams graph error: %s", parsed.ErrorOrMessage())
+		return &parsed, utils.Wrap(utils.KindFromStatus(resp.StatusCode), "msteamsgraph http status", fmt.Errorf("%s", parsed.ErrorOrMessage()))
 	}
 
 	return &parsed, nil

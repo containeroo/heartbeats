@@ -55,7 +55,7 @@ func TestClient_Send_RequestFailure(t *testing.T) {
 	_, err := client.Send(context.Background(), MSTeams{}, "https://webhook")
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "error sending HTTP request: unexpected EOF")
+	assert.EqualError(t, err, "transient: msteams request: unexpected EOF")
 }
 
 func TestClient_Send_Non200Status(t *testing.T) {
@@ -72,5 +72,5 @@ func TestClient_Send_Non200Status(t *testing.T) {
 	_, err := client.Send(context.Background(), MSTeams{}, "https://webhook")
 
 	assert.Error(t, err)
-	assert.EqualError(t, err, "received non-200 response: 403, body: forbidden")
+	assert.EqualError(t, err, "permanent: msteams http status: 403: forbidden")
 }

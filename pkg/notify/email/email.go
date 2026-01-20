@@ -5,8 +5,12 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/smtp"
 	"strings"
+	"time"
+
+	"github.com/containeroo/heartbeats/pkg/notify/utils"
 )
 
 // Sender defines an interface for sending email messages.
@@ -35,6 +39,11 @@ type Dialer interface {
 	Dial(addr string) (Client, error)
 }
 
+// ContextDialer establishes SMTP connections with a context.
+type ContextDialer interface {
+	DialContext(ctx context.Context, addr string) (Client, error)
+}
+
 // Client represents a low-level connection to an SMTP server.
 type Client interface {
 	Mail(from string) error
@@ -57,7 +66,19 @@ type DefaultDialer struct{}
 //   - Client: An active SMTP connection.
 //   - error: If the connection fails.
 func (DefaultDialer) Dial(addr string) (Client, error) {
-	return smtp.Dial(addr)
+	return dialSMTP(context.Background(), addr, utils.DefaultTimeout)
+}
+
+// DialContext connects to the SMTP server with a context.
+func (DefaultDialer) DialContext(ctx context.Context, addr string) (Client, error) {
+	timeout := utils.DefaultTimeout
+	if deadline, ok := ctx.Deadline(); ok {
+		timeout = time.Until(deadline)
+		if timeout <= 0 {
+			return nil, ctx.Err()
+		}
+	}
+	return dialSMTP(ctx, addr, timeout)
 }
 
 // MailClient sends email messages using SMTP.
@@ -92,9 +113,15 @@ func (c *MailClient) Send(ctx context.Context, msg Message) error {
 	raw := buildMIMEMessage(msg, c.SMTPConfig.From)
 	addr := fmt.Sprintf("%s:%d", c.SMTPConfig.Host, c.SMTPConfig.Port)
 
-	conn, err := c.Dialer.Dial(addr)
+	var conn Client
+	var err error
+	if d, ok := c.Dialer.(ContextDialer); ok {
+		conn, err = d.DialContext(ctx, addr)
+	} else {
+		conn, err = c.Dialer.Dial(addr)
+	}
 	if err != nil {
-		return fmt.Errorf("connect SMTP: %w", err)
+		return utils.Wrap(utils.ErrorTransient, "smtp connect", err)
 	}
 	defer conn.Close() // nolint:errcheck
 
@@ -104,37 +131,50 @@ func (c *MailClient) Send(ctx context.Context, msg Message) error {
 			InsecureSkipVerify: c.SMTPConfig.SkipInsecureVerify != nil && *c.SMTPConfig.SkipInsecureVerify,
 		}
 		if err := conn.StartTLS(tlsConfig); err != nil {
-			return fmt.Errorf("start TLS: %w", err)
+			return utils.Wrap(utils.ErrorTransient, "smtp starttls", err)
 		}
 	}
 
 	if c.SMTPConfig.Username != "" {
 		auth := smtp.PlainAuth("", c.SMTPConfig.Username, c.SMTPConfig.Password, c.SMTPConfig.Host)
 		if err := conn.Auth(auth); err != nil {
-			return fmt.Errorf("SMTP auth: %w", err)
+			return utils.Wrap(utils.ErrorPermanent, "smtp auth", err)
 		}
 	}
 
 	if err := conn.Mail(c.SMTPConfig.From); err != nil {
-		return fmt.Errorf("MAIL FROM: %w", err)
+		return utils.Wrap(utils.ErrorPermanent, "smtp mail from", err)
 	}
 	for _, to := range msg.To {
 		if err := conn.Rcpt(to); err != nil {
-			return fmt.Errorf("RCPT TO (%s): %w", to, err)
+			return utils.Wrap(utils.ErrorPermanent, "smtp rcpt", fmt.Errorf("%s: %w", to, err))
 		}
 	}
 
 	wc, err := conn.Data()
 	if err != nil {
-		return fmt.Errorf("DATA open: %w", err)
+		return utils.Wrap(utils.ErrorTransient, "smtp data", err)
 	}
 	defer wc.Close() // nolint:errcheck
 
 	if _, err := wc.Write(raw); err != nil {
-		return fmt.Errorf("write body: %w", err)
+		return utils.Wrap(utils.ErrorTransient, "smtp write", err)
 	}
 
 	return nil
+}
+
+func dialSMTP(ctx context.Context, addr string, timeout time.Duration) (Client, error) {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+	d := net.Dialer{Timeout: timeout}
+	netConn, err := d.DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	return smtp.NewClient(netConn, host)
 }
 
 // SMTPConfig contains connection and authentication settings for an SMTP server.
@@ -187,24 +227,24 @@ func buildMIMEMessage(msg Message, from string) []byte {
 
 	var buf strings.Builder
 	for k, v := range headers {
-		buf.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
+		fmt.Fprintf(&buf, "%s: %s\r\n", k, v)
 	}
 
-	buf.WriteString(fmt.Sprintf("\r\n--%s\r\n", boundary))
+	fmt.Fprintf(&buf, "\r\n--%s\r\n", boundary)
 	if msg.IsHTML {
-		buf.WriteString("Content-Type: text/html; charset=\"UTF-8\"\r\n\r\n")
+		fmt.Fprintf(&buf, "Content-Type: text/html; charset=\"UTF-8\"\r\n\r\n")
 	} else {
-		buf.WriteString("Content-Type: text/plain; charset=\"UTF-8\"\r\n\r\n")
+		fmt.Fprintf(&buf, "Content-Type: text/plain; charset=\"UTF-8\"\r\n\r\n")
 	}
 	buf.WriteString(msg.Body + "\r\n")
 
 	for _, att := range msg.Attachments {
-		buf.WriteString(fmt.Sprintf("\r\n--%s\r\n", boundary))
-		buf.WriteString(fmt.Sprintf("Content-Type: application/octet-stream; name=\"%s\"\r\n", att.Filename))
-		buf.WriteString("Content-Transfer-Encoding: base64\r\n\r\n")
-		buf.WriteString(string(att.Data) + "\r\n")
+		fmt.Fprintf(&buf, "\r\n--%s\r\n", boundary)
+		fmt.Fprintf(&buf, "Content-Type: application/octet-stream; name=\"%s\"\r\n", att.Filename)
+		fmt.Fprintf(&buf, "Content-Transfer-Encoding: base64\r\n\r\n")
+		fmt.Fprintf(&buf, "%s\r\n", string(att.Data))
 	}
 
-	buf.WriteString(fmt.Sprintf("\r\n--%s--\r\n", boundary))
+	fmt.Fprintf(&buf, "\r\n--%s--\r\n", boundary)
 	return []byte(buf.String())
 }

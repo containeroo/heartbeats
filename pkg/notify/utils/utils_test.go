@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -53,5 +54,21 @@ func TestDoRequest(t *testing.T) {
 		assert.Nil(t, resp)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "error creating INVALID METHOD request: net/http: invalid method \"INVALID METHOD\"")
+	})
+
+	t.Run("Timeout", func(t *testing.T) {
+		t.Parallel()
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(200 * time.Millisecond)
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		client := NewHttpClient(nil, false)
+		client.Timeout = 50 * time.Millisecond
+
+		_, err := client.DoRequest(context.Background(), "GET", server.URL, nil)
+		assert.Error(t, err)
 	})
 }
