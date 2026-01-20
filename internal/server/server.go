@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/containeroo/heartbeats/internal/logging"
 )
 
 // Run sets up and manages the reverse proxy HTTP server.
@@ -21,9 +23,9 @@ func Run(ctx context.Context, listenAddr string, router http.Handler, logger *sl
 
 	// Start the server in the background.
 	go func() {
-		logger.Info("starting server", "listenAddr", server.Addr)
+		logging.SystemLogger(logger, nil).Info("starting server", "listenAddr", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("server error", "err", err)
+			logging.SystemLogger(logger, nil).Error("server error", "err", err)
 		}
 	}()
 
@@ -32,14 +34,14 @@ func Run(ctx context.Context, listenAddr string, router http.Handler, logger *sl
 	wg.Go(func() {
 		<-ctx.Done() // wait for cancel/timeout
 
-		logger.Info("shutting down server")
+		logging.SystemLogger(logger, nil).Info("shutting down server")
 
 		// Use a bounded timeout to finish in-flight requests.
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		if err := server.Shutdown(shutdownCtx); err != nil {
-			logger.Error("shutdown error", "err", err)
+			logging.SystemLogger(logger, nil).Error("shutdown error", "err", err)
 		}
 	})
 

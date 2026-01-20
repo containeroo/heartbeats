@@ -51,10 +51,10 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	}
 
 	logger := logging.SetupLogger(flags.LogFormat, flags.Debug, w)
-	logger.Info("Starting Heartbeats", "version", version, "commit", commit)
+	logging.SystemLogger(logger, nil).Info("Starting Heartbeats", "version", version, "commit", commit)
 
 	if len(flags.OverriddenValues) > 0 {
-		logger.Info("CLI Overrides", "overrides", flags.OverriddenValues)
+		logging.SystemLogger(logger, nil).Info("CLI Overrides", "overrides", flags.OverriddenValues)
 	}
 
 	histStore, err := history.InitializeHistory(flags.HistorySize)
@@ -120,11 +120,10 @@ func Run(ctx context.Context, webFS fs.FS, version, commit string, args []string
 	}
 
 	// Create server and run forever
-	router := server.NewRouter(
-		webFS,
-		api,
-		logger,
-	)
+	router, err := server.NewRouter(webFS, flags.RoutePrefix, api, flags.Debug)
+	if err != nil {
+		return fmt.Errorf("configure router: %w", err)
+	}
 	if err := server.Run(ctx, flags.ListenAddr, router, logger); err != nil {
 		return fmt.Errorf("failed to run Heartbeats: %w", err)
 	}

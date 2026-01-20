@@ -3,6 +3,7 @@ package heartbeat
 import (
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/logging"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
 )
 
@@ -48,7 +49,7 @@ func (a *Actor) recordStateChange(prev, next HeartbeatState) error {
 	from := prev.String()
 	to := next.String()
 
-	a.logger.Info("state change",
+	logging.BusinessLogger(a.logger, a.ctx).Info("state change",
 		"heartbeat", a.ID,
 		"from", from,
 		"to", to,

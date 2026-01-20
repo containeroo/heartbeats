@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestSetupLogger validates logger output formats and log levels.
 func TestSetupLogger(t *testing.T) {
 	t.Parallel()
 

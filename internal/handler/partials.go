@@ -44,7 +44,7 @@ func (a *API) PartialHandler(
 		}
 
 		if err != nil {
-			a.Logger.Error("render "+section+" partial", "error", err)
+			a.logRequestError(r, "render_partial_failed", "render "+section+" partial", err)
 			a.respondJSON(w, http.StatusInternalServerError, errorResponse{Error: "internal error"})
 		}
 	}

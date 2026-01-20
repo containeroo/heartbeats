@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sync"
 
+	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/internal/utils"
 )
 
@@ -71,7 +72,7 @@ func (m *Manager) StartAll() int {
 		ma.started = true
 		go ma.actor.Run(ctx)
 		started++
-		m.logger.Debug("started heartbeat", "id", ma.actor.ID)
+		logging.SystemLogger(m.logger, nil).Debug("started heartbeat", "id", ma.actor.ID)
 	}
 	if started > 0 {
 		m.started = true

@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/containeroo/heartbeats/internal/logging"
 )
 
 // LoggingMiddleware wraps the handler, logs the request and response, and writes the response to the client.
@@ -19,7 +21,7 @@ func LoggingMiddleware(logger *slog.Logger) Middleware {
 			duration := time.Since(startTime) // Measure total execution time
 
 			// Log request details
-			logger.Debug("HTTP request",
+			logging.AccessLogger(logger, r.Context()).Debug("HTTP request",
 				"method", r.Method,
 				"url_path", r.URL.Path,
 				"status_code", rec.statusCode,

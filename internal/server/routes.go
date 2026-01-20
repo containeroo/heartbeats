@@ -1,11 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"io/fs"
-	"log/slog"
 	"net/http"
 
 	"github.com/containeroo/heartbeats/internal/handler"
+	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/internal/middleware"
 	"github.com/containeroo/heartbeats/internal/service/health"
 )
@@ -13,13 +14,18 @@ import (
 // NewRouter creates a new HTTP router
 func NewRouter(
 	webFS fs.FS,
+	routePrefix string,
 	api *handler.API,
-	logger *slog.Logger,
-) http.Handler {
+	debug bool,
+) (http.Handler, error) {
 	root := http.NewServeMux()
 
 	// Handler for embedded static files
-	staticContent, _ := fs.Sub(webFS, "web/static")
+	staticContent, err := fs.Sub(webFS, "web/static")
+	if err != nil {
+		return nil, fmt.Errorf("web filesystem: %w", err)
+	}
+
 	fileServer := http.FileServer(http.FS(staticContent))
 	root.Handle("GET /static/", http.StripPrefix("/static/", fileServer))
 
@@ -35,16 +41,20 @@ func NewRouter(
 	root.Handle("POST /bump/{id}/fail", api.FailHandler())
 	root.Handle("GET  /bump/{id}/fail", api.FailHandler())
 
-	// Mount the whole app under the prefix if provided
-	var handler http.Handler = root
-	if api.RoutePrefix != "" {
-		handler = mountUnderPrefix(root, api.RoutePrefix)
+	var h http.Handler = root
+	if routePrefix != "" {
+		logging.SystemLogger(api.Logger, nil).Info(
+			"mounted under prefix",
+			"event", "routes_mounted",
+			"prefix", routePrefix,
+		)
+		h = mountUnderPrefix(h, routePrefix)
 	}
 
-	// wrap the whole mux in logging if debug
-	if api.Debug {
-		return middleware.Chain(handler, middleware.LoggingMiddleware(logger))
+	// Optional debug logging middleware.
+	if debug {
+		return middleware.Chain(h, middleware.LoggingMiddleware(api.Logger), middleware.RequestIDMiddleware()), nil
 	}
 
-	return handler
+	return middleware.Chain(h, middleware.RequestIDMiddleware()), nil
 }

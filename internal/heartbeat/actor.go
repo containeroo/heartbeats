@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/notifier"
 	servicehistory "github.com/containeroo/heartbeats/internal/service/history"
@@ -142,7 +143,7 @@ func (a *Actor) onReceive() {
 
 	a.State = HeartbeatStateActive
 	if err := a.recordStateChange(prev, a.State); err != nil {
-		a.logger.Error("failed to record state change", "err", err)
+		logging.BusinessLogger(a.logger, a.ctx).Error("failed to record state change", "err", err)
 	}
 	a.LastBump = now
 	a.checkTimer = time.NewTimer(a.Interval)
@@ -171,7 +172,7 @@ func (a *Actor) onFail() {
 
 	a.State = HeartbeatStateFailed
 	if err := a.recordStateChange(prev, a.State); err != nil {
-		a.logger.Error("failed to record state change", "err", err)
+		logging.BusinessLogger(a.logger, a.ctx).Error("failed to record state change", "err", err)
 	}
 
 	a.metrics.SetHeartbeatStatus(a.ID, metrics.DOWN)
@@ -186,7 +187,7 @@ func (a *Actor) onEnterGrace() {
 	prev := a.State
 	a.State = HeartbeatStateGrace
 	if err := a.recordStateChange(prev, a.State); err != nil {
-		a.logger.Error("failed to record state change", "err", err)
+		logging.BusinessLogger(a.logger, a.ctx).Error("failed to record state change", "err", err)
 	}
 
 	a.graceTimer = time.NewTimer(a.Grace)
@@ -200,7 +201,7 @@ func (a *Actor) onEnterMissing() {
 	prev := a.State
 	a.State = HeartbeatStateMissing
 	if err := a.recordStateChange(prev, a.State); err != nil {
-		a.logger.Error("failed to record state change", "err", err)
+		logging.BusinessLogger(a.logger, a.ctx).Error("failed to record state change", "err", err)
 	}
 
 	// send notification

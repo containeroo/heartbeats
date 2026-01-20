@@ -115,7 +115,7 @@ func TestDispatcher_Dispatch(t *testing.T) {
 		// Let it settle
 		time.Sleep(10 * time.Millisecond)
 
-		assert.Contains(t, buf.String(), "level=ERROR msg=\"failed to record state change\" err=fail!\n")
+		assert.Contains(t, buf.String(), "level=ERROR msg=\"failed to record state change\" category=system err=fail!\n")
 	})
 }
 

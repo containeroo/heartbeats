@@ -82,7 +82,8 @@ func TestNewRouter(t *testing.T) {
 		metricsReg,
 		nil,
 	)
-	router := NewRouter(webFS, api, logger)
+	router, err := NewRouter(webFS, "", api, true)
+	assert.NoError(t, err)
 
 	t.Run("GET /", func(t *testing.T) {
 		t.Parallel()
