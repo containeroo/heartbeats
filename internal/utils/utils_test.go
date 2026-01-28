@@ -47,3 +47,28 @@ func TestDefaultIfZero(t *testing.T) {
 		assert.Equal(t, now, result)
 	})
 }
+
+func TestToPtr(t *testing.T) {
+	t.Parallel()
+
+	t.Run("String returns pointer", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, "value", *ToPtr("value"))
+	})
+
+	t.Run("Int returns pointer", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, 7, *ToPtr(7))
+	})
+
+	t.Run("Time returns pointer", func(t *testing.T) {
+		t.Parallel()
+		now := time.Now()
+		assert.Equal(t, now, *ToPtr(now))
+	})
+
+	t.Run("Bool returns pointer", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, true, *ToPtr(true))
+	})
+}

@@ -9,7 +9,9 @@ import (
 type LogFormat string
 
 const (
+	// LogFormatText logs in a human-readable format.
 	LogFormatText LogFormat = "text"
+	// LogFormatJSON logs in a JSON format.
 	LogFormatJSON LogFormat = "json"
 )
 

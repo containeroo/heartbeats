@@ -5,15 +5,13 @@ services:
     image: ghcr.io/containeroo/heartbeats:latest
     hostname: heartbeats
     environment:
-      - SLACK_PLATFORM_TOKEN=slack-platform-token-placeholder
-      - SENDGRID_USERNAME=your-sendgrid-username
-      - SENDGRID_PASSWORD=your-sendgrid-password
-      - EMAIL_FROM=alerts@platform.example.com
-      - ALERT_FALLBACK_EMAIL=fallback@example.com
+      - HEARTBEATS__GMAIL_USER=your-gmail-username
+      - HEARTBEATS__GMAIL_PASS=your-gmail-password
+      - HEARTBEATS__GMAIL_TOS=your-gmail-to-address,another-email-address
+      - HEARTBEATS__SLACK_TOKEN=your-slack-token
     ports:
       - "8080:8080"
     volumes:
       - ./config.yaml:/config.yaml:ro
-      - ./webhooks.txt:/secrets/teams/webhooks.txt:ro
     networks:
       - default

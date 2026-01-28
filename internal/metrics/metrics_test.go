@@ -1,140 +1,65 @@
 package metrics
 
 import (
-	"fmt"
-	"strings"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/containeroo/heartbeats/internal/history"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestNewMetrics(t *testing.T) {
-	t.Parallel()
-
-	hist := history.NewRingStore(10)
-	promMetrics := New(hist)
-	assert.NotNil(t, promMetrics.registry, "Registry should not be nil")
-
-	// Initialize metrics
-	promMetrics.SetHeartbeatStatus("test_heartbeat", UP)
-	promMetrics.IncHeartbeatReceived("test_heartbeat")
-	promMetrics.SetReceiverStatus("recv1", "test-type", "test-target", ERROR)
-
-	gatherers := prometheus.Gatherers{
-		promMetrics.registry,
+func TestHeartbeatStateValue(t *testing.T) {
+	tests := map[string]float64{
+		"ok":        HeartbeatOK,
+		"late":      HeartbeatLate,
+		"missing":   HeartbeatMissing,
+		"recovered": HeartbeatRecovered,
+		"never":     HeartbeatNever,
+		"unknown":   HeartbeatNever,
 	}
 
-	mfs, err := gatherers.Gather()
-	assert.NoError(t, err, "Expected no error while gathering metrics")
-
-	var foundHeartbeatLastStatus, foundLastReceiverStatus, foundReceivedTotal, foundHistorySize bool
-
-	for _, mf := range mfs {
-		if *mf.Name == "heartbeats_heartbeat_last_status" {
-			foundHeartbeatLastStatus = true
-		}
-		if *mf.Name == "heartbeats_receiver_last_status" {
-			foundLastReceiverStatus = true
-		}
-		if *mf.Name == "heartbeats_heartbeat_received_total" {
-			foundReceivedTotal = true
-		}
-		if *mf.Name == "heartbeats_history_byte_size" {
-			foundHistorySize = true
-		}
+	for input, expected := range tests {
+		t.Run(input, func(t *testing.T) {
+			require.Equal(t, expected, heartbeatStateValue(input))
+		})
 	}
-
-	assert.True(t, foundHeartbeatLastStatus, "Expected to find heartbeats_heartbeat_last_status metric")
-	assert.True(t, foundLastReceiverStatus, "Expected to find heartbeats_receiver_last_status metric")
-	assert.True(t, foundReceivedTotal, "Expected to find heartbeats_heartbeats_total metric")
-	assert.True(t, foundHistorySize, "Expected to find heartbeats_history_byte_size metric")
 }
 
-func TestLastHeartbeatStatusMetric(t *testing.T) {
+func TestRegistryMetrics(t *testing.T) {
 	t.Parallel()
+	reg := NewRegistry()
+	t.Run("SetHeartbeatState", func(t *testing.T) {
+		t.Parallel()
+		reg.SetHeartbeatState("api", "missing")
+		require.Equal(t, HeartbeatMissing, testutil.ToFloat64(reg.lastState.WithLabelValues("api")))
+	})
 
-	hist := history.NewRingStore(10)
-	promMetrics := New(hist)
-
-	promMetrics.SetHeartbeatStatus("test_heartbeat", UP)
-
-	expected := `
-	# HELP heartbeats_heartbeat_last_status Most recent status of each heartbeat (0 = DOWN, 1 = UP)
-	# TYPE heartbeats_heartbeat_last_status gauge
-	heartbeats_heartbeat_last_status{heartbeat="test_heartbeat"} 1
-	`
-	err := testutil.GatherAndCompare(promMetrics.registry, strings.NewReader(expected), "heartbeats_heartbeat_last_status")
-	assert.NoError(t, err, "Expected no error while gathering and comparing metrics")
+	t.Run("IncHeartbeatReceived", func(t *testing.T) {
+		t.Parallel()
+		reg.IncHeartbeatReceived("api")
+		require.Equal(t, float64(1), testutil.ToFloat64(reg.receivedTotal.WithLabelValues("api")))
+	})
+	t.Run("SetReceiverStatus", func(t *testing.T) {
+		t.Parallel()
+		reg.SetReceiverStatus("ops", "webhook", "https://example", ERROR)
+		require.Equal(t, ERROR, testutil.ToFloat64(reg.receiverLastStatus.WithLabelValues("ops", "webhook", "https://example")))
+	})
 }
 
-func TestReceiverErrorStatusMetrics(t *testing.T) {
-	t.Parallel()
+func TestRegistryMetricsHandler(t *testing.T) {
+	reg := NewRegistry()
+	reg.SetHeartbeatState("api", "ok")
+	reg.IncHeartbeatReceived("api")
+	reg.SetReceiverStatus("ops", "webhook", "https://example", SUCCESS)
 
-	hist := history.NewRingStore(10)
-	promMetrics := New(hist)
+	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	rec := httptest.NewRecorder()
+	reg.Metrics().ServeHTTP(rec, req)
 
-	promMetrics.SetReceiverStatus("recv1", "test-type", "test-target", 1)
-
-	expected := `
-	# HELP heartbeats_receiver_last_status Reports the status of the last notification attempt (1 = ERROR, 0 = SUCCESS)
-	# TYPE heartbeats_receiver_last_status gauge
-	heartbeats_receiver_last_status{receiver="recv1",target="test-target",type="test-type"} 1
-	`
-	err := testutil.GatherAndCompare(promMetrics.registry, strings.NewReader(expected), "heartbeats_receiver_last_status")
-	assert.NoError(t, err, "Expected no error while gathering and comparing metrics")
-}
-
-func TestReceivedTotalMetric(t *testing.T) {
-	t.Parallel()
-
-	hist := history.NewRingStore(10)
-	promMetrics := New(hist)
-
-	promMetrics.IncHeartbeatReceived("test_heartbeat")
-
-	expected := `
-  # HELP heartbeats_heartbeat_received_total Total number of received heartbeats per ID
-  # TYPE heartbeats_heartbeat_received_total counter
-  heartbeats_heartbeat_received_total{heartbeat="test_heartbeat"} 1
-
-	`
-	err := testutil.GatherAndCompare(promMetrics.registry, strings.NewReader(expected), "heartbeats_heartbeat_received_total")
-	assert.NoError(t, err, "Expected no error while gathering and comparing metrics")
-}
-
-func TestHistorySizeMetric(t *testing.T) {
-	t.Parallel()
-
-	size := 10_000
-	hist := history.NewRingStore(size)
-	promMetrics := New(hist)
-	ctx := t.Context()
-
-	payload := history.RequestMetadataPayload{
-		Source:    "http://localhost:9090",
-		Method:    "GET",
-		UserAgent: "go-test",
-	}
-
-	for range size {
-		ev := history.MustNewEvent(history.EventTypeHeartbeatReceived, "test_heartbeat", payload)
-		err := hist.Append(ctx, ev)
-		assert.NoError(t, err)
-	}
-
-	got := float64(hist.ByteSize())
-
-	expected := fmt.Sprintf(`
-  # HELP heartbeats_history_byte_size Current size of the history store in bytes
-  # TYPE heartbeats_history_byte_size gauge
-  heartbeats_history_byte_size %f
-  `, got)
-
-	err := testutil.GatherAndCompare(promMetrics.registry, strings.NewReader(expected), "heartbeats_history_byte_size")
-	assert.NoError(t, err, "Expected no error while gathering and comparing metrics")
-
-	assert.Equal(t, float64(1.91e+06), got)
+	require.Equal(t, http.StatusOK, rec.Result().StatusCode)
+	body := rec.Body.String()
+	require.Contains(t, body, "heartbeats_heartbeat_last_state")
+	require.Contains(t, body, "heartbeats_heartbeat_received_total")
+	require.Contains(t, body, "heartbeats_receiver_last_status")
 }

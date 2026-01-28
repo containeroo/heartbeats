@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/containeroo/heartbeats/internal/service/health"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,20 +17,10 @@ func TestHealthz(t *testing.T) {
 	api := NewAPI(
 		"test",
 		"test",
-		nil,
-		"",
-		"",
-		true,
+		"http://example.com",
 		slog.New(slog.NewTextHandler(&strings.Builder{}, nil)),
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
 	)
-	handler := api.Healthz(health.NewService())
-
+	handler := api.Healthz()
 	req := httptest.NewRequest("GET", "/healthz", nil)
 	rec := httptest.NewRecorder()
 

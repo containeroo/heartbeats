@@ -1,0 +1,7 @@
+<html>
+  <body>
+    <p><strong>{{ .Title }}</strong> {{ .Status }}</p>
+    {{ if .Since }}<p>Since: {{ formatDuration .Since }}</p>{{ end }}
+    {{ if .Payload }}<p>Payload: {{ .Payload }}</p>{{ end }}
+  </body>
+</html>

@@ -3,17 +3,19 @@ package history
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestInitHistory(t *testing.T) {
-	t.Parallel()
-
-	t.Run("Ring backend returns store", func(t *testing.T) {
-		t.Parallel()
-
-		store, err := InitializeHistory(5)
-		assert.NoError(t, err)
-		assert.NotNil(t, store)
-	})
+func TestEventTypeString(t *testing.T) {
+	cases := map[EventType]string{
+		EventHeartbeatReceived:     "heartbeat_received",
+		EventHeartbeatTransition:   "heartbeat_transition",
+		EventHTTPAccess:            "http_access",
+		EventNotificationDelivered: "notification_delivered",
+		EventNotificationFailed:    "notification_failed",
+		EventType(99):              "unknown",
+	}
+	for typ, expected := range cases {
+		require.Equal(t, expected, typ.String())
+	}
 }

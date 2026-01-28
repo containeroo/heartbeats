@@ -5,14 +5,12 @@ on:
   workflow_call:
   pull_request:
     branches:
-      - master
+      - main
     paths:
-      - "cmd/**"
       - "internal/**"
-      - "pkg/**"
+      - "main.go"
       - "go.mod"
       - "go.sum"
-      - "Dockerfile"
   workflow_dispatch:
 
 jobs:
@@ -37,9 +35,29 @@ jobs:
           check-latest: true
           cache: true
 
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: "web/package-lock.json"
+
       - name: Install Dependencies
         run: |
           make download
+
+      - name: Build Frontend
+        run: |
+          cd web
+          npm ci
+          npm run build
+
+      - name: Upload web dist artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: web-dist
+          path: web/dist
+          if-no-files-found: error
 
       - name: Run Unit Tests
         run: |

@@ -12,298 +12,111 @@
 
 ---
 
-A lightweight HTTP service for monitoring periodic "heartbeat" pings ("bumps") and notifying configured receivers when a heartbeat goes missing or recovers. Includes an in‐browser read-only dashboard showing current heartbeats, receivers, and historical events.
+A lightweight HTTP service for monitoring periodic "heartbeat" pings ("bumps") and notifying configured receivers when a heartbeat goes missing or recovers.
+It ships with a tiny React dashboard (websocket updates, heartbeat/receiver/history panels) and configurable webhook notifications.
 
-## 🚀 Features
+## Run
 
-- **Heartbeat monitoring** with configurable `interval` & `grace` periods
-- **Pluggable notifications** via Slack, Email, or MS Teams
-- **In-memory history** of recent events (received, failed, state changes, notifications, API requests)
-  - Stores up to `--history-size` entries (default: 10,000)
-  - Not persisted across restarts (~1.73 MB at max size)
-- **Dashboard** with:
-  - **Heartbeats**: status, URL, last bump, receivers, quick-links
-  - **Receivers**: type, destination, last sent, status
-  - **History**: timestamped events, filter by heartbeat
-  - Text-search filters & copy-to-clipboard URLs
-- `/healthz` and `/metrics` endpoints for health checks & Prometheus
-- YAML configuration with variable resolution via [containeroo/resolver](https://github.com/containeroo/resolver)
-
-## 🏁 Flags
-
-| Flag                  | Shorthand | Default                 | Environment Variable           | Description                                                                                 |
-| --------------------- | --------- | ----------------------- | ------------------------------ | ------------------------------------------------------------------------------------------- |
-| `--config`            | `-c`      | `heartbeats.yml`        | `HEARTBEATS_CONFIG`            | Path to configuration file                                                                  |
-| `--listen-address`    | `-a`      | `:8080`                 | `HEARTBEATS_LISTEN_ADDRESS`    | Address to listen on (host:port)                                                            |
-| `--route-prefix`      |           | ``                      | `HEARTBEATS_ROUTE_PREFIX`      | ath prefix to mount the app (e.g., /heartbeats).                                            |
-| `--site-root`         | `-r`      | `http://localhost:8080` | `HEARTBEATS_SITE_ROOT`         | Base URL for dashboard and link rendering                                                   |
-| `--history-size`      | `-s`      | `10000`                 | `HEARTBEATS_HISTORY_SIZE`      | Number of historical events to keep in memory (default ~1.73 MB for 10,000). Not persisted. |
-| `--skip-tls`          | -         | `false`                 | `HEARTBEATS_SKIP_TLS`          | Skip TLS verification for all receivers (can be overridden per receiver)                    |
-| `--debug`             | `-d`      | `false`                 | `HEARTBEATS_DEBUG`             | Enable debug-level logging                                                                  |
-| `--debug-server-port` | `-p`      | `8081`                  | `HEARTBEATS_DEBUG_SERVER_PORT` | Port for the debug server                                                                   |
-| `--log-format`        | `-l`      | `text`                  | `HEARTBEATS_LOG_FORMAT`        | Log format (`json` or `text`)                                                               |
-| `--retry-count`       | -         | `3`                     | `HEARTBEATS_RETRY_COUNT`       | Number of times to retry a failed notification. Use `-1` for infinite.                      |
-| `--retry-delay`       | -         | `2s`                    | `HEARTBEATS_RETRY_DELAY`       | Delay between retries. Must be ≥ 1s.                                                        |
-| `--help`              | `-h`      | -                       | -                              | Show help and exit                                                                          |
-| `--version`           | -         | -                       | -                              | Print version and exit                                                                      |
-
-### Proxy Environment Variables
-
-- `HTTP_PROXY`: URL of the proxy server to use for HTTP requests
-- `HTTPS_PROXY`: URL of the proxy server to use for HTTPS requests
-
-## 🌐 Endpoints
-
-| Path              | Method        | Description                       |
-| :---------------- | :------------ | :-------------------------------- |
-| `/`               | `GET`         | Dashboard home page               |
-| `/bump/{id}`      | `POST`, `GET` | Create a new heartbeat            |
-| `/bump/{id}/fail` | `POST`, `GET` | Manually mark heartbeat as failed |
-| `/healthz`        | `GET`         | Liveness probe                    |
-| `/metrics`        | `GET`         | Prometheus metrics endpoint       |
-| `/-/reload`       | `POST`        | Reload configuration              |
-
-## 🔄 Reloading Configuration
-
-Heartbeats supports hot-reload of the YAML config without restarting the process:
-
-- **Signal:** send `SIGHUP` to the process
-- **HTTP:** `POST /-/reload`
-
-Reloading re-reads the config file, validates it, updates receiver configuration, and reconciles heartbeat actors.
-
-## ⚙️ Configuration
-
-`heartbeats` and `receivers` must be defined in your YAML file (default `config.yaml`).
-
-### Examples (`config.yaml`)
-
-```yaml
----
-receivers:
-  dev-crew-int:
-    slack_configs:
-      - channel: integration
-        token: env:SLACK_TOKEN
-heartbeats:
-  prometheus-int:
-    description: "Prometheus → Alertmanager test"
-    interval: 15m
-    grace: 90s
-    receivers:
-      - dev-crew-int
+```bash
+go run . \
+  --listen-address :8080 \
+  --config ./config.yaml
 ```
 
-### Heartbeats
+Environment variables use the `HEARTBEATS__` prefix, e.g.:
 
-A **heartbeat** waits for periodic pings ("bumps"). If no bump arrives within `interval + grace`, notifications are sent.
-
-To reduce noise from race conditions (e.g. pings arriving milliseconds after grace timeout), Heartbeats adds a short internal delay before transitioning to `grace` or `missing`. This ensures smoother handling of near-expiry bumps without affecting responsiveness.
-
-| Key           | Type       | Description                                                                     |
-| :------------ | :--------- | :------------------------------------------------------------------------------ |
-| `description` | `string`   | (optional) Human-friendly description                                           |
-| `interval`    | `duration` | Required. Go duration (e.g. `15m`, `90s`) for expected interval between pings   |
-| `grace`       | `duration` | Required. Go duration after `interval` before marking missing                   |
-| `receivers`   | `[]string` | Required. List of receiver IDs (keys under `receivers:`) to notify upon missing |
-
-#### Example
-
-```yaml
-heartbeats:
-  prometheus-int:
-    description: "Prometheus → Alertmanager test"
-    interval: 15m
-    grace: 90s
-    receivers:
-      - dev-crew-int
+```bash
+export HEARTBEATS__CONFIG=./config.yaml
+export HEARTBEATS__LISTEN_ADDRESS=:8080
+export HEARTBEATS__STRICT_ENV=true
 ```
 
-### Receivers
+## Configuration
 
-Each **receiver** can have multiple notifier configurations. Supported under `receivers:`:
+Configuration is defined in a YAML file with receivers and heartbeats (Alertmanager-style). See `./deploy/config.yaml` for a full example.
 
-- `slack_configs`
-- `email_configs`
-- `msteams_configs`
+## Migration from deploy/config.yaml
 
-You may use any template variable from the heartbeat (e.g. `{{ .ID }}`, `{{ .Status }}`), and these helper functions:
+If you previously used the old `deploy/config.yaml`, most of the heartbeat and receiver IDs stay the same. The new schema reorganizes receivers under `receivers.<name>.webhook`/`email` instead of `slack_configs`, and renames `grace` to `late_after`. The older Slack/email templates translate into the new `template`/`subject_override_tmpl` fields (or use the built-in `template: slack` shortcut). Receiver-level `vars` now hold shared values such as channels/tokens, and webhook headers render via the writer-friendly Go templates.
 
-- **`upper`**: `{{ upper .ID }}`
-- **`lower`**: `{{ lower .ID }}`
-- **`formatTime`**: `{{ formatTime .LastBump "2006-01-02 15:04:05" }}`
-- **`ago`**: `{{ ago .LastBump }}`
-- **`isRecent`**: `{{ isRecent .LastBump }}` // isRecent returns true if the last bump was less than 2 seconds ago
-- **`join`**: `{{ join .Tags ", " }}`
+The example under `deploy/` remains a useful reference during migration—translate each Slack/email block into the new structure (move `token`, `channel`, and helper templates into the webhook/email blocks) and keep the heartbeat intervals/receivers as before. Once converted, you can hot-reload the YAML via `SIGHUP` or `POST /-/reload` without restarting the process.
 
-#### Variable Resolution
+### Env expansion
 
-`Heartbeats` uses [containeroo/resolver](https://github.com/containeroo/resolver) for variable resolving.
+YAML supports `${VAR}` placeholders which are expanded from the environment before parsing. By default, unresolved placeholders are left intact. Use `--strict-env` (or `HEARTBEATS_STRICT_ENV=true`) to fail on missing or malformed placeholders.
 
-Resolver supports:
+> NOTE: The previous `file:`/`env:file:` helpers have been removed; only direct environment lookups `${VAR}` substitution remain supported now.
 
-- **Plain**: literal value
-- **Environment**: `env:VAR_NAME`
-- **File**: `file:/path/to/file`
-- **Within-file**: `file:/path/to/file//KEY`, also supported `yaml:`,`json:`,`ini:` and `toml:`. For more details see [containeroo/resolver](https://github.com/containeroo/resolver).
+### Templates
 
-#### Slack
+Template resolution works like this:
 
-_Defaults:_
-
-- subject_tmpl: `[{{ upper .Status }}] {{ .ID }}"`
-- text_tmpl: `{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
+- `heartbeats.<id>.subject_tmpl` sets the default subject for that heartbeat.
+- `receivers.<name>.webhook.subject_override_tmpl` or `receivers.<name>.email.subject_override_tmpl` overrides the default for that receiver/target.
+- The subject is exposed to templates as `.Subject` and can be used inside webhook/email templates.
+- `receivers.<name>.vars` is a free-form map exposed as `.Vars` inside templates for custom fields (e.g., Slack channel).
+- Template shortcuts are available for built-ins: `template: slack`, `template: default`, and `template: email` (otherwise treated as a file path).
 
 ```yaml
 receivers:
-  dev-crew-int:
-    slack_configs:
-      - channel: "#integration"
-        token: env:SLACK_TOKEN
-        # optional custom templates:
-        title_tmpl: "[{{ upper .Status }}] {{ .ID }}"
-        text_tmpl: "{{ .ID }} status: {{ .Status }}"
-        # optional: override global skip TLS
-        skip_tls: true
-```
-
-> `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
-> The `Content-Type` header is also set to `application/json`.
-
-#### Email
-
-_Defaults:_
-
-- subject_tmpl: `"[HEARTBEATS]: {{ .ID }} {{ upper .Status }}"`
-- body_tmpl: `"<b>Description:</b> {{ .Description }}<br>Last bump: {{ ago .LastBump }}"`
-
-```yaml
-email_configs:
-  - smtp:
-      host: smtp.gmail.com
-      port: 587
-      from: admin@example.com
-      username: env:EMAIL_USER
-      password: env:EMAIL_PASS
-      # optional
-      start_tls: true
-      # optional: override global skip TLS
-      skip_insecure_verify: true
+  ops:
+    webhook:
+      url: https://example.com/webhook
+      headers:
+        Authorization: "Bearer YOUR_TOKEN"
+      template: templates/default.tmpl
+      subject_override_tmpl: "{{ .Title }} is {{ toUpper .Status }}"
     email:
-      is_html: true
-      to: ["ops@example.com"]
-      # optional custom templates:
-      subject_tmpl: "[HB] {{ .ID }} {{ upper .Status }}"
-      body_tmpl: "Last bump: {{ ago .LastBump }}"
+      host: smtp.example.com
+      port: 587
+      user: smtp-user
+      pass: smtp-pass
+      from: heartbeat@example.com
+      to:
+        - ops@example.com
+      starttls: true
+      ssl: false
+      insecure_skip_verify: false
+      template: templates/email.tmpl
+      subject_override_tmpl: "[{{ .Title }}] {{ .Status }}"
+    retry:
+      count: 3
+      delay: 2s
+
+heartbeats:
+  api:
+    title: "API"
+    interval: 30s
+    late_after: 10s
+    subject_tmpl: "[{{ .Title }}] {{ .Status }}"
+    receivers: ["ops"]
 ```
 
-#### MS Teams (incomming webhook)
+## Features
 
-_Defaults:_
+- **Heartbeat monitoring** with configurable `interval`/`late_after` windows, late & missing alerts, and optional recovery notifications.
+- **Pluggable receivers** (multiple webhook targets, email) with retry policies, headers, and Go template rendering for both payload and title.
+- **Dashboard** served from the built-in SPA with heartbeat, receiver, and history views; WebSocket push keeps the UI in sync without manual refresh.
+- **History store**: keeps the last 10,000 events (default) in memory with metrics for bytes used and exposes `/api/history` + `/api/history/{id}`.
+- **Metrics**: `/metrics` exposes Prometheus-friendly counters & gauges such as `heartbeats_heartbeat_last_status`, `heartbeats_heartbeat_received_total`, and `heartbeats_receiver_last_status`.
+- **Hot reloads**: send `SIGHUP` or `POST /-/reload` to apply a new config without downtime.
+- **Debug helpers**: enable `--debug` to hit `/internal/receiver/{id}` or `/internal/heartbeat/{id}` for local testing.
 
-- title_tmpl: `"[{{ upper .Status }}] {{ .ID }}"`
-- text_tmpl: `"{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
+## Endpoints
 
-```yaml
-msteams_configs:
-  - webhook_url: file:/secrets/teams/webhook//prod
-    # optional custom templates:
-    title_tmpl: "[{{ upper .Status }}] {{ .ID }}"
-    text_tmpl: "{{ .ID }} status: {{ .Status }}"
-    # optional: override global skip TLS
-    skip_tls: true
-```
+- `POST /api/heartbeat/{id}` — records a heartbeat bump (accepts any payload/body).
+- `GET /api/status` — JSON snapshot of all heartbeat stages.
+- `GET /api/history` and `/api/history/{id}` — view the in-memory history for all heartbeats or a specific one.
+- `GET /healthz` and `POST /healthz` — liveness probe.
+- `/metrics` — Prometheus metrics endpoint.
+- `POST /-/reload` — reload configuration (supports both HTTP and SIGHUP).
 
-> `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
-> The `Content-Type` header is also set to `application/json`.
+## Notes
 
-#### MS Teams (Graph API) (NOT TESTED)
+- Any heartbeat payload is accepted; the body is stored as the last payload for heartbeat context.
+- Alerts fire when late and again when missing after the late window.
+- Recovery alerts are enabled by default (`HEARTBEATS_ALERT_ON_RECOVERY=true`).
 
-_Defaults:_
-
-- title_tmpl: `"[{{ upper .Status }}] {{ .ID }}"`
-- text_tmpl: `"{{ .ID }} is {{ .Status }} (last bump: {{ ago .LastBump }})"`
-
-```yaml
-msteamsgraph_configs:
-  - channel_id: env:MSTEAMSGRAPH_CHANNEL_ID
-    team_id: env:MSTEAMSGRAPH_TEAM_ID
-    # optional custom templates:
-    title_tmpl: "[{{ upper .Status }}] {{ .ID }}"
-    text_tmpl: "{{ .ID }} status: {{ .Status }}"
-    # optional: override global skip TLS
-    skip_tls: true
-```
-
-> `Heartbeats` adds a custom `User-Agent: Heartbeats/<version>` header to all outbound HTTP requests.
-> The `Content-Type` header is also set to `application/json`.
-
-## 📈 Metrics
-
-Heartbeats exposes the following Prometheus metrics via the `/metrics` endpoint:
-
-### Heartbeat Metrics
-
-| Name                                  | Type      | Labels                       | Description                                                                  |
-| ------------------------------------- | --------- | ---------------------------- | ---------------------------------------------------------------------------- |
-| `heartbeats_heartbeat_last_status`    | `gauge`   | `heartbeat`                  | Most recent status of each heartbeat (0 = DOWN, 1 = UP)                      |
-| `heartbeats_heartbeat_received_total` | `counter` | `heartbeat`                  | Total number of received heartbeats per ID                                   |
-| `heartbeats_receiver_last_status`     | `counter` | `receiver`, `type`, `target` | Reports the status of the last notification attempt (1 = ERROR, 0 = SUCCESS) |
-
-### History Store Metrics
-
-| Name                           | Type    | Description                                          |
-| ------------------------------ | ------- | ---------------------------------------------------- |
-| `heartbeats_history_byte_size` | `gauge` | Current size of the in-memory history store in bytes |
-
-## 🧪 Development
-
-Download the binary and update the example [config.yaml](./tests/config.yaml) according your needs.
-If you prefer to run heartbeats in docker, you find a `docker-compose.yaml` & `config.yaml` [here](./deploy/).
-For a kubernetes deployment you find the manifests [here](./deploy/kubernetes).
-
-## 🔧 Debugging
-
-Heartbeats includes optional internal endpoints for testing receiver notifications and simulating heartbeats. These are only enabled when the `--debug` flag is set.
-
-### Internal Endpoints
-
-| Path                       | Method | Description                               |
-| :------------------------- | :----- | :---------------------------------------- |
-| `/internal/receiver/{id}`  | `GET`  | Sends a test notification to the receiver |
-| `/internal/heartbeat/{id}` | `GET`  | Simulates a bump for the given heartbeat  |
-
-These endpoints listen only on `127.0.0.1`.
-
-#### Kubernetes
-
-Forward the debug port to your local machine:
-
-```bash
-kubectl port-forward deploy/heartbeats 8081:8081
-
-curl http://localhost:8081/internal/receiver/{id}
-curl http://localhost:8081/internal/heartbeat/{id}
-```
-
-#### Docker
-
-Bind the debug port only to your host's loopback interface:
-
-```bash
-docker run \
-  -p 127.0.0.1:8081:8081 \
-  -v ./config.yaml:/config.yaml \
-  containeroo/heartbeats
-
-curl http://localhost:8081/internal/receiver/{id}
-curl http://localhost:8081/internal/heartbeat/{id}
-```
-
-> ✅ This ensures `/internal/*` endpoints are **only reachable from your local machine**, not from other containers or the network.
-
-> ⚠️ **Warning:** These endpoints are meant for local testing and debugging only. Never expose them in production.
-
-## 📝 License
+## License
 
 This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.

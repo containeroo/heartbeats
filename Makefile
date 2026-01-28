@@ -78,7 +78,7 @@ download: ## Download go packages
 
 .PHONY:run
 run: ## Run go fmt against code.
-	go run main.go -c test/config.yaml
+	go run main.go -c deploy/config.yaml --debug
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
