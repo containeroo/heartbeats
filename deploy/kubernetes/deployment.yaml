@@ -20,13 +20,10 @@ spec:
         - name: heartbeats
           image: ghcr.io/containeroo/heartbeats:latest
           imagePullPolicy: IfNotPresent
-          args:
-            - --site-root
-            - https://heartbeats.example.com
           env:
             - name: TZ
               value: Europe/Zurich
-            - name: HEARTBEATS_SITE_ROOT
+            - name: HEARTBEATS__SITE_ROOT
               value: https://heartbeats.example.com
           envFrom:
             - secretRef:
@@ -58,8 +55,6 @@ spec:
             - name: config
               mountPath: /config.yaml
               subPath: config.yaml
-            - name: webhooks
-              mountPath: /secrets/teams
       # affinity:
       #   podAntiAffinity:
       #     requiredDuringSchedulingIgnoredDuringExecution:
@@ -73,8 +68,4 @@ spec:
         - name: config
           configMap:
             name: heartbeats
-            defaultMode: 0755
-        - name: webhooks
-          configMap:
-            name: webhooks
             defaultMode: 0755

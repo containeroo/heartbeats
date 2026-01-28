@@ -22,21 +22,13 @@ func TestReloadHandler(t *testing.T) {
 	api := NewAPI(
 		"test",
 		"test",
-		nil,
 		"",
-		"",
-		false,
 		logger,
-		nil,
-		nil,
-		nil,
-		nil,
-		nil,
-		func() error {
-			calls.Add(1)
-			return nil
-		},
 	)
+	api.SetReloadFn(func() error {
+		calls.Add(1)
+		return nil
+	})
 
 	req := httptest.NewRequest(http.MethodPost, "/-/reload", nil)
 	rec := httptest.NewRecorder()

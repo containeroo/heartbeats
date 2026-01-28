@@ -16,7 +16,7 @@ builds:
       - -X main.Version={{ .Tag }}
       - -X main.Commit={{ .FullCommit }}
 dockers_v2:
-  - dockerfile: Dockerfile
+  - dockerfile: Dockerfile.goreleaser
     platforms: [linux/amd64, linux/arm64]
     images:
       - ghcr.io/containeroo/heartbeats
@@ -28,7 +28,6 @@ dockers_v2:
       - go.sum
       - main.go
       - internal
-      - pkg
       - web
     labels:
       org.opencontainers.image.title: "{{ .ProjectName }}"

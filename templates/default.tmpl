@@ -1,0 +1,8 @@
+{
+  "title": "{{ .Title }}",
+  "status": "{{ .Status }}",
+  "payload": {{ if .Payload }}"{{ .Payload }}"{{ else }}null{{ end }},
+  "timestamp": "{{ .Timestamp }}",
+  "late_after": "{{ .LateAfter }}",
+  "since": "{{ formatDuration .Since }}"
+}

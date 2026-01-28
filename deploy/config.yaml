@@ -1,61 +1,38 @@
----
-heartbeats:
-  alertmanager-prod:
-    description: Production AlertManager health check
-    interval: 30s
-    grace: 10s
-    receivers:
-      - platform-team
-
-  grafana-staging:
-    description: Grafana heartbeat check for staging environment
-    interval: 15s
-    grace: 5s
-    receivers:
-      - observability-team
-
 receivers:
-  platform-team:
-    slack_configs:
-      - channel: platform-alerts
-        token: env:SLACK_PLATFORM_TOKEN
-        title_tmpl: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
-        text_tmpl: |
-          *Service:* {{ .Name }}
-          *Status:* {{ .Status }}
-          *Description:* {{ .Description }}
-          *Last ping:* {{ if isRecent .LastBump }}just now{{ else }}{{ ago .LastBump }} ago{{ end }}
+  ops:
+    webhooks:
+      - url: https://slack.com/api/chat.postMessage
+        headers:
+          Authorization: Bearer ${HEARTBEATS__SLACK_TOKEN}
+        template: slack
+        subject_override_tmpl: "[ {{ toUpper .Status  }}] heartbeat"
+        vars:
+          channel: "#test"
+    # emails:
+    #   - host: smtp.gmail.com
+    #     port: 465
+    #     user: ${HEARTBEATS__GMAIL_USER}
+    #     pass: ${HEARTBEATS__GMAIL_PASS}
+    #     from: heartbeats@example.com
+    #     to:
+    #       - ${HEARTBEATS__GMAIL_TOS}
+    #     startTLS: false
+    #     ssl: true
+    #     template: email
+    # retry:
+    #   count: 3
+    #   delay: 2s
 
-    email_configs:
-      - smtp:
-          host: smtp.sendgrid.net
-          port: 587
-          from: alerts@platform.example.com
-          username: env:SENDGRID_USERNAME
-          password: env:SENDGRID_PASSWORD
-          start_tls: true
-          skip_insecure_verify: false
-        email:
-          is_html: true
-          subject_tmpl: "[HEARTBEAT ALERT] {{ .Name }} is {{ upper .Status }}"
-          body_tmpl: |
-            <h3>Service: {{ .Name }}</h3>
-            <p>Status: <b>{{ .Status }}</b></p>
-            <p>{{ .Description }}</p>
-            <p>Last bump: {{ .LastBump }}</p>
-          to:
-            - devops@platform.example.com
-            - env:ALERT_FALLBACK_EMAIL
-          cc:
-            - devops@platform.example.com
+heartbeats:
+  my-endpoint:
+    title: "API"
+    subject_tmpl: "[{{ .Title }}] {{ .Status }}"
+    interval: 3s
+    late_after: 2s
+    alert_on_late: false
+    alert_on_recovery: true
+    receivers: ["ops"]
 
-  observability-team:
-    slack_configs:
-      - token: file:$PWD/deploy/webhooks.txt//observability
-        channel: observability
-        title_tmpl: "[HEARTBEAT] {{ .Name }} {{ upper .Status }}"
-        text_tmpl: |
-          **Service:** {{ .Name }}
-          **Status:** {{ .Status }}
-          **Description:** {{ .Description }}
-          **Last bump:** {{ if isRecent .LastBump }}just now{{ else }}{{ ago .LastBump }} ago{{ end }}
+history:
+  size: 1000
+  buffer: 256

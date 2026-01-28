@@ -1,0 +1,29 @@
+{{/* Slack webhook payload */}}
+{
+  {{/* Channel: uses vars.channel if set, ensures # prefix */}}
+  "channel": {{ with index .Vars "channel" }}
+    {{ printf "%q" (ensurePrefix "#" .) }}
+  {{ else }}
+    "#test"
+  {{ end }},
+  {{/* Charset included to avoid Slack missing_charset warnings */}}
+  "charset": "utf-8",
+  "attachments": [
+    {
+      {{/* Title shown in Slack attachment header */}}
+      "title": "{{ .Subject }}",
+      {{/* Color based on status, override via vars */}}
+      "color": {{ if eq .Status "missing" }}{{ printf "%q" (default "#A30200" (index .Vars "status_color_missing")) }}
+               {{ else }} {{ printf "%q" (default "#2EB67D" (index .Vars "status_color_ok")) }}
+               {{ end }},
+      {{/* Fallback for clients without rich formatting */}}
+      "fallback": "*{{ .Subject }}*{{ if ne .Since 0 }}\nSince: {{ formatDuration .Since }}{{ end }}\nlast heartbeat: {{ if ne .Since 0 }}{{ formatDuration .Since }}{{ else }}now{{ end }}",
+      "mrkdwn_in": ["text"],
+      {{/* Main attachment body */}}
+      "text": "*{{ .Title }} is «{{ .Status }}»*
+                {{ if ne .Since 0 }}\nlast heartbeat: {{ formatDuration .Since }}
+                {{ else }}\nlast heartbeat: now
+                {{ end }}"
+    }
+  ]
+}

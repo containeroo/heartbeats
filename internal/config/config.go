@@ -1,161 +1,66 @@
 package config
 
-import (
-	"context"
-	"fmt"
-	"log/slog"
-	"os"
-	"sync"
+import "time"
 
-	"github.com/containeroo/heartbeats/internal/heartbeat"
-	"github.com/containeroo/heartbeats/internal/logging"
-	"github.com/containeroo/heartbeats/internal/notifier"
-	"gopkg.in/yaml.v3"
-)
-
-// Config is the top-level configuration.
+// Config defines the YAML configuration structure.
 type Config struct {
-	Receivers  map[string]notifier.ReceiverConfig `yaml:"receivers"`  // Receivers is the map of receiver IDs to their configurations.
-	Heartbeats heartbeat.HeartbeatConfigMap       `yaml:"heartbeats"` // Heartbeats is the map of heartbeat IDs to their configurations.
+	Receivers  map[string]ReceiverConfig  `yaml:"receivers"`  // Receiver definitions.
+	Heartbeats map[string]HeartbeatConfig `yaml:"heartbeats"` // Heartbeat definitions.
+	History    HistoryConfig              `yaml:"history"`    // History configuration.
 }
 
-// LoadConfig loads configuration from a YAML file.
-func LoadConfig(filePath string) (*Config, error) {
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, err
-	}
-	return &cfg, nil
+// ReceiverConfig describes where notifications are delivered.
+type ReceiverConfig struct {
+	Webhooks []WebhookConfig `yaml:"webhooks,omitempty"` // Webhook delivery settings.
+	Emails   []EmailConfig   `yaml:"emails,omitempty"`   // Email delivery settings.
+	Retry    RetryConfig     `yaml:"retry,omitempty"`    // Per-receiver retry policy.
+	Vars     map[string]any  `yaml:"vars,omitempty"`     // Additional template variables.
 }
 
-// Validate checks that each heartbeat references an existing receiver and
-// validates and resolves secrets in receiver configurations.
-func (c *Config) Validate() error {
-	for receiverID, rc := range c.Receivers {
-		for i := range rc.SlackConfigs {
-			if err := rc.SlackConfigs[i].Resolve(); err != nil {
-				return fmt.Errorf("receiver %q slack config error: %w", receiverID, err)
-			}
-			if err := rc.SlackConfigs[i].Validate(); err != nil {
-				return fmt.Errorf("receiver %q slack config error: %w", receiverID, err)
-			}
-		}
-		for i := range rc.EmailConfigs {
-			if err := rc.EmailConfigs[i].Resolve(); err != nil {
-				return fmt.Errorf("receiver %q email config error: %w", receiverID, err)
-			}
-			if err := rc.EmailConfigs[i].Validate(); err != nil {
-				return fmt.Errorf("receiver %q email config error: %w", receiverID, err)
-			}
-		}
-		for i := range rc.MSTeamsConfigs {
-			if err := rc.MSTeamsConfigs[i].Resolve(); err != nil {
-				return fmt.Errorf("receiver %q MSTeams config error: %w", receiverID, err)
-			}
-			if err := rc.MSTeamsConfigs[i].Validate(); err != nil {
-				return fmt.Errorf("receiver %q MSTeams config error: %w", receiverID, err)
-			}
-		}
-		for i := range rc.MSTeamsGraphConfig {
-			if err := rc.MSTeamsGraphConfig[i].Resolve(); err != nil {
-				return fmt.Errorf("receiver %q MSTeams Graph config error: %w", receiverID, err)
-			}
-			if err := rc.MSTeamsGraphConfig[i].Validate(); err != nil {
-				return fmt.Errorf("receiver %q MSTeams Graph config error: %w", receiverID, err)
-			}
-		}
-
-		c.Receivers[receiverID] = rc // Write back updated receiver config.
-	}
-
-	// Validate that each heartbeat references valid receivers.
-	for hbName, hb := range c.Heartbeats {
-		for _, receiverName := range hb.Receivers {
-			if _, ok := c.Receivers[receiverName]; !ok {
-				return fmt.Errorf("heartbeat %q references unknown receiver %q", hbName, receiverName)
-			}
-		}
-	}
-	if len(c.Heartbeats) == 0 {
-		return fmt.Errorf("at least one heartbeat must be defined")
-	}
-	return nil
+// WebhookConfig configures webhook delivery.
+type WebhookConfig struct {
+	URL         string            `yaml:"url"`                             // Destination URL.
+	Headers     map[string]string `yaml:"headers,omitempty"`               // Optional headers.
+	Template    string            `yaml:"template,omitempty"`              // Webhook payload template path.
+	SubjectTmpl string            `yaml:"subject_override_tmpl,omitempty"` // Subject template override.
 }
 
-// Reload loads, validates, and applies the config to the dispatcher and manager.
-func Reload(
-	filePath string,
-	skipTLS bool,
-	version string,
-	logger *slog.Logger,
-	dispatcher *notifier.Dispatcher,
-	mgr *heartbeat.Manager,
-) (heartbeat.ReconcileResult, error) {
-	cfg, err := LoadConfig(filePath)
-	if err != nil {
-		return heartbeat.ReconcileResult{}, fmt.Errorf("failed to load config: %w", err)
-	}
-	if err := cfg.Validate(); err != nil {
-		return heartbeat.ReconcileResult{}, fmt.Errorf("invalid YAML config: %w", err)
-	}
-
-	newStore := notifier.InitializeStore(cfg.Receivers, skipTLS, version, logger)
-	dispatcher.UpdateStore(newStore)
-
-	res, err := mgr.Reconcile(cfg.Heartbeats)
-	if err != nil {
-		return res, err
-	}
-	return res, nil
+// EmailConfig configures SMTP delivery.
+type EmailConfig struct {
+	Host               string   `yaml:"host"`                            // SMTP host.
+	Port               int      `yaml:"port"`                            // SMTP port.
+	User               string   `yaml:"user,omitempty"`                  // SMTP user.
+	Pass               string   `yaml:"pass,omitempty"`                  // SMTP password.
+	From               string   `yaml:"from"`                            // Sender address.
+	To                 []string `yaml:"to"`                              // Recipient list.
+	StartTLS           bool     `yaml:"starttls"`                        // Enable STARTTLS.
+	SSL                bool     `yaml:"ssl"`                             // Use implicit TLS.
+	InsecureSkipVerify bool     `yaml:"insecure_skip_verify"`            // Skip TLS verification.
+	Template           string   `yaml:"template,omitempty"`              // Email body template path.
+	SubjectTmpl        string   `yaml:"subject_override_tmpl,omitempty"` // Email subject template override.
 }
 
-// NewReloadFunc builds a reload function with logging and serialization.
-func NewReloadFunc(
-	filePath string,
-	skipTLS bool,
-	version string,
-	logger *slog.Logger,
-	dispatcher *notifier.Dispatcher,
-	mgr *heartbeat.Manager,
-) func() error {
-	var reloadMu sync.Mutex
-	return func() error {
-		reloadMu.Lock()
-		defer reloadMu.Unlock()
-
-		res, err := Reload(filePath, skipTLS, version, logger, dispatcher, mgr)
-		if err != nil {
-			return err
-		}
-		if res.Added+res.Updated+res.Removed > 0 {
-			logging.SystemLogger(logger, nil).Info("heartbeats reloaded",
-				"added", res.Added,
-				"updated", res.Updated,
-				"removed", res.Removed,
-			)
-		}
-		return nil
-	}
+// RetryConfig defines retry behavior for a receiver.
+type RetryConfig struct {
+	Count int           `yaml:"count"` // Number of retry attempts.
+	Delay time.Duration `yaml:"delay"` // Delay between retries.
 }
 
-// WatchReload listens for reload signals and invokes the reload function.
-func WatchReload(ctx context.Context, reloadCh <-chan os.Signal, logger *slog.Logger, reloadFn func() error) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-reloadCh:
-			logging.SystemLogger(logger, nil).Info("reload requested")
-			if err := reloadFn(); err != nil {
-				logging.SystemLogger(logger, nil).Error("reload failed", "err", err)
-			} else {
-				logging.SystemLogger(logger, nil).Info("reload completed")
-			}
-		}
-	}
+// HistoryConfig defines in-memory history settings.
+type HistoryConfig struct {
+	Size   int `yaml:"size"`   // Number of events to keep.
+	Buffer int `yaml:"buffer"` // Async buffer size for history events.
+}
+
+// HeartbeatConfig defines a monitored heartbeat and its receivers.
+type HeartbeatConfig struct {
+	Title           string        `yaml:"title,omitempty"`             // Human-friendly title.
+	Interval        time.Duration `yaml:"interval"`                    // Expected interval between heartbeats.
+	LateAfter       time.Duration `yaml:"late_after"`                  // Late window duration.
+	AlertOnRecovery *bool         `yaml:"alert_on_recovery,omitempty"` // Enable recovery alerts.
+	AlertOnLate     *bool         `yaml:"alert_on_late,omitempty"`     // Enable late alerts.
+	SubjectTmpl     string        `yaml:"subject_tmpl,omitempty"`      // Default subject template.
+	WebhookTemplate string        `yaml:"webhook_template,omitempty"`  // Default webhook template path.
+	EmailTemplate   string        `yaml:"email_template,omitempty"`    // Default email template path.
+	Receivers       []string      `yaml:"receivers"`                   // Receiver names for this heartbeat.
 }

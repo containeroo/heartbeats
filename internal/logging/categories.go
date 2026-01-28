@@ -1,15 +1,14 @@
 package logging
 
-import (
-	"context"
-	"log/slog"
-)
+import "log/slog"
 
 const (
-	CategoryAccess   = "access"
+	// CategoryAccess tags access logs.
+	CategoryAccess = "access"
+	// CategoryBusiness tags domain logs.
 	CategoryBusiness = "business"
-	CategoryDB       = "db"
-	CategorySystem   = "system"
+	// CategorySystem tags system logs.
+	CategorySystem = "system"
 )
 
 // WithCategory adds a category field to the logger.
@@ -24,21 +23,16 @@ func WithCategory(logger *slog.Logger, category string) *slog.Logger {
 }
 
 // AccessLogger returns a logger tagged for access logs.
-func AccessLogger(logger *slog.Logger, ctx context.Context) *slog.Logger {
-	return WithCategory(WithRequestIDLogger(logger, ctx), CategoryAccess)
+func AccessLogger(logger *slog.Logger) *slog.Logger {
+	return WithCategory(logger, CategoryAccess)
 }
 
 // BusinessLogger returns a logger tagged for business logs.
-func BusinessLogger(logger *slog.Logger, ctx context.Context) *slog.Logger {
-	return WithCategory(WithRequestIDLogger(logger, ctx), CategoryBusiness)
-}
-
-// DBLogger returns a logger tagged for db logs.
-func DBLogger(logger *slog.Logger, ctx context.Context) *slog.Logger {
-	return WithCategory(WithRequestIDLogger(logger, ctx), CategoryDB)
+func BusinessLogger(logger *slog.Logger) *slog.Logger {
+	return WithCategory(logger, CategoryBusiness)
 }
 
 // SystemLogger returns a logger tagged for system logs.
-func SystemLogger(logger *slog.Logger, ctx context.Context) *slog.Logger {
-	return WithCategory(WithRequestIDLogger(logger, ctx), CategorySystem)
+func SystemLogger(logger *slog.Logger) *slog.Logger {
+	return WithCategory(logger, CategorySystem)
 }

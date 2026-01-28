@@ -3,15 +3,8 @@ package metrics
 import (
 	"net/http"
 
-	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-)
-
-// heartbeats_heartbeat_last_status
-const (
-	DOWN float64 = 0
-	UP   float64 = 1
 )
 
 // heartbeats_receiver_last_status
@@ -20,20 +13,29 @@ const (
 	ERROR   float64 = 1
 )
 
+// heartbeats_heartbeat_last_state
+const (
+	HeartbeatOK        float64 = 0
+	HeartbeatLate      float64 = 1
+	HeartbeatMissing   float64 = 2
+	HeartbeatRecovered float64 = 3
+	HeartbeatNever     float64 = -1
+)
+
 // Registry holds Prometheus metrics for the app.
 type Registry struct {
 	registry           *prometheus.Registry
-	lastStatus         *prometheus.GaugeVec
+	lastState          *prometheus.GaugeVec
 	receivedTotal      *prometheus.CounterVec
 	receiverLastStatus *prometheus.GaugeVec
 }
 
-// New builds a new Prometheus metrics registry.
-func New(store history.Store) *Registry {
-	lastStatus := prometheus.NewGaugeVec(
+// NewRegistry builds a new Prometheus metrics registry.
+func NewRegistry() *Registry {
+	lastState := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "heartbeats_heartbeat_last_status",
-			Help: "Most recent status of each heartbeat (0 = DOWN, 1 = UP)",
+			Name: "heartbeats_heartbeat_last_state",
+			Help: "Most recent state of each heartbeat (0 = ok, 1 = late, 2 = missing, 3 = recovered, -1 = never)",
 		},
 		[]string{"heartbeat"},
 	)
@@ -53,20 +55,19 @@ func New(store history.Store) *Registry {
 	)
 
 	reg := prometheus.NewRegistry()
-	reg.MustRegister(lastStatus, receivedTotal, receiverLastStatus)
-	reg.MustRegister(history.NewHistoryMetrics(store))
+	reg.MustRegister(lastState, receivedTotal, receiverLastStatus)
 
 	return &Registry{
 		registry:           reg,
-		lastStatus:         lastStatus,
+		lastState:          lastState,
 		receivedTotal:      receivedTotal,
 		receiverLastStatus: receiverLastStatus,
 	}
 }
 
-// SetHeartbeatStatus updates the last status gauge for a heartbeat.
-func (r *Registry) SetHeartbeatStatus(id string, status float64) {
-	r.lastStatus.WithLabelValues(id).Set(status)
+// SetHeartbeatState updates the last state gauge for a heartbeat.
+func (r *Registry) SetHeartbeatState(id string, state string) {
+	r.lastState.WithLabelValues(id).Set(heartbeatStateValue(state))
 }
 
 // IncHeartbeatReceived increments the receive counter for a heartbeat.
@@ -82,4 +83,21 @@ func (r *Registry) SetReceiverStatus(receiver, typ, target string, status float6
 // Metrics returns the Prometheus metrics handler.
 func (r *Registry) Metrics() http.Handler {
 	return promhttp.HandlerFor(r.registry, promhttp.HandlerOpts{})
+}
+
+func heartbeatStateValue(state string) float64 {
+	switch state {
+	case "ok":
+		return HeartbeatOK
+	case "late":
+		return HeartbeatLate
+	case "missing":
+		return HeartbeatMissing
+	case "recovered":
+		return HeartbeatRecovered
+	case "never":
+		return HeartbeatNever
+	default:
+		return HeartbeatNever
+	}
 }
