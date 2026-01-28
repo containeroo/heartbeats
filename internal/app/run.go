@@ -38,18 +38,25 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 	signal.Notify(reloadCh, syscall.SIGHUP)
 
 	flags, err := flag.ParseFlags(args, version)
+	logger := logging.SetupLogger(flags.LogFormat, flags.Debug, w)
+	sysLogger := logging.SystemLogger(logger)
 	if err != nil {
 		if tinyflags.IsHelpRequested(err) || tinyflags.IsVersionRequested(err) {
 			fmt.Fprint(w, err.Error()) // nolint:errcheck
 			return nil
 		}
+		sysLogger.Error("application failed",
+			"event", "app_failed",
+			"stage", "parse_flags",
+			"err", err,
+		)
 		return fmt.Errorf("CLI flags error: %w", err)
 	}
 
-	logger := logging.SetupLogger(flags.LogFormat, flags.Debug, w)
-
-	sysLogger := logging.SystemLogger(logger)
-	sysLogger.Info("Starting heartbeats", "version", version, "commit", commit)
+	sysLogger.Info("Starting heartbeats",
+		"version", version,
+		"commit", commit,
+	)
 	if len(flags.OverriddenValues) > 0 {
 		sysLogger.Info("CLI Overrides", "overrides", flags.OverriddenValues)
 	}
@@ -59,6 +66,11 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 
 	cfg, err := config.LoadWithOptions(flags.ConfigPath, config.LoadOptions{StrictEnv: flags.StrictEnv})
 	if err != nil {
+		sysLogger.Error("application failed",
+			"event", "app_failed",
+			"stage", "load_config",
+			"err", err,
+		)
 		return fmt.Errorf("load config: %w", err)
 	}
 
@@ -82,6 +94,11 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 
 	manager, err := manager.NewManager(cfg, appFS, notifyManager, historyRecorder, metricsReg, businessLogger)
 	if err != nil {
+		sysLogger.Error("application failed",
+			"event", "app_failed",
+			"stage", "build_manager",
+			"err", err,
+		)
 		return fmt.Errorf("build manager: %w", err)
 	}
 	manager.StartAll(ctx)
@@ -113,10 +130,20 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 	// Create server and run forever
 	router, err := routes.NewRouter(appFS, api, flags.RoutePrefix, sysLogger)
 	if err != nil {
-		return fmt.Errorf("configure router: %w", err)
+		sysLogger.Error("application failed",
+			"event", "app_failed",
+			"stage", "create_router",
+			"err", err,
+		)
+		return fmt.Errorf("create router: %w", err)
 	}
 	if err := server.Run(ctx, flags.ListenAddr, router, sysLogger); err != nil {
-		return fmt.Errorf("failed to run heartbeats: %w", err)
+		sysLogger.Error("application failed",
+			"event", "app_failed",
+			"stage", "run_server",
+			"err", err,
+		)
+		return fmt.Errorf("run server: %w", err)
 	}
 
 	return nil
