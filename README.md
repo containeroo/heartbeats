@@ -1,6 +1,6 @@
 # Heartbeats
 
-![heartbeats.png](./web/static/icons/apple-touch-icon.png)
+![heartbeats.png](./web/public/apple-touch-icon.png)
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/containeroo/heartbeats?style=flat-square)](https://goreportcard.com/report/github.com/containeroo/heartbeats)
 [![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/containeroo/heartbeats)
