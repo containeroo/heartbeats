@@ -50,7 +50,7 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 			"stage", "parse_flags",
 			"err", err,
 		)
-		return fmt.Errorf("CLI flags error: %w", err)
+		return err
 	}
 
 	sysLogger.Info("Starting heartbeats",
@@ -71,7 +71,7 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 			"stage", "load_config",
 			"err", err,
 		)
-		return fmt.Errorf("load config: %w", err)
+		return err
 	}
 
 	api := handler.NewAPI(
@@ -99,7 +99,7 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 			"stage", "build_manager",
 			"err", err,
 		)
-		return fmt.Errorf("build manager: %w", err)
+		return err
 	}
 	manager.StartAll(ctx)
 
@@ -135,7 +135,7 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 			"stage", "create_router",
 			"err", err,
 		)
-		return fmt.Errorf("create router: %w", err)
+		return err
 	}
 	if err := server.Run(ctx, flags.ListenAddr, router, sysLogger); err != nil {
 		sysLogger.Error("application failed",
@@ -143,7 +143,7 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 			"stage", "run_server",
 			"err", err,
 		)
-		return fmt.Errorf("run server: %w", err)
+		return err
 	}
 
 	return nil

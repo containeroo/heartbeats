@@ -22,14 +22,7 @@ var templatesFS embed.FS
 func main() {
 	ctx := context.Background()
 
-	if err := app.Run(
-		ctx,
-		templatesFS,
-		Version,
-		Commit,
-		os.Args[1:],
-		os.Stdout,
-	); err != nil {
+	if err := app.Run(ctx, templatesFS, Version, Commit, os.Args[1:], os.Stdout); err != nil {
 		os.Exit(1)
 	}
 }
