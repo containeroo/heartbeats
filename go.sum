@@ -6,8 +6,8 @@ github.com/coder/websocket v1.8.14 h1:9L0p0iKiNOibykf283eHkKUHHrpG7f65OE3BhhO7v9
 github.com/coder/websocket v1.8.14/go.mod h1:NX3SzP+inril6yawo5CQXx8+fk145lPDC6pumgx0mVg=
 github.com/containeroo/httpgrace v0.0.1 h1:TeBuTqV8N1bLnQ2uvrvVkrC9TxDeWJ2wXiUdaOAooPk=
 github.com/containeroo/httpgrace v0.0.1/go.mod h1:FDFAWmONVV6nBd7Wqcg2oGM+vKBMjoHo9nSL0QIEcgs=
-github.com/containeroo/tinyflags v0.0.63 h1:q/AU7OusN5/8veoUJ86r+qnfLQSvqV/Is2+7wacQTng=
-github.com/containeroo/tinyflags v0.0.63/go.mod h1:SxHHkI4dTMtsXwhKuw9Q2pCqxoX/ULRwUDteqsfFczM=
+github.com/containeroo/tinyflags v0.0.64 h1:OPQxaBjtS4aSNjjbZ+qs2H7Eyr77Up09M+RNb1fuIIg=
+github.com/containeroo/tinyflags v0.0.64/go.mod h1:SxHHkI4dTMtsXwhKuw9Q2pCqxoX/ULRwUDteqsfFczM=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

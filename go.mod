@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/coder/websocket v1.8.14
 	github.com/containeroo/httpgrace v0.0.1
-	github.com/containeroo/tinyflags v0.0.63
+	github.com/containeroo/tinyflags v0.0.64
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v3 v3.0.1
