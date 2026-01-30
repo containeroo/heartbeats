@@ -10,6 +10,7 @@ import (
 	"testing/fstest"
 
 	"github.com/containeroo/heartbeats/internal/handler"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,6 +28,7 @@ func TestNewRouter(t *testing.T) {
 		Version: "v1.2.3",
 		Commit:  "abc123",
 	}
+	api.SetMetrics(metrics.NewRegistry())
 
 	router, err := NewRouter(webFS, api, "/heartbeats", logger)
 	require.NoError(t, err)

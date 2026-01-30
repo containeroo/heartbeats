@@ -39,6 +39,8 @@ func NewRouter(
 	mux.HandleFunc("GET /healthz", api.Healthz())
 	mux.HandleFunc("POST /healthz", api.Healthz())
 	mux.Handle("POST /-/reload", api.ReloadHandler())
+	mux.Handle("GET /metrics", api.Metrics())
+	mux.Handle("POST /metrics", api.Metrics())
 
 	apiMux := http.NewServeMux()
 	apiMux.Handle("GET /config", api.Config())
