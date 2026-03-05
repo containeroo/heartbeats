@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/coder/websocket v1.8.14
-	github.com/containeroo/httpgrace v0.0.3
+	github.com/containeroo/httpgrace v0.0.4
 	github.com/containeroo/tinyflags v0.0.64
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
@@ -24,6 +24,7 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
+	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 )
