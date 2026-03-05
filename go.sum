@@ -6,6 +6,8 @@ github.com/coder/websocket v1.8.14 h1:9L0p0iKiNOibykf283eHkKUHHrpG7f65OE3BhhO7v9
 github.com/coder/websocket v1.8.14/go.mod h1:NX3SzP+inril6yawo5CQXx8+fk145lPDC6pumgx0mVg=
 github.com/containeroo/httpgrace v0.0.5 h1:9kSvJgCYHx6l/SwDOPhGNVBoBBO56OqMvzVq7LV8G70=
 github.com/containeroo/httpgrace v0.0.5/go.mod h1:fxz9CocSiqeqNpoB/768Bi4xdly7qU7DHoHHL1vRSV8=
+github.com/containeroo/httpprefix v0.0.1 h1:sSPLNYJgoHvhRqKVTadC08aBIV010DQD6hiBGyaE1rA=
+github.com/containeroo/httpprefix v0.0.1/go.mod h1:RUVtNKpy2OZ24ijpBsR3XijBASISwBm22da9j41Y3m8=
 github.com/containeroo/tinyflags v0.0.64 h1:OPQxaBjtS4aSNjjbZ+qs2H7Eyr77Up09M+RNb1fuIIg=
 github.com/containeroo/tinyflags v0.0.64/go.mod h1:SxHHkI4dTMtsXwhKuw9Q2pCqxoX/ULRwUDteqsfFczM=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=

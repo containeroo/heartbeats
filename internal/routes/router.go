@@ -8,6 +8,7 @@ import (
 
 	"github.com/containeroo/heartbeats/internal/handler"
 	"github.com/containeroo/heartbeats/internal/logging"
+	"github.com/containeroo/httpprefix"
 )
 
 // NewRouter builds the HTTP router and applies optional route prefixing.
@@ -66,7 +67,7 @@ func NewRouter(
 			"event", logging.EventRoutesMounted.String(),
 			"prefix", routePrefix,
 		)
-		h = mountUnderPrefix(h, routePrefix)
+		h = httpprefix.MountUnderPrefix(h, routePrefix)
 	}
 
 	h = LoggingMiddleware(api.Logger, h)

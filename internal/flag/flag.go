@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/containeroo/heartbeats/internal/logging"
-	"github.com/containeroo/heartbeats/internal/routes"
 
+	"github.com/containeroo/httpprefix"
 	"github.com/containeroo/tinyflags"
 )
 
@@ -37,7 +37,7 @@ func ParseFlags(args []string, version string) (Options, error) {
 
 	tf.StringVar(&opts.RoutePrefix, "route-prefix", "", "Path prefix to mount the app (e.g., /hiccup). Empty = root.").
 		Finalize(func(input string) string {
-			return routes.NormalizeRoutePrefix(input)
+			return httpprefix.NormalizeRoutePrefix(input)
 		}).
 		Placeholder("PATH").
 		Value()
