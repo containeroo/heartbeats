@@ -8,8 +8,8 @@ github.com/containeroo/httpgrace v0.0.5 h1:9kSvJgCYHx6l/SwDOPhGNVBoBBO56OqMvzVq7
 github.com/containeroo/httpgrace v0.0.5/go.mod h1:fxz9CocSiqeqNpoB/768Bi4xdly7qU7DHoHHL1vRSV8=
 github.com/containeroo/httpprefix v0.0.1 h1:sSPLNYJgoHvhRqKVTadC08aBIV010DQD6hiBGyaE1rA=
 github.com/containeroo/httpprefix v0.0.1/go.mod h1:RUVtNKpy2OZ24ijpBsR3XijBASISwBm22da9j41Y3m8=
-github.com/containeroo/tinyflags v0.0.69 h1:RMduWa9n4EAOWBBYz2Sj05etJkmeMGir5HUElDuRILM=
-github.com/containeroo/tinyflags v0.0.69/go.mod h1:5CGkQy0A+90ubNaEDJanfXOlE4+aYHp4OBwCpXM1yDM=
+github.com/containeroo/tinyflags v0.0.75 h1:S2G/zJu++/u39dSRpbJcEFz0EiGpiKjdWqzq3Tjc4XQ=
+github.com/containeroo/tinyflags v0.0.75/go.mod h1:5CGkQy0A+90ubNaEDJanfXOlE4+aYHp4OBwCpXM1yDM=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
