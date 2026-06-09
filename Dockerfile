@@ -7,7 +7,7 @@ COPY web/ ./
 RUN npm run build
 
 # Prepare writable dirs for distroless runtime
-FROM alpine:3.23 AS prep
+FROM alpine:3.24 AS prep
 RUN mkdir -p /outfs/work /outfs/tmp \
   # Change group ownership of /work and /tmp to GID 0 (root group),
   # because OpenShift assigns containers a random UID but always includes them in group 0.
