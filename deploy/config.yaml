@@ -5,7 +5,7 @@ receivers:
         headers:
           Authorization: Bearer ${HEARTBEATS__SLACK_TOKEN}
         template: slack
-        subject_override_tmpl: "[ {{ toUpper .Status  }}] heartbeat"
+        subject_override_tmpl: "[ {{ upper .Status  }}] heartbeat"
         vars:
           channel: "#test"
     # emails:

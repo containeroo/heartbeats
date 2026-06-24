@@ -65,7 +65,7 @@ receivers:
       headers:
         Authorization: "Bearer YOUR_TOKEN"
       template: templates/default.tmpl
-      subject_override_tmpl: "{{ .Title }} is {{ toUpper .Status }}"
+      subject_override_tmpl: "{{ .Title }} is {{ upper .Status }}"
     email:
       host: smtp.example.com
       port: 587
