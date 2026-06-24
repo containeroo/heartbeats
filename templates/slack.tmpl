@@ -1,29 +1,22 @@
 {{/* Slack webhook payload */}}
+{{- $channel := index .Vars "channel" | default "#test" | withPrefix "#" -}}
+{{- $missingColor := printf "%v" (index .Vars "status_color_missing" | default "#A30200") -}}
+{{- $okColor := printf "%v" (index .Vars "status_color_ok" | default "#2EB67D") -}}
+{{- $color := when (eq .Status "missing") $missingColor $okColor -}}
+{{- $hasSince := ne .Since 0 -}}
+{{- $since := .Since | formatDuration -}}
+{{- $sinceLine := when $hasSince (printf "\nSince: %s" $since) "" -}}
+{{- $lastHeartbeat := when $hasSince $since "now" -}}
 {
-  {{/* Channel: uses vars.channel if set, ensures # prefix */}}
-  "channel": {{ with index .Vars "channel" }}
-    {{ printf "%q" (ensurePrefix "#" .) }}
-  {{ else }}
-    "#test"
-  {{ end }},
-  {{/* Charset included to avoid Slack missing_charset warnings */}}
+  "channel": {{ $channel | json }},
   "charset": "utf-8",
   "attachments": [
     {
-      {{/* Title shown in Slack attachment header */}}
-      "title": "{{ .Subject }}",
-      {{/* Color based on status, override via vars */}}
-      "color": {{ if eq .Status "missing" }}{{ printf "%q" (default "#A30200" (index .Vars "status_color_missing")) }}
-               {{ else }} {{ printf "%q" (default "#2EB67D" (index .Vars "status_color_ok")) }}
-               {{ end }},
-      {{/* Fallback for clients without rich formatting */}}
-      "fallback": "*{{ .Subject }}*{{ if ne .Since 0 }}\nSince: {{ formatDuration .Since }}{{ end }}\nlast heartbeat: {{ if ne .Since 0 }}{{ formatDuration .Since }}{{ else }}now{{ end }}",
+      "title": {{ .Subject | json }},
+      "color": {{ $color | json }},
+      "fallback": {{ print "*" .Subject "*" $sinceLine "\nlast heartbeat: " $lastHeartbeat | json }},
       "mrkdwn_in": ["text"],
-      {{/* Main attachment body */}}
-      "text": "*{{ .Title }} is «{{ .Status }}»*
-                {{ if ne .Since 0 }}\nlast heartbeat: {{ formatDuration .Since }}
-                {{ else }}\nlast heartbeat: now
-                {{ end }}"
+      "text": {{ print "*" .Title " is «" .Status "»*\nlast heartbeat: " $lastHeartbeat | json }}
     }
   ]
 }

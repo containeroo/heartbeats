@@ -1,8 +1,8 @@
 {
-  "title": "{{ .Title }}",
-  "status": "{{ .Status }}",
-  "payload": {{ if .Payload }}"{{ .Payload }}"{{ else }}null{{ end }},
-  "timestamp": "{{ .Timestamp }}",
-  "late_after": "{{ .LateAfter }}",
-  "since": "{{ formatDuration .Since }}"
+  "title": {{ .Title | json }},
+  "status": {{ .Status | json }},
+  "payload": {{ .Payload | default nil | json }},
+  "timestamp": {{ printf "%v" .Timestamp | json }},
+  "late_after": {{ printf "%v" .LateAfter | json }},
+  "since": {{ .Since | formatDuration | json }}
 }

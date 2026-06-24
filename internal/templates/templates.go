@@ -11,7 +11,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/utils"
+	"github.com/containeroo/tmplfuncs"
 )
 
 // Template wraps a parsed text template loaded from disk.
@@ -55,6 +55,7 @@ func LoadFromFS(tmplFS fs.FS, path string) (*Template, error) {
 		return nil, fmt.Errorf("read template: %w", err)
 	}
 	defer file.Close() // nolint:errcheck
+
 	data, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("read template: %w", err)
@@ -68,51 +69,21 @@ func LoadFromFS(tmplFS fs.FS, path string) (*Template, error) {
 
 // FuncMap returns a set of custom template functions for use in notifications.
 func FuncMap() template.FuncMap {
-	return template.FuncMap{
-		"toUpper":    strings.ToUpper,
-		"toLower":    strings.ToLower,
-		"formatTime": func(t time.Time, format string) string { return t.Format(format) },
-		"isRecent":   func(t time.Time) bool { return time.Since(t).Truncate(time.Second).Seconds() < 2 },
-		"formatDuration": func(d time.Duration) string {
-			if d < 0 {
-				d = -d
-			}
-			if d < time.Second {
-				return d.Truncate(time.Millisecond).String()
-			}
-			return d.Truncate(time.Second).String()
-		},
-		"default": func(fallback any, value any) any {
-			if utils.IsZeroValue(value) {
-				return fallback
-			}
-			return value
-		},
-		"coalesce": func(values ...any) any {
-			for _, v := range values {
-				if !utils.IsZeroValue(v) {
-					return v
-				}
-			}
-			return nil
-		},
-		"ensurePrefix": func(prefix, value string) string {
-			if value == "" {
-				return value
-			}
-			if strings.HasPrefix(value, prefix) {
-				return value
-			}
-			return prefix + value
-		},
-		"ago": func(t time.Time) string {
-			if t.IsZero() {
-				return "never"
-			}
-			return time.Since(t).Truncate(time.Second).String()
-		},
-		"join": func(elems []string, sep string) string { return strings.Join(elems, sep) },
-	}
+	funcs := tmplfuncs.FuncMap()
+
+	// Backward-compatible aliases used by existing heartbeat templates.
+	funcs["toUpper"] = tmplfuncs.UpperValue
+	funcs["toLower"] = tmplfuncs.LowerValue
+	funcs["ensurePrefix"] = tmplfuncs.WithPrefixValue
+
+	// Keep helpers with project-specific behavior local.
+	funcs["formatTime"] = formatTime
+	funcs["formatDuration"] = formatDuration
+	funcs["isRecent"] = isRecent
+	funcs["ago"] = ago
+	funcs["join"] = strings.Join
+
+	return funcs
 }
 
 // parseTemplate parses a notification template with the shared FuncMap.
@@ -154,6 +125,7 @@ func LoadStringFromFS(tmplFS fs.FS, path string) (*StringTemplate, error) {
 		return nil, fmt.Errorf("read template: %w", err)
 	}
 	defer file.Close() // nolint:errcheck
+
 	data, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("read template: %w", err)
@@ -177,4 +149,39 @@ func (t *Template) Render(data any) ([]byte, error) {
 		return nil, fmt.Errorf("execute template: %w", err)
 	}
 	return buf.Bytes(), nil
+}
+
+// formatTime formats a time value with a Go layout.
+//
+// The argument order preserves the existing heartbeat template API:
+//
+//	{{ formatTime .Time "2006-01-02 15:04:05 MST" }}
+func formatTime(value any, layout string) (string, error) {
+	return tmplfuncs.FormatTimeValue(layout, value)
+}
+
+// isRecent reports whether t happened less than two seconds ago.
+func isRecent(t time.Time) bool {
+	return time.Since(t).Truncate(time.Second).Seconds() < 2
+}
+
+// formatDuration renders a duration with heartbeat-specific rounding behavior.
+func formatDuration(d time.Duration) string {
+	if d < 0 {
+		d = -d
+	}
+	if d < time.Second {
+		return d.Truncate(time.Millisecond).String()
+	}
+	return d.Truncate(time.Second).String()
+}
+
+// ago renders the duration since t.
+//
+// A zero time is rendered as never.
+func ago(t time.Time) string {
+	if t.IsZero() {
+		return "never"
+	}
+	return time.Since(t).Truncate(time.Second).String()
 }

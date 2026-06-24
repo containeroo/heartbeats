@@ -7,6 +7,7 @@ require (
 	github.com/containeroo/httpgrace v0.1.2
 	github.com/containeroo/httpprefix v0.0.2
 	github.com/containeroo/tinyflags v0.0.79
+	github.com/containeroo/tmplfuncs v0.0.0-20260624142406-968d5442fbec
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v3 v3.0.1
