@@ -1,7 +1,7 @@
 {{/* Slack webhook payload */}}
 {{- $channel := index .Vars "channel" | default "#test" | withPrefix "#" -}}
-{{- $missingColor := printf "%v" (index .Vars "status_color_missing" | default "#A30200") -}}
-{{- $okColor := printf "%v" (index .Vars "status_color_ok" | default "#2EB67D") -}}
+{{- $missingColor := index .Vars "status_color_missing" | default "#A30200" -}}
+{{- $okColor := index .Vars "status_color_ok" | default "#2EB67D" -}}
 {{- $color := when (eq .Status "missing") $missingColor $okColor -}}
 {{- $hasSince := ne .Since 0 -}}
 {{- $since := .Since | formatDuration -}}

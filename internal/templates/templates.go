@@ -67,21 +67,15 @@ func LoadFromFS(tmplFS fs.FS, path string) (*Template, error) {
 	return &Template{tmpl: parsed}, nil
 }
 
-// FuncMap returns a set of custom template functions for use in notifications.
+// FuncMap returns template helper functions.
 func FuncMap() template.FuncMap {
 	funcs := tmplfuncs.FuncMap()
 
-	// Backward-compatible aliases used by existing heartbeat templates.
-	funcs["toUpper"] = tmplfuncs.UpperValue
-	funcs["toLower"] = tmplfuncs.LowerValue
-	funcs["ensurePrefix"] = tmplfuncs.WithPrefixValue
-
 	// Keep helpers with project-specific behavior local.
-	funcs["formatTime"] = formatTime
 	funcs["formatDuration"] = formatDuration
 	funcs["isRecent"] = isRecent
 	funcs["ago"] = ago
-	funcs["join"] = strings.Join
+	funcs["join"] = join
 
 	return funcs
 }
@@ -151,15 +145,6 @@ func (t *Template) Render(data any) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// formatTime formats a time value with a Go layout.
-//
-// The argument order preserves the existing heartbeat template API:
-//
-//	{{ formatTime .Time "2006-01-02 15:04:05 MST" }}
-func formatTime(value any, layout string) (string, error) {
-	return tmplfuncs.FormatTimeValue(layout, value)
-}
-
 // isRecent reports whether t happened less than two seconds ago.
 func isRecent(t time.Time) bool {
 	return time.Since(t).Truncate(time.Second).Seconds() < 2
@@ -184,4 +169,13 @@ func ago(t time.Time) string {
 		return "never"
 	}
 	return time.Since(t).Truncate(time.Second).String()
+}
+
+// join combines elems with sep.
+//
+// The argument order supports pipeline usage:
+//
+//	{{ .Tags | join "," }}
+func join(sep string, elems []string) string {
+	return strings.Join(elems, sep)
 }
