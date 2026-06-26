@@ -7,10 +7,12 @@ import (
 	"strings"
 	"time"
 
+	kit "github.com/containeroo/notifykit/notify"
+	"github.com/containeroo/notifykit/targets/email"
+	"github.com/containeroo/notifykit/targets/webhook"
+
 	htypes "github.com/containeroo/heartbeats/internal/heartbeat/types"
 	"github.com/containeroo/heartbeats/internal/history"
-	"github.com/containeroo/heartbeats/internal/notify/targets"
-	ntypes "github.com/containeroo/heartbeats/internal/notify/types"
 	"github.com/containeroo/heartbeats/internal/runner"
 )
 
@@ -23,7 +25,7 @@ type Store interface {
 
 // ReceiverStore provides receiver configuration access.
 type ReceiverStore interface {
-	Receivers() []*ntypes.Receiver
+	Receivers() []*kit.Receiver
 }
 
 type Service struct {
@@ -178,6 +180,7 @@ func (s *Service) ReceiverSummaries() []ReceiverSummary {
 	}
 	statusIndex := receiverHistoryIndex(s.history)
 	receivers := s.receivers.Receivers()
+	seen := make(map[string]struct{})
 	out := make([]ReceiverSummary, 0)
 	for _, rcv := range receivers {
 		if rcv == nil {
@@ -188,12 +191,18 @@ func (s *Service) ReceiverSummaries() []ReceiverSummary {
 				continue
 			}
 			dest := targetDestination(target)
+			typeName := targetType(target)
+			key := receiverStatusKey(rcv.Name, typeName, dest)
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
 			summary := ReceiverSummary{
 				ID:          rcv.Name,
-				Type:        target.Type(),
+				Type:        typeName,
 				Destination: dest,
 			}
-			if status, ok := statusIndex[receiverStatusKey(rcv.Name, target.Type(), dest)]; ok {
+			if status, ok := statusIndex[key]; ok {
 				if !status.time.IsZero() {
 					summary.LastSent = status.time.UTC().Format(time.RFC3339Nano)
 				}
@@ -214,7 +223,7 @@ func (s *Service) ReceiverSummaries() []ReceiverSummary {
 }
 
 // ReceiverSummaryByKey returns a receiver summary by receiver/type/target.
-func (s *Service) ReceiverSummaryByKey(receiver, targetType, target string) (ReceiverSummary, bool) {
+func (s *Service) ReceiverSummaryByKey(receiver, targetTypeName, target string) (ReceiverSummary, bool) {
 	if s == nil || s.receivers == nil {
 		return ReceiverSummary{}, false
 	}
@@ -229,15 +238,16 @@ func (s *Service) ReceiverSummaryByKey(receiver, targetType, target string) (Rec
 				continue
 			}
 			dest := targetDestination(t)
-			if t.Type() != targetType || dest != target {
+			typeName := targetType(t)
+			if typeName != targetTypeName || dest != target {
 				continue
 			}
 			summary := ReceiverSummary{
 				ID:          rcv.Name,
-				Type:        t.Type(),
+				Type:        typeName,
 				Destination: dest,
 			}
-			if status, ok := statusIndex[receiverStatusKey(rcv.Name, t.Type(), dest)]; ok {
+			if status, ok := statusIndex[receiverStatusKey(rcv.Name, typeName, dest)]; ok {
 				if !status.time.IsZero() {
 					summary.LastSent = status.time.UTC().Format(time.RFC3339Nano)
 				}
@@ -303,14 +313,29 @@ func (s *Service) recordHeartbeatReceived(id string, now time.Time, payloadBytes
 	})
 }
 
-func targetDestination(target ntypes.Target) string {
+func targetDestination(target kit.Target) string {
 	switch t := target.(type) {
-	case *targets.WebhookTarget:
+	case *webhook.Target:
 		return t.URL
-	case *targets.EmailTarget:
+	case *email.Target:
 		return strings.Join(t.To, ", ")
 	default:
 		return ""
+	}
+}
+
+func targetType(target kit.Target) string {
+	switch target.(type) {
+	case *webhook.Target:
+		return "webhook"
+	case *email.Target:
+		return "email"
+	default:
+		typed, ok := target.(interface{ Type() string })
+		if ok {
+			return typed.Type()
+		}
+		return "unknown"
 	}
 }
 

@@ -3,12 +3,12 @@ package manager
 import (
 	"context"
 	"errors"
-	"fmt"
-	"io/fs"
 	"log/slog"
 	"reflect"
 	"strings"
 	"sync"
+
+	kit "github.com/containeroo/notifykit/notify"
 
 	"github.com/containeroo/heartbeats/internal/config"
 	"github.com/containeroo/heartbeats/internal/heartbeat/sender"
@@ -16,38 +16,28 @@ import (
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/internal/metrics"
-	ntypes "github.com/containeroo/heartbeats/internal/notify/types"
+	"github.com/containeroo/heartbeats/internal/notify"
 	"github.com/containeroo/heartbeats/internal/runner"
-	"github.com/containeroo/heartbeats/internal/templates"
 	"github.com/containeroo/heartbeats/internal/utils"
 )
-
-var builtinWebhookTemplates = map[string]string{
-	"default": "templates/default.tmpl",
-	"slack":   "templates/slack.tmpl",
-}
-
-var builtinEmailTemplates = map[string]string{
-	"default": "templates/email.tmpl",
-	"email":   "templates/email.tmpl",
-}
 
 // Manager owns the configured heartbeats and notification mailbox.
 type Manager struct {
 	mu         sync.RWMutex
 	heartbeats map[string]*htypes.Heartbeat
 	cancels    map[string]context.CancelFunc
-	notifier   ntypes.Notifier
+	notifier   kit.Notifier
 	history    history.Recorder
 	logger     *slog.Logger
 	metrics    *metrics.Registry
+	routes     notify.ReceiverRoutes
 }
 
-// NewManager builds a Manager from config and templates.
+// NewManager builds a Manager from config.
 func NewManager(
 	cfg *config.Config,
-	templateFS fs.FS,
-	notifier ntypes.Notifier,
+	notifier kit.Notifier,
+	routes notify.ReceiverRoutes,
 	historyStore history.Recorder,
 	metricsReg *metrics.Registry,
 	logger *slog.Logger,
@@ -56,10 +46,7 @@ func NewManager(
 		return nil, errors.New("config is nil")
 	}
 
-	heartbeatMap, err := buildHeartbeatMap(cfg, templateFS, notifier, logger, nil)
-	if err != nil {
-		return nil, err
-	}
+	heartbeatMap := buildHeartbeatMap(cfg, routes, nil)
 
 	return &Manager{
 		heartbeats: heartbeatMap,
@@ -68,6 +55,7 @@ func NewManager(
 		history:    historyStore,
 		logger:     logger,
 		metrics:    metricsReg,
+		routes:     routes,
 	}, nil
 }
 
@@ -133,8 +121,8 @@ type ReloadResult struct {
 	Removed int
 }
 
-// Reload rebuilds heartbeat runners and receiver registrations.
-func (m *Manager) Reload(ctx context.Context, cfg *config.Config, templateFS fs.FS) (ReloadResult, error) {
+// Reload rebuilds heartbeat runners and receiver routes.
+func (m *Manager) Reload(ctx context.Context, cfg *config.Config, routes notify.ReceiverRoutes) (ReloadResult, error) {
 	if m == nil {
 		return ReloadResult{}, errors.New("manager is nil")
 	}
@@ -153,27 +141,20 @@ func (m *Manager) Reload(ctx context.Context, cfg *config.Config, templateFS fs.
 	}
 	m.mu.RUnlock()
 
-	if resetter, ok := m.notifier.(interface{ ResetRegistries() }); ok {
-		resetter.ResetRegistries()
-	}
-
-	nextMap, err := buildHeartbeatMap(cfg, templateFS, m.notifier, m.logger, oldStates)
-	if err != nil {
-		return ReloadResult{}, err
-	}
-
+	nextMap := buildHeartbeatMap(cfg, routes, oldStates)
 	result := diffHeartbeatSets(oldSnapshot, nextMap)
 
 	m.StopAll()
 	m.mu.Lock()
 	m.heartbeats = nextMap
+	m.routes = routes
 	m.mu.Unlock()
 	m.StartAll(ctx)
 
 	return result, nil
 }
 
-// startHeartbeat
+// startHeartbeat starts a single heartbeat runner.
 func (m *Manager) startHeartbeat(ctx context.Context, hb *htypes.Heartbeat) {
 	if hb == nil {
 		return
@@ -211,52 +192,16 @@ func (m *Manager) startHeartbeat(ctx context.Context, hb *htypes.Heartbeat) {
 // buildHeartbeatMap builds a map of heartbeats from config.
 func buildHeartbeatMap(
 	cfg *config.Config,
-	templateFS fs.FS,
-	notifier ntypes.Notifier,
-	logger *slog.Logger,
+	routes notify.ReceiverRoutes,
 	states map[string]*runner.State,
-) (map[string]*htypes.Heartbeat, error) {
-	defaultWebhookTmpl, err := templates.LoadDefault(templateFS)
-	if err != nil {
-		return nil, fmt.Errorf("load default template: %w", err)
-	}
-	defaultTitleTmpl, err := templates.LoadStringFromFS(templateFS, "templates/title.tmpl")
-	if err != nil {
-		return nil, fmt.Errorf("load default title template: %w", err)
-	}
-	defaultEmailTmpl, err := templates.LoadStringFromFS(templateFS, "templates/email.tmpl")
-	if err != nil {
-		return nil, fmt.Errorf("load default email template: %w", err)
-	}
-
+) map[string]*htypes.Heartbeat {
 	heartbeatMap := make(map[string]*htypes.Heartbeat, len(cfg.Heartbeats))
 	for id, sc := range cfg.Heartbeats {
 		title := strings.TrimSpace(sc.Title)
 		if title == "" {
 			title = id
 		}
-		receiverMap, receiverNames, err := buildReceivers(
-			cfg,
-			sc,
-			defaultWebhookTmpl,
-			defaultTitleTmpl,
-			defaultEmailTmpl,
-			templateFS,
-			logger,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("heartbeat %q receivers: %w", id, err)
-		}
-		if registry, ok := notifier.(ntypes.ReceiverRegistry); ok {
-			registry.Register(id, receiverMap)
-		}
-		if registry, ok := notifier.(ntypes.HeartbeatRegistry); ok {
-			registry.RegisterHeartbeat(id, ntypes.HeartbeatMeta{
-				Title:     title,
-				Interval:  sc.Interval,
-				LateAfter: sc.LateAfter,
-			})
-		}
+
 		state := runner.NewState()
 		if states != nil {
 			if existing := states[id]; existing != nil {
@@ -267,17 +212,18 @@ func buildHeartbeatMap(
 			ID:              id,
 			Title:           title,
 			Config:          sc,
-			Receivers:       receiverNames,
+			Receivers:       append([]string(nil), sc.Receivers...),
+			ReceiverIDs:     routes.ReceiverIDs(id),
 			State:           state,
 			AlertOnLate:     *utils.DefaultIfZero(sc.AlertOnLate, utils.ToPtr(false)),
 			AlertOnRecovery: *utils.DefaultIfZero(sc.AlertOnRecovery, utils.ToPtr(true)),
 		}
 	}
 
-	return heartbeatMap, nil
+	return heartbeatMap
 }
 
-// diffHeartbeatSets compares two heartbeat sets and returns
+// diffHeartbeatSets compares two heartbeat sets.
 func diffHeartbeatSets(
 	oldSet map[string]*htypes.Heartbeat,
 	newSet map[string]*htypes.Heartbeat,
@@ -316,6 +262,9 @@ func heartbeatChanged(prev, next *htypes.Heartbeat) bool {
 		return true
 	}
 	if !reflect.DeepEqual(prev.Receivers, next.Receivers) {
+		return true
+	}
+	if !reflect.DeepEqual(prev.ReceiverIDs, next.ReceiverIDs) {
 		return true
 	}
 	return false

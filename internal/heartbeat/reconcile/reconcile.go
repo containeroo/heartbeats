@@ -8,8 +8,11 @@ import (
 	"os"
 	"sync"
 
+	kit "github.com/containeroo/notifykit/notify"
+
 	"github.com/containeroo/heartbeats/internal/config"
 	"github.com/containeroo/heartbeats/internal/heartbeat/manager"
+	"github.com/containeroo/heartbeats/internal/notify"
 )
 
 // Reload loads, validates, and applies the config to the manager.
@@ -17,6 +20,8 @@ func Reload(
 	ctx context.Context,
 	filePath string,
 	templateFS fs.FS,
+	receivers kit.Receivers,
+	routes notify.ReceiverRoutes,
 	opts config.LoadOptions,
 	logger *slog.Logger,
 	mgr *manager.Manager,
@@ -25,7 +30,13 @@ func Reload(
 	if err != nil {
 		return manager.ReloadResult{}, fmt.Errorf("failed to load config: %w", err)
 	}
-	res, err := mgr.Reload(ctx, cfg, templateFS)
+	nextReceivers, nextRoutes, err := notify.ReceiversFromConfig(templateFS, cfg, logger)
+	if err != nil {
+		return manager.ReloadResult{}, fmt.Errorf("build receivers: %w", err)
+	}
+	notify.ReplaceReceivers(receivers, nextReceivers)
+	notify.ReplaceRoutes(routes, nextRoutes)
+	res, err := mgr.Reload(ctx, cfg, routes)
 	if err != nil {
 		return res, err
 	}
@@ -37,6 +48,8 @@ func NewReloadFunc(
 	ctx context.Context,
 	filePath string,
 	templateFS fs.FS,
+	receivers kit.Receivers,
+	routes notify.ReceiverRoutes,
 	opts config.LoadOptions,
 	logger *slog.Logger,
 	mgr *manager.Manager,
@@ -46,7 +59,7 @@ func NewReloadFunc(
 		reloadMu.Lock()
 		defer reloadMu.Unlock()
 
-		res, err := Reload(ctx, filePath, templateFS, opts, logger, mgr)
+		res, err := Reload(ctx, filePath, templateFS, receivers, routes, opts, logger, mgr)
 		if err != nil {
 			return err
 		}

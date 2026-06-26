@@ -2,52 +2,56 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/config"
-	"github.com/containeroo/heartbeats/internal/heartbeat/manager"
 	"github.com/containeroo/heartbeats/internal/heartbeat/service"
 	"github.com/stretchr/testify/assert"
 )
 
+type fakeStatusService struct {
+	statuses []service.Status
+}
+
+func (f fakeStatusService) HeartbeatSummaries() []service.HeartbeatSummary {
+	return nil
+}
+
+func (f fakeStatusService) ReceiverSummaries() []service.ReceiverSummary {
+	return nil
+}
+
+func (f fakeStatusService) Update(id string, payload string, now time.Time) error {
+	return nil
+}
+
+func (f fakeStatusService) StatusAll() []service.Status {
+	return f.statuses
+}
+
+func (f fakeStatusService) StatusByID(id string) (service.Status, error) {
+	for _, status := range f.statuses {
+		if status.ID == id {
+			return status, nil
+		}
+	}
+	return service.Status{}, fmt.Errorf("heartbeat %q not found", id)
+}
+
 func TestStatusAll(t *testing.T) {
 	t.Parallel()
-
-	cfg := config.Config{
-		Receivers: map[string]config.ReceiverConfig{
-			"ops": {
-				Webhooks: []config.WebhookConfig{
-					{
-						URL:      "https://example.com",
-						Template: "default",
-					},
-				},
-			},
-		},
-		Heartbeats: map[string]config.HeartbeatConfig{
-			"foo": {
-				Interval:  time.Second,
-				LateAfter: time.Second,
-				Receivers: []string{"ops"},
-			},
-		},
-	}
 
 	t.Run("found", func(t *testing.T) {
 		t.Parallel()
 
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-		mgr, err := manager.NewManager(&cfg, os.DirFS("../.."), nil, nil, nil, logger)
-		assert.NoError(t, err)
-		svc := service.NewService(mgr, nil, nil)
 		api := NewAPI("test", "test", "http://example.com", logger)
-		api.SetService(svc)
+		api.SetService(fakeStatusService{statuses: []service.Status{{ID: "foo"}}})
 
 		handler := api.StatusAll()
 		req := httptest.NewRequest("GET", "/status", nil)
@@ -65,40 +69,17 @@ func TestStatusAll(t *testing.T) {
 func TestStatusByID(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Config{
-		Receivers: map[string]config.ReceiverConfig{
-			"ops": {
-				Webhooks: []config.WebhookConfig{
-					{
-						URL:      "https://example.com",
-						Template: "default",
-					},
-				},
-			},
-		},
-		Heartbeats: map[string]config.HeartbeatConfig{
-			"foo": {
-				Interval:  time.Second,
-				LateAfter: time.Second,
-				Receivers: []string{"ops"},
-			},
-		},
-	}
-
 	t.Run("found", func(t *testing.T) {
 		t.Parallel()
 
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-		mgr, err := manager.NewManager(&cfg, os.DirFS("../.."), nil, nil, nil, logger)
-		assert.NoError(t, err)
-		svc := service.NewService(mgr, nil, nil)
 		api := NewAPI(
 			"test",
 			"test",
 			"http://example.com",
 			logger,
 		)
-		api.SetService(svc)
+		api.SetService(fakeStatusService{statuses: []service.Status{{ID: "foo"}}})
 
 		mux := http.NewServeMux()
 		mux.HandleFunc("/status/{id}", api.Status())
@@ -117,16 +98,13 @@ func TestStatusByID(t *testing.T) {
 		t.Parallel()
 
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-		mgr, err := manager.NewManager(&cfg, os.DirFS("../.."), nil, nil, nil, logger)
-		assert.NoError(t, err)
-		svc := service.NewService(mgr, nil, nil)
 		api := NewAPI(
 			"test",
 			"test",
 			"http://example.com",
 			logger,
 		)
-		api.SetService(svc)
+		api.SetService(fakeStatusService{statuses: []service.Status{{ID: "foo"}}})
 
 		mux := http.NewServeMux()
 		mux.HandleFunc("/status/{id}", api.Status())

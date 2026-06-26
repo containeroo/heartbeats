@@ -14,7 +14,7 @@ func TestAsyncRecorderSubscribeAndCancel(t *testing.T) {
 	store := NewStore(4)
 	logger := slog.New(slog.NewJSONHandler(io.Discard, nil))
 	rec := NewAsyncRecorder(store, logger, 2)
-	ctx, cancel := context.WithCancel(t.Context())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	rec.Start(ctx)
 

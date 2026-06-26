@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
+	kit "github.com/containeroo/notifykit/notify"
+	"github.com/containeroo/notifykit/targets/webhook"
+	"github.com/stretchr/testify/require"
+
 	"github.com/containeroo/heartbeats/internal/config"
 	"github.com/containeroo/heartbeats/internal/heartbeat/types"
 	"github.com/containeroo/heartbeats/internal/history"
-	"github.com/containeroo/heartbeats/internal/notify/targets"
-	ntypes "github.com/containeroo/heartbeats/internal/notify/types"
 	"github.com/containeroo/heartbeats/internal/runner"
-	"github.com/stretchr/testify/require"
 )
 
 type fakeStore struct {
@@ -65,11 +66,11 @@ func newHeartbeat(t *testing.T, id string, interval, lateAfter time.Duration, st
 
 func newReceiverStore() ReceiverStore {
 	return &fakeReceiverStore{
-		receivers: []*ntypes.Receiver{
+		receivers: []*kit.Receiver{
 			{
 				Name: "ops",
-				Targets: []ntypes.Target{
-					&targets.WebhookTarget{URL: "https://example.com"},
+				Targets: []kit.Target{
+					&webhook.Target{URL: "https://example.com"},
 				},
 			},
 		},
@@ -77,10 +78,10 @@ func newReceiverStore() ReceiverStore {
 }
 
 type fakeReceiverStore struct {
-	receivers []*ntypes.Receiver
+	receivers []*kit.Receiver
 }
 
-func (f *fakeReceiverStore) Receivers() []*ntypes.Receiver { return f.receivers }
+func (f *fakeReceiverStore) Receivers() []*kit.Receiver { return f.receivers }
 
 func newTestService(t *testing.T) (*Service, *fakeStore, *history.Store) {
 	t.Helper()
@@ -145,7 +146,7 @@ func TestReceiverSummaries(t *testing.T) {
 	svc, _, hist := newTestService(t)
 	failed := history.Event{
 		Receiver:   "ops",
-		TargetType: ntypes.TargetWebhook.String(),
+		TargetType: "webhook",
 		Fields: map[string]any{
 			"target": "https://example.com",
 		},
@@ -161,7 +162,7 @@ func TestReceiverSummaries(t *testing.T) {
 	require.Equal(t, "https://example.com", summaries[0].Destination)
 	require.Equal(t, "boom", summaries[0].LastErr)
 
-	receiver, ok := svc.ReceiverSummaryByKey("ops", ntypes.TargetWebhook.String(), "https://example.com")
+	receiver, ok := svc.ReceiverSummaryByKey("ops", "webhook", "https://example.com")
 	require.True(t, ok)
 	require.Equal(t, "ops", receiver.ID)
 }

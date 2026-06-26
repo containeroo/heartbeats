@@ -5,14 +5,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/containeroo/heartbeats/internal/config"
-	"github.com/containeroo/heartbeats/internal/heartbeat/manager"
-	"github.com/containeroo/heartbeats/internal/heartbeat/service"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,36 +16,12 @@ import (
 func TestHistoryList(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Config{
-		Receivers: map[string]config.ReceiverConfig{
-			"ops": {
-				Webhooks: []config.WebhookConfig{
-					{
-						URL:      "https://example.com",
-						Template: "default",
-					},
-				},
-			},
-		},
-		Heartbeats: map[string]config.HeartbeatConfig{
-			"foo": {
-				Interval:  time.Second,
-				LateAfter: time.Second,
-				Receivers: []string{"ops"},
-			},
-		},
-	}
-
 	t.Run("found", func(t *testing.T) {
 		t.Parallel()
 
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewStore(10)
-		mgr, err := manager.NewManager(&cfg, os.DirFS("../.."), nil, hist, nil, logger)
-		assert.NoError(t, err)
-		svc := service.NewService(mgr, nil, hist)
 		api := NewAPI("test", "test", "http://example.com", logger)
-		api.SetService(svc)
 		api.SetHistory(hist)
 
 		hist.Add(history.Event{
@@ -79,41 +51,17 @@ func TestHistoryList(t *testing.T) {
 func TestHistoryListByID(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Config{
-		Receivers: map[string]config.ReceiverConfig{
-			"ops": {
-				Webhooks: []config.WebhookConfig{
-					{
-						URL:      "https://example.com",
-						Template: "default",
-					},
-				},
-			},
-		},
-		Heartbeats: map[string]config.HeartbeatConfig{
-			"foo": {
-				Interval:  time.Second,
-				LateAfter: time.Second,
-				Receivers: []string{"ops"},
-			},
-		},
-	}
-
 	t.Run("found", func(t *testing.T) {
 		t.Parallel()
 
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
 		hist := history.NewStore(10)
-		mgr, err := manager.NewManager(&cfg, os.DirFS("../.."), nil, hist, nil, logger)
-		assert.NoError(t, err)
-		svc := service.NewService(mgr, nil, hist)
 		api := NewAPI(
 			"test",
 			"test",
 			"http://example.com",
 			logger,
 		)
-		api.SetService(svc)
 		api.SetHistory(hist)
 
 		hist.Add(history.Event{
@@ -145,16 +93,12 @@ func TestHistoryListByID(t *testing.T) {
 		t.Parallel()
 
 		logger := slog.New(slog.NewTextHandler(&strings.Builder{}, nil))
-		mgr, err := manager.NewManager(&cfg, os.DirFS("../.."), nil, nil, nil, logger)
-		assert.NoError(t, err)
-		svc := service.NewService(mgr, nil, history.NewStore(1))
 		api := NewAPI(
 			"test",
 			"test",
 			"http://example.com",
 			logger,
 		)
-		api.SetService(svc)
 		api.SetHistory(history.NewStore(1))
 
 		mux := http.NewServeMux()

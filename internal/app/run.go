@@ -18,11 +18,12 @@ import (
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/logging"
 	"github.com/containeroo/heartbeats/internal/metrics"
-	"github.com/containeroo/heartbeats/internal/notify/dispatch"
+	appnotify "github.com/containeroo/heartbeats/internal/notify"
 	"github.com/containeroo/heartbeats/internal/routes"
 	"github.com/containeroo/heartbeats/internal/ws"
 
 	"github.com/containeroo/httpgrace/server"
+	kit "github.com/containeroo/notifykit/notify"
 	"github.com/containeroo/tinyflags"
 )
 
@@ -89,10 +90,44 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 	historyRecorder.Start(ctx)
 	api.SetHistory(historyRecorder)
 
-	notifyManager := dispatch.NewManager(businessLogger, historyRecorder, metricsReg)
-	notifyManager.Start(ctx)
+	templateFS, err := fs.Sub(appFS, "templates")
+	if err != nil {
+		sysLogger.Error("application failed",
+			"event", "app_failed",
+			"stage", "load_templates",
+			"err", err,
+		)
+		return err
+	}
 
-	manager, err := manager.NewManager(cfg, appFS, notifyManager, historyRecorder, metricsReg, businessLogger)
+	receivers, receiverRoutes, err := appnotify.ReceiversFromConfig(templateFS, cfg, businessLogger)
+	if err != nil {
+		sysLogger.Error("application failed",
+			"event", "app_failed",
+			"stage", "build_receivers",
+			"err", err,
+		)
+		return err
+	}
+	notifyManager, err := kit.NewManager(receivers, businessLogger)
+	if err != nil {
+		sysLogger.Error("application failed",
+			"event", "app_failed",
+			"stage", "build_notify_manager",
+			"err", err,
+		)
+		return err
+	}
+	if err := notifyManager.Start(ctx); err != nil {
+		sysLogger.Error("application failed",
+			"event", "app_failed",
+			"stage", "start_notify_manager",
+			"err", err,
+		)
+		return err
+	}
+
+	manager, err := manager.NewManager(cfg, notifyManager, receiverRoutes, historyRecorder, metricsReg, businessLogger)
 	if err != nil {
 		sysLogger.Error("application failed",
 			"event", "app_failed",
@@ -109,7 +144,9 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 	reloadConfigFn := reconcile.NewReloadFunc(
 		ctx,
 		flags.ConfigPath,
-		appFS,
+		templateFS,
+		receivers,
+		receiverRoutes,
 		config.LoadOptions{StrictEnv: flags.StrictEnv},
 		sysLogger,
 		manager,

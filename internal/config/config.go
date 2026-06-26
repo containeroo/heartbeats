@@ -1,6 +1,10 @@
 package config
 
-import "time"
+import (
+	"time"
+
+	"github.com/containeroo/notifykit/targets/webhook"
+)
 
 // Config defines the YAML configuration structure.
 type Config struct {
@@ -19,25 +23,31 @@ type ReceiverConfig struct {
 
 // WebhookConfig configures webhook delivery.
 type WebhookConfig struct {
-	URL         string            `yaml:"url"`                             // Destination URL.
-	Headers     map[string]string `yaml:"headers,omitempty"`               // Optional headers.
-	Template    string            `yaml:"template,omitempty"`              // Webhook payload template path.
-	SubjectTmpl string            `yaml:"subject_override_tmpl,omitempty"` // Subject template override.
+	URL                string              `yaml:"url"`                             // Destination URL.
+	Method             string              `yaml:"method,omitempty"`                // HTTP method.
+	Headers            map[string]string   `yaml:"headers,omitempty"`               // Optional headers.
+	Timeout            time.Duration       `yaml:"timeout,omitempty"`               // HTTP timeout.
+	InsecureSkipVerify bool                `yaml:"insecure_skip_verify,omitempty"`  // Skip TLS certificate verification.
+	Template           string              `yaml:"template,omitempty"`              // Webhook payload template path.
+	SubjectTmpl        string              `yaml:"subject_override_tmpl,omitempty"` // Subject template override.
+	LogResponse        webhook.LogResponse `yaml:"log_response,omitempty"`          // Successful response logging mode.
+	ResponseBodyLimit  int                 `yaml:"response_body_limit,omitempty"`   // Maximum response body bytes to read.
 }
 
 // EmailConfig configures SMTP delivery.
 type EmailConfig struct {
-	Host               string   `yaml:"host"`                            // SMTP host.
-	Port               int      `yaml:"port"`                            // SMTP port.
-	User               string   `yaml:"user,omitempty"`                  // SMTP user.
-	Pass               string   `yaml:"pass,omitempty"`                  // SMTP password.
-	From               string   `yaml:"from"`                            // Sender address.
-	To                 []string `yaml:"to"`                              // Recipient list.
-	StartTLS           bool     `yaml:"starttls"`                        // Enable STARTTLS.
-	SSL                bool     `yaml:"ssl"`                             // Use implicit TLS.
-	InsecureSkipVerify bool     `yaml:"insecure_skip_verify"`            // Skip TLS verification.
-	Template           string   `yaml:"template,omitempty"`              // Email body template path.
-	SubjectTmpl        string   `yaml:"subject_override_tmpl,omitempty"` // Email subject template override.
+	Host               string            `yaml:"host"`                            // SMTP host.
+	Port               int               `yaml:"port"`                            // SMTP port.
+	User               string            `yaml:"user,omitempty"`                  // SMTP user.
+	Pass               string            `yaml:"pass,omitempty"`                  // SMTP password.
+	From               string            `yaml:"from"`                            // Sender address.
+	To                 []string          `yaml:"to"`                              // Recipient list.
+	Headers            map[string]string `yaml:"headers,omitempty"`               // Optional email headers.
+	StartTLS           bool              `yaml:"starttls"`                        // Enable STARTTLS.
+	SSL                bool              `yaml:"ssl"`                             // Use implicit TLS.
+	InsecureSkipVerify bool              `yaml:"insecure_skip_verify"`            // Skip TLS verification.
+	Template           string            `yaml:"template,omitempty"`              // Email body template path.
+	SubjectTmpl        string            `yaml:"subject_override_tmpl,omitempty"` // Email subject template override.
 }
 
 // RetryConfig defines retry behavior for a receiver.

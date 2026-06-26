@@ -2,49 +2,58 @@ package sender
 
 import (
 	"bytes"
+	"context"
 	"log/slog"
 	"testing"
 	"time"
 
+	kit "github.com/containeroo/notifykit/notify"
+	"github.com/stretchr/testify/require"
+
 	"github.com/containeroo/heartbeats/internal/heartbeat/types"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/metrics"
-	ntypes "github.com/containeroo/heartbeats/internal/notify/types"
+	appnotify "github.com/containeroo/heartbeats/internal/notify"
 	"github.com/containeroo/heartbeats/internal/runner"
-	"github.com/stretchr/testify/require"
 )
 
 type captureNotifier struct {
-	events []ntypes.Notification
+	events []*appnotify.Event
 }
 
-func (c *captureNotifier) Enqueue(n ntypes.Notification) string {
-	c.events = append(c.events, n)
-	return "ok"
+func (c *captureNotifier) Enqueue(_ context.Context, n kit.Notification) (string, error) {
+	event, ok := n.(*appnotify.Event)
+	if ok {
+		c.events = append(c.events, event)
+	}
+	return n.ID(), nil
 }
 
 func TestHeartbeatSenderMissingEnqueuesNotification(t *testing.T) {
 	t.Parallel()
 
 	hb := &types.Heartbeat{
-		ID:        "api",
-		Receivers: []string{"ops"},
+		ID:          "api",
+		Title:       "API",
+		Receivers:   []string{"ops"},
+		ReceiverIDs: []kit.ReceiverID{"heartbeat.api.receiver.ops"},
 	}
 	sender, notifier, _, _ := newTestSender(t, hb)
 
 	sender.Missing(time.Now(), time.Second, "payload")
 
 	require.Len(t, notifier.events, 1)
-	require.Equal(t, "missing", notifier.events[0].Status())
-	require.Equal(t, "api", notifier.events[0].HeartbeatID())
+	require.Equal(t, "missing", notifier.events[0].StatusValue)
+	require.Equal(t, "api", notifier.events[0].Heartbeat)
 }
 
 func TestHeartbeatSenderLateTrailer(t *testing.T) {
 	t.Parallel()
 
 	baseHeartbeat := &types.Heartbeat{
-		ID:        "api",
-		Receivers: []string{"ops"},
+		ID:          "api",
+		Receivers:   []string{"ops"},
+		ReceiverIDs: []kit.ReceiverID{"heartbeat.api.receiver.ops"},
 	}
 
 	t.Run("suppressed when alert off", func(t *testing.T) {
@@ -63,7 +72,7 @@ func TestHeartbeatSenderLateTrailer(t *testing.T) {
 		sender, notifier, _, _ := newTestSender(t, &hb)
 		sender.Late(time.Now(), time.Second, "payload")
 		require.Len(t, notifier.events, 1)
-		require.Equal(t, "late", notifier.events[0].Status())
+		require.Equal(t, "late", notifier.events[0].StatusValue)
 	})
 }
 
@@ -71,8 +80,9 @@ func TestHeartbeatSenderRecovered(t *testing.T) {
 	t.Parallel()
 
 	baseHeartbeat := &types.Heartbeat{
-		ID:        "api",
-		Receivers: []string{"ops"},
+		ID:          "api",
+		Receivers:   []string{"ops"},
+		ReceiverIDs: []kit.ReceiverID{"heartbeat.api.receiver.ops"},
 	}
 
 	t.Run("suppressed when recovery disabled", func(t *testing.T) {
@@ -91,7 +101,7 @@ func TestHeartbeatSenderRecovered(t *testing.T) {
 		sender, notifier, _, _ := newTestSender(t, &hb)
 		sender.Recovered(time.Now(), "payload")
 		require.Len(t, notifier.events, 1)
-		require.Equal(t, "recovered", notifier.events[0].Status())
+		require.Equal(t, "recovered", notifier.events[0].StatusValue)
 	})
 }
 

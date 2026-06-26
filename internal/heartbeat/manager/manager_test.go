@@ -4,32 +4,33 @@ import (
 	"context"
 	"io"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
+
+	kit "github.com/containeroo/notifykit/notify"
+	"github.com/stretchr/testify/require"
 
 	"github.com/containeroo/heartbeats/internal/config"
 	"github.com/containeroo/heartbeats/internal/heartbeat/types"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/metrics"
-	ntypes "github.com/containeroo/heartbeats/internal/notify/types"
-	"github.com/stretchr/testify/require"
+	"github.com/containeroo/heartbeats/internal/notify"
 )
 
 type noopNotifier struct{}
 
-func (noopNotifier) Enqueue(n ntypes.Notification) string { return "ok" }
+func (noopNotifier) Enqueue(_ context.Context, n kit.Notification) (string, error) {
+	return n.ID(), nil
+}
 
 func TestNewManager(t *testing.T) {
 	t.Parallel()
-	templateFS := os.DirFS(filepath.Join("..", "..", ".."))
 	cfg := sampleConfig()
 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 		logger := slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{}))
-		mgr, err := NewManager(cfg, templateFS, noopNotifier{}, history.NewStore(10), metrics.NewRegistry(), logger)
+		mgr, err := NewManager(cfg, noopNotifier{}, sampleRoutes(), history.NewStore(10), metrics.NewRegistry(), logger)
 		require.NoError(t, err)
 		require.NotNil(t, mgr)
 	})
@@ -37,7 +38,7 @@ func TestNewManager(t *testing.T) {
 	t.Run("nil config error", func(t *testing.T) {
 		t.Parallel()
 		logger := slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{}))
-		_, err := NewManager(nil, templateFS, noopNotifier{}, history.NewStore(10), metrics.NewRegistry(), logger)
+		_, err := NewManager(nil, noopNotifier{}, sampleRoutes(), history.NewStore(10), metrics.NewRegistry(), logger)
 		require.Error(t, err)
 	})
 }
@@ -69,13 +70,12 @@ func TestManagerGetAll(t *testing.T) {
 
 func TestManagerReloadErrors(t *testing.T) {
 	t.Parallel()
-	templateFS := os.DirFS(filepath.Join("..", "..", ".."))
 	var manager *Manager
 	ctx := context.Background()
 
 	t.Run("nil manager", func(t *testing.T) {
 		t.Parallel()
-		_, err := manager.Reload(ctx, sampleConfig(), templateFS)
+		_, err := manager.Reload(ctx, sampleConfig(), sampleRoutes())
 		require.Error(t, err)
 	})
 
@@ -83,7 +83,7 @@ func TestManagerReloadErrors(t *testing.T) {
 		t.Parallel()
 		mgr := setupManager(t)
 		defer mgr.StopAll()
-		_, err := mgr.Reload(ctx, nil, templateFS)
+		_, err := mgr.Reload(ctx, nil, sampleRoutes())
 		require.Error(t, err)
 	})
 }
@@ -128,11 +128,14 @@ func sampleConfig() *config.Config {
 	}
 }
 
+func sampleRoutes() notify.ReceiverRoutes {
+	return notify.ReceiverRoutes{"api": []kit.ReceiverID{"heartbeat.api.receiver.ops"}}
+}
+
 func setupManager(t *testing.T) *Manager {
 	t.Helper()
-	templateFS := os.DirFS(filepath.Join("..", "..", ".."))
 	logger := slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{}))
-	manager, err := NewManager(sampleConfig(), templateFS, noopNotifier{}, history.NewStore(10), metrics.NewRegistry(), logger)
+	manager, err := NewManager(sampleConfig(), noopNotifier{}, sampleRoutes(), history.NewStore(10), metrics.NewRegistry(), logger)
 	require.NoError(t, err)
 	return manager
 }

@@ -8,20 +8,25 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	kit "github.com/containeroo/notifykit/notify"
+	"github.com/stretchr/testify/require"
 
 	"github.com/containeroo/heartbeats/internal/config"
 	"github.com/containeroo/heartbeats/internal/heartbeat/manager"
 	"github.com/containeroo/heartbeats/internal/history"
 	"github.com/containeroo/heartbeats/internal/metrics"
-	ntypes "github.com/containeroo/heartbeats/internal/notify/types"
-	"github.com/stretchr/testify/require"
+	appnotify "github.com/containeroo/heartbeats/internal/notify"
 )
 
 type noopNotifier struct{}
 
-func (noopNotifier) Enqueue(ntypes.Notification) string { return "ok" }
+func (noopNotifier) Enqueue(_ context.Context, n kit.Notification) (string, error) {
+	return n.ID(), nil
+}
 
 const sampleConfigYAML = `
 receivers:
@@ -40,7 +45,7 @@ history:
 func TestReload(t *testing.T) {
 	t.Parallel()
 
-	templateFS := os.DirFS(filepath.Join("..", "..", ".."))
+	templateFS := os.DirFS(filepath.Join("..", "..", "..", "templates"))
 	logger := slog.New(slog.NewJSONHandler(io.Discard, &slog.HandlerOptions{}))
 
 	t.Run("success", func(t *testing.T) {
@@ -49,10 +54,12 @@ func TestReload(t *testing.T) {
 		cfgPath := writeConfig(t, sampleConfigYAML)
 		cfg, err := config.Load(cfgPath)
 		require.NoError(t, err)
-		mgr, err := manager.NewManager(cfg, templateFS, noopNotifier{}, history.NewStore(10), metrics.NewRegistry(), logger)
+		receivers, routes, err := appnotify.ReceiversFromConfig(templateFS, cfg, logger)
+		require.NoError(t, err)
+		mgr, err := manager.NewManager(cfg, noopNotifier{}, routes, history.NewStore(10), metrics.NewRegistry(), logger)
 		require.NoError(t, err)
 
-		res, err := Reload(context.Background(), cfgPath, templateFS, config.LoadOptions{}, logger, mgr)
+		res, err := Reload(context.Background(), cfgPath, templateFS, receivers, routes, config.LoadOptions{}, logger, mgr)
 		require.NoError(t, err)
 		require.Zero(t, res.Added+res.Updated+res.Removed)
 	})
@@ -60,7 +67,7 @@ func TestReload(t *testing.T) {
 	t.Run("load error", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := Reload(context.Background(), filepath.Join(t.TempDir(), "missing.yaml"), templateFS, config.LoadOptions{}, logger, &manager.Manager{})
+		_, err := Reload(context.Background(), filepath.Join(t.TempDir(), "missing.yaml"), templateFS, kit.Receivers{}, appnotify.ReceiverRoutes{}, config.LoadOptions{}, logger, &manager.Manager{})
 		require.Error(t, err)
 	})
 }
@@ -68,7 +75,7 @@ func TestReload(t *testing.T) {
 func TestNewReloadFunc(t *testing.T) {
 	t.Parallel()
 
-	templateFS := os.DirFS(filepath.Join("..", "..", ".."))
+	templateFS := os.DirFS(filepath.Join("..", "..", "..", "templates"))
 	ctx := context.Background()
 	logBuf := &bytes.Buffer{}
 	logger := slog.New(slog.NewJSONHandler(logBuf, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -76,10 +83,12 @@ func TestNewReloadFunc(t *testing.T) {
 	cfgPath := writeConfig(t, sampleConfigYAML)
 	cfg, err := config.Load(cfgPath)
 	require.NoError(t, err)
-	mgr, err := manager.NewManager(cfg, templateFS, noopNotifier{}, history.NewStore(10), metrics.NewRegistry(), logger)
+	receivers, routes, err := appnotify.ReceiversFromConfig(templateFS, cfg, logger)
+	require.NoError(t, err)
+	mgr, err := manager.NewManager(cfg, noopNotifier{}, routes, history.NewStore(10), metrics.NewRegistry(), logger)
 	require.NoError(t, err)
 
-	reloadFn := NewReloadFunc(ctx, cfgPath, templateFS, config.LoadOptions{}, logger, mgr)
+	reloadFn := NewReloadFunc(ctx, cfgPath, templateFS, receivers, routes, config.LoadOptions{}, logger, mgr)
 
 	require.NoError(t, os.WriteFile(cfgPath, []byte(`
 receivers:
@@ -145,8 +154,9 @@ func TestWatchReload(t *testing.T) {
 		})
 
 		reloadCh <- os.Interrupt
-		time.Sleep(10 * time.Millisecond)
-		require.Contains(t, logBuf.String(), "reload failed")
+		require.Eventually(t, func() bool {
+			return strings.Contains(logBuf.String(), "reload failed")
+		}, time.Second, 10*time.Millisecond)
 	})
 }
 
