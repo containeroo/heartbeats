@@ -6,7 +6,7 @@ require (
 	github.com/coder/websocket v1.8.15
 	github.com/containeroo/httpgrace v0.1.2
 	github.com/containeroo/httpprefix v0.0.2
-	github.com/containeroo/notifykit v0.0.5
+	github.com/containeroo/notifykit v0.0.6
 	github.com/containeroo/tinyflags v0.0.79
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
@@ -17,6 +17,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containeroo/tmplfuncs v0.0.2 // indirect
+	github.com/containeroo/uuidv7 v0.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
