@@ -27,6 +27,7 @@ const (
 )
 
 var templateFuncs = []templates.Option{
+	templates.WithDefaultFuncs(),
 	templates.WithFunc("formatDuration", formatDuration),
 	templates.WithFunc("isRecent", isRecent),
 	templates.WithFunc("ago", ago),
@@ -118,10 +119,10 @@ func receiverFromConfig(
 	}
 
 	return &kit.Receiver{
-		ID:      receiverID(heartbeatID, receiverName),
-		Name:    receiverName,
-		Targets: targets,
-		Vars:    varsFromConfig(receiverCfg.Vars),
+		ID:         receiverID(heartbeatID, receiverName),
+		Name:       receiverName,
+		Targets:    targets,
+		CustomData: varsFromConfig(receiverCfg.Vars),
 	}, nil
 }
 
@@ -188,7 +189,7 @@ func webhookTargetsFromConfig(
 				Method:            method,
 				Headers:           maps.Clone(cfg.Headers),
 				Template:          tmpl,
-				SubjectTmpl:       subjectTmpl,
+				TitleTmpl:         subjectTmpl,
 				ValidateJSON:      true,
 				LogResponse:       logResponse,
 				ResponseBodyLimit: bodyLimit,
@@ -321,7 +322,7 @@ func validateWebhookTarget(target *webhook.Target, receiverName string, vars map
 		if err := target.Validate(kit.Payload{
 			Notification: event,
 			Receiver:     receiverName,
-			Vars:         varsFromConfig(vars),
+			CustomData:   varsFromConfig(vars),
 		}); err != nil {
 			return err
 		}
@@ -334,7 +335,7 @@ func validateEmailTarget(target *email.Target, receiverName string, vars map[str
 		if err := target.Validate(kit.Payload{
 			Notification: event,
 			Receiver:     receiverName,
-			Vars:         varsFromConfig(vars),
+			CustomData:   varsFromConfig(vars),
 		}); err != nil {
 			return err
 		}

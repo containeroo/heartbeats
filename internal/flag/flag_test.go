@@ -124,7 +124,7 @@ func TestParseFlags(t *testing.T) {
 		_, err := ParseFlags(args, "")
 
 		assert.Error(t, err)
-		assert.EqualError(t, err, "invalid value for flag --log-format: must be one of: text, json")
+		assert.EqualError(t, err, "invalid value for flag --log-format: \"xml\" must be one of: text, json")
 	})
 
 	t.Run("test route prefix", func(t *testing.T) {
