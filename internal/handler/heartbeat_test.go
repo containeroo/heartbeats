@@ -1,1 +1,89 @@
 package handler
+
+import (
+	"errors"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/containeroo/heartbeats/internal/heartbeat/service"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+type fakeService struct {
+	updateErr error
+	updated   []string
+}
+
+func (f *fakeService) HeartbeatSummaries() []service.HeartbeatSummary { return nil }
+func (f *fakeService) ReceiverSummaries() []service.ReceiverSummary   { return nil }
+func (f *fakeService) StatusAll() []service.Status                    { return nil }
+func (f *fakeService) StatusByID(id string) (service.Status, error)   { return service.Status{}, nil }
+
+func (f *fakeService) Update(id string, payload string, now time.Time) error {
+	if f.updateErr != nil {
+		return f.updateErr
+	}
+	f.updated = append(f.updated, id)
+	return nil
+}
+
+func newHeartbeatAPI(svc ServiceProvider) *API {
+	api := NewAPI(
+		"test",
+		"test",
+		"http://example.com",
+		slog.New(slog.NewTextHandler(&strings.Builder{}, nil)),
+	)
+	api.SetService(svc)
+	return api
+}
+
+func bump(t *testing.T, api *API, id string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest("POST", "/api/heartbeat/"+id, strings.NewReader("payload"))
+	req.SetPathValue("id", id)
+	rec := httptest.NewRecorder()
+	api.Heartbeat().ServeHTTP(rec, req)
+	return rec
+}
+
+func TestHeartbeatHandler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("accepted bump reaches the service", func(t *testing.T) {
+		t.Parallel()
+
+		svc := &fakeService{}
+		api := newHeartbeatAPI(svc)
+
+		rec := bump(t, api, "api")
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, []string{"api"}, svc.updated)
+	})
+
+	t.Run("service error maps to 404", func(t *testing.T) {
+		t.Parallel()
+
+		svc := &fakeService{updateErr: errors.New("heartbeat \"api\" not found")}
+		api := newHeartbeatAPI(svc)
+
+		rec := bump(t, api, "api")
+		require.Equal(t, http.StatusNotFound, rec.Code)
+	})
+
+	t.Run("missing id is rejected before the service", func(t *testing.T) {
+		t.Parallel()
+
+		svc := &fakeService{}
+		api := newHeartbeatAPI(svc)
+
+		rec := bump(t, api, "")
+		require.Equal(t, http.StatusBadRequest, rec.Code)
+		assert.Empty(t, svc.updated)
+	})
+}

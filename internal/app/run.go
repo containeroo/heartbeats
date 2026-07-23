@@ -138,7 +138,7 @@ func Run(ctx context.Context, appFS fs.FS, version, commit string, args []string
 	}
 	manager.StartAll(ctx)
 
-	svc := service.NewService(manager, notifyManager, historyRecorder)
+	svc := service.NewService(manager, notifyManager, historyRecorder, metricsReg)
 	api.SetService(svc)
 
 	reloadConfigFn := reconcile.NewReloadFunc(
