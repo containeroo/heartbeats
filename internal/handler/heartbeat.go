@@ -23,9 +23,6 @@ func (a *API) Heartbeat() http.HandlerFunc {
 			a.respondJSON(w, http.StatusNotFound, errorResponse{Error: err.Error()})
 			return
 		}
-		if a.metrics != nil {
-			a.metrics.IncHeartbeatReceived(heartbeatID)
-		}
 		a.respondJSON(w, http.StatusOK, statusResponse{Status: "ok"})
 	}
 }

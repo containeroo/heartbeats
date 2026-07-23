@@ -1,6 +1,7 @@
 package service
 
 import (
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/containeroo/heartbeats/internal/config"
 	"github.com/containeroo/heartbeats/internal/heartbeat/types"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/runner"
 )
 
@@ -87,8 +89,16 @@ func newTestService(t *testing.T) (*Service, *fakeStore, *history.Store) {
 	t.Helper()
 	store := newFakeStore()
 	hist := history.NewStore(10)
-	svc := NewService(store, newReceiverStore(), hist)
+	svc := NewService(store, newReceiverStore(), hist, metrics.NewRegistry())
 	return svc, store, hist
+}
+
+// scrapeMetrics renders the service's metrics registry as Prometheus text.
+func scrapeMetrics(t *testing.T, svc *Service) string {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	svc.metrics.Metrics().ServeHTTP(rec, httptest.NewRequest("GET", "/metrics", nil))
+	return rec.Body.String()
 }
 
 func TestServiceUpdate(t *testing.T) {
@@ -106,6 +116,35 @@ func TestServiceUpdate(t *testing.T) {
 	events := hist.List()
 	require.Len(t, events, 2)
 	require.Equal(t, false, events[1].Fields["enqueued"])
+
+	// Both deliveries were received (the mailbox-full one still updated
+	// state), so both count.
+	require.Contains(t, scrapeMetrics(t, svc),
+		`heartbeats_heartbeat_received_total{heartbeat="api"} 2`)
+}
+
+func TestServiceUpdateUnknownID(t *testing.T) {
+	t.Parallel()
+
+	svc, _, _ := newTestService(t)
+
+	err := svc.Update("ghost", "payload", time.Now())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "not found")
+
+	// Unknown ids must not mint counter series (label cardinality guard).
+	require.NotContains(t, scrapeMetrics(t, svc),
+		"heartbeats_heartbeat_received_total{")
+}
+
+func TestServiceUpdateWithoutMetrics(t *testing.T) {
+	t.Parallel()
+
+	store := newFakeStore()
+	svc := NewService(store, newReceiverStore(), history.NewStore(10), nil)
+	store.s["api"] = newHeartbeat(t, "api", time.Second, 2*time.Second, runner.StageLate, time.Now())
+
+	require.NoError(t, svc.Update("api", "payload", time.Now()))
 }
 
 func TestServiceStatus(t *testing.T) {

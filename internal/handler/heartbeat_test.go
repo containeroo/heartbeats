@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/containeroo/heartbeats/internal/heartbeat/service"
-	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +32,7 @@ func (f *fakeService) Update(id string, payload string, now time.Time) error {
 	return nil
 }
 
-func newHeartbeatAPI(svc ServiceProvider, metricsReg *metrics.Registry) *API {
+func newHeartbeatAPI(svc ServiceProvider) *API {
 	api := NewAPI(
 		"test",
 		"test",
@@ -41,7 +40,6 @@ func newHeartbeatAPI(svc ServiceProvider, metricsReg *metrics.Registry) *API {
 		slog.New(slog.NewTextHandler(&strings.Builder{}, nil)),
 	)
 	api.SetService(svc)
-	api.SetMetrics(metricsReg)
 	return api
 }
 
@@ -57,50 +55,32 @@ func bump(t *testing.T, api *API, id string) *httptest.ResponseRecorder {
 func TestHeartbeatHandler(t *testing.T) {
 	t.Parallel()
 
-	t.Run("accepted bump increments received counter", func(t *testing.T) {
+	t.Run("accepted bump reaches the service", func(t *testing.T) {
 		t.Parallel()
 
 		svc := &fakeService{}
-		metricsReg := metrics.NewRegistry()
-		api := newHeartbeatAPI(svc, metricsReg)
+		api := newHeartbeatAPI(svc)
 
 		rec := bump(t, api, "api")
 		require.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, []string{"api"}, svc.updated)
-
-		metricsRec := httptest.NewRecorder()
-		api.Metrics().ServeHTTP(metricsRec, httptest.NewRequest("GET", "/metrics", nil))
-		assert.Contains(t,
-			metricsRec.Body.String(),
-			`heartbeats_heartbeat_received_total{heartbeat="api"} 1`,
-			"Expected an accepted bump to increment 'heartbeats_heartbeat_received_total'",
-		)
 	})
 
-	t.Run("rejected bump does not increment received counter", func(t *testing.T) {
+	t.Run("service error maps to 404", func(t *testing.T) {
 		t.Parallel()
 
 		svc := &fakeService{updateErr: errors.New("heartbeat \"api\" not found")}
-		metricsReg := metrics.NewRegistry()
-		api := newHeartbeatAPI(svc, metricsReg)
+		api := newHeartbeatAPI(svc)
 
 		rec := bump(t, api, "api")
 		require.Equal(t, http.StatusNotFound, rec.Code)
-
-		metricsRec := httptest.NewRecorder()
-		api.Metrics().ServeHTTP(metricsRec, httptest.NewRequest("GET", "/metrics", nil))
-		assert.NotContains(t,
-			metricsRec.Body.String(),
-			"heartbeats_heartbeat_received_total{",
-			"Expected a rejected bump to leave 'heartbeats_heartbeat_received_total' untouched",
-		)
 	})
 
-	t.Run("missing id is rejected", func(t *testing.T) {
+	t.Run("missing id is rejected before the service", func(t *testing.T) {
 		t.Parallel()
 
 		svc := &fakeService{}
-		api := newHeartbeatAPI(svc, metrics.NewRegistry())
+		api := newHeartbeatAPI(svc)
 
 		rec := bump(t, api, "")
 		require.Equal(t, http.StatusBadRequest, rec.Code)

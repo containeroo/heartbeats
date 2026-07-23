@@ -13,6 +13,7 @@ import (
 
 	htypes "github.com/containeroo/heartbeats/internal/heartbeat/types"
 	"github.com/containeroo/heartbeats/internal/history"
+	"github.com/containeroo/heartbeats/internal/metrics"
 	"github.com/containeroo/heartbeats/internal/runner"
 )
 
@@ -32,6 +33,7 @@ type Service struct {
 	manager   Store
 	receivers ReceiverStore
 	history   history.Recorder
+	metrics   *metrics.Registry
 }
 
 // Status is the public heartbeat state payload.
@@ -69,11 +71,12 @@ type ReceiverSummary struct {
 }
 
 // NewService constructs a Service from a Manager.
-func NewService(manager Store, receivers ReceiverStore, historyStore history.Recorder) *Service {
+func NewService(manager Store, receivers ReceiverStore, historyStore history.Recorder, metricsReg *metrics.Registry) *Service {
 	return &Service{
 		manager:   manager,
 		receivers: receivers,
 		history:   historyStore,
+		metrics:   metricsReg,
 	}
 }
 
@@ -81,14 +84,29 @@ func NewService(manager Store, receivers ReceiverStore, historyStore history.Rec
 func (s *Service) Update(id string, payload string, now time.Time) error {
 	hb, ok := s.manager.Get(id)
 	if !ok {
+		// Unknown ids are deliberately not counted: the id becomes a metric
+		// label, and counting arbitrary request paths would let callers mint
+		// unbounded label cardinality.
 		return fmt.Errorf("heartbeat %q not found", id)
 	}
 	if ok := hb.State.UpdateSeen(now, payload); !ok {
+		// The state (last seen, payload) was still updated; only the runner
+		// wake-up was dropped. The bump was received, so it counts.
 		s.recordHeartbeatReceived(id, now, len(payload), false)
+		s.incHeartbeatReceived(id)
 		return errors.New("heartbeat mailbox full")
 	}
 	s.recordHeartbeatReceived(id, now, len(payload), true)
+	s.incHeartbeatReceived(id)
 	return nil
+}
+
+// incHeartbeatReceived bumps the received counter when metrics are wired.
+func (s *Service) incHeartbeatReceived(id string) {
+	if s.metrics == nil {
+		return
+	}
+	s.metrics.IncHeartbeatReceived(id)
 }
 
 // StatusByID returns the status for a heartbeat.
