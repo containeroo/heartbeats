@@ -5,7 +5,7 @@ on:
   workflow_call:
   pull_request:
     branches:
-      - main
+      - master
     paths:
       - "internal/**"
       - "main.go"
