@@ -18,6 +18,28 @@
         "#\\srenovate:\\sdatasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?( extractVersion=(?<extractVersion>.*?))?\\s.*?_VERSION(\\s+?\\?=\\s)(?<currentValue>.*)\\s"
       ],
       "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile(\\.goreleaser)?$/"
+      ],
+      "matchStrings": [
+        "^#\\s*syntax=(?<depName>docker/dockerfile):(?<currentValue>\\S+)$"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "semver"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "docker/dockerfile"
+      ],
+      "automerge": true
     }
   ]
 }
