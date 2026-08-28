@@ -1,10 +1,10 @@
 module github.com/containeroo/heartbeats
 
-go 1.25.0
+go 1.27.0
 
 require (
 	github.com/coder/websocket v1.8.15
-	github.com/containeroo/httpgrace v0.1.2
+	github.com/containeroo/httpgrace v0.2.0
 	github.com/containeroo/httpprefix v0.0.2
 	github.com/containeroo/notifykit v0.0.11
 	github.com/containeroo/tinyflags v0.0.80

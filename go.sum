@@ -4,8 +4,8 @@ github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UF
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/coder/websocket v1.8.15 h1:6B2JPeOGlpff2Uz6vOEH1Vzpi0iUz20A+lPVhPHtNUA=
 github.com/coder/websocket v1.8.15/go.mod h1:NX3SzP+inril6yawo5CQXx8+fk145lPDC6pumgx0mVg=
-github.com/containeroo/httpgrace v0.1.2 h1:OF/GrOSugl3FV2W/KIvzxJ/rYr1p8OLW1C7u/0Y2jWw=
-github.com/containeroo/httpgrace v0.1.2/go.mod h1:fxz9CocSiqeqNpoB/768Bi4xdly7qU7DHoHHL1vRSV8=
+github.com/containeroo/httpgrace v0.2.0 h1:yw6NP3bYnTDbCNnGRSZzFddZWvPpb+FkRfu2dduEuxc=
+github.com/containeroo/httpgrace v0.2.0/go.mod h1:wVchVG6ETESS++4RdJr3O56MD6awm9CIOcms5Vl+9ps=
 github.com/containeroo/httpprefix v0.0.2 h1:OvnhriCPVEoF1+12TXrou89smFcWqEsKTuZMQ5uez3E=
 github.com/containeroo/httpprefix v0.0.2/go.mod h1:RUVtNKpy2OZ24ijpBsR3XijBASISwBm22da9j41Y3m8=
 github.com/containeroo/notifykit v0.0.11 h1:TiLspQU8EY3gpjJ5ITZXybXuyyaU0GHfCuO1Xo7oiks=
