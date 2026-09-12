@@ -8,14 +8,12 @@ github.com/containeroo/httpgrace v0.2.0 h1:yw6NP3bYnTDbCNnGRSZzFddZWvPpb+FkRfu2d
 github.com/containeroo/httpgrace v0.2.0/go.mod h1:wVchVG6ETESS++4RdJr3O56MD6awm9CIOcms5Vl+9ps=
 github.com/containeroo/httpprefix v0.0.2 h1:OvnhriCPVEoF1+12TXrou89smFcWqEsKTuZMQ5uez3E=
 github.com/containeroo/httpprefix v0.0.2/go.mod h1:RUVtNKpy2OZ24ijpBsR3XijBASISwBm22da9j41Y3m8=
-github.com/containeroo/notifykit v0.2.0 h1:x9to3MyRALiAJdtGn8cY+PA8d848WZfD5mEVWi/Xbl0=
-github.com/containeroo/notifykit v0.2.0/go.mod h1:jNdY0ufZf+DhNK3qA/ZSJfd+/dfrSpD/spbUzYlANPk=
+github.com/containeroo/notifykit v0.4.1 h1:x0H09t3QUTWkvvJupnZvF8bwvz1+50DaVcnDz4HKiOI=
+github.com/containeroo/notifykit v0.4.1/go.mod h1:J9CNWRdUb8ETHQ3hKhoN2tuFDia8gFrw0jo2sLW6FVA=
 github.com/containeroo/tinyflags v0.0.84 h1:ylcS3SK/c4tq9oIf4pTBUVyDhvw/b01yOxfWW/HSTT8=
 github.com/containeroo/tinyflags v0.0.84/go.mod h1:5CGkQy0A+90ubNaEDJanfXOlE4+aYHp4OBwCpXM1yDM=
 github.com/containeroo/tmplfuncs v0.0.2 h1:Gzls/3c+Bcyc76PuPOKOVgG9boKM9/5todkIqlO597Q=
 github.com/containeroo/tmplfuncs v0.0.2/go.mod h1:6hpqNh2G33pzLtgcxwu0rqQ+gzvyvk4gw61kbi9gHIE=
-github.com/containeroo/uuidv7 v0.0.2 h1:uXkehhMEkXmpgofFsGa/YBpVxjlEShO4AskfiIyRQDw=
-github.com/containeroo/uuidv7 v0.0.2/go.mod h1:rWRRcLO75vqyqiPluhuYaq3porH/qfkJ5vbkxtdM+38=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/klauspost/compress v1.19.1 h1:VsB4HPswih7mmZ8WleSFQ75c/Ui1M4trX5oAsJnhSlk=
