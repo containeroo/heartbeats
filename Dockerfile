@@ -1,5 +1,5 @@
 # Build the frontend assets
-FROM node:24-alpine AS frontend
+FROM node:26-alpine AS frontend
 WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
