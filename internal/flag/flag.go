@@ -74,7 +74,7 @@ func ParseFlags(args []string, version string) (Options, error) {
 
 	opts.ListenAddr = (*listenAddr).String()
 	opts.LogFormat = logging.LogFormat(*logFormat)
-	opts.OverriddenValues = tf.OverriddenValues()
+	opts.OverriddenValues = tf.Overrides().Values()
 
 	return opts, nil
 }

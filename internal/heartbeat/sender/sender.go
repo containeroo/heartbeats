@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"time"
+	"uuid"
 
 	kit "github.com/containeroo/notifykit/notify"
 
@@ -111,7 +112,7 @@ func (s *HeartbeatSender) enqueue(n *notify.Event) {
 		)
 		return
 	}
-	if id == "" {
+	if id == uuid.Nil() {
 		s.Logger.Info("Notification skipped",
 			"event", logging.EventNotificationMissing.String(),
 			"heartbeat", n.Heartbeat,

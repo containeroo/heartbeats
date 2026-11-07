@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"testing"
 	"time"
+	"uuid"
 
 	kit "github.com/containeroo/notifykit/notify"
 	"github.com/stretchr/testify/require"
@@ -21,12 +22,12 @@ type captureNotifier struct {
 	events []*appnotify.Event
 }
 
-func (c *captureNotifier) Enqueue(_ context.Context, n kit.Notification) (string, error) {
+func (c *captureNotifier) Enqueue(_ context.Context, n kit.Notification) (uuid.UUID, error) {
 	event, ok := n.(*appnotify.Event)
 	if ok {
 		c.events = append(c.events, event)
 	}
-	return n.ID(), nil
+	return uuid.NewV7(), nil
 }
 
 func TestHeartbeatSenderMissingEnqueuesNotification(t *testing.T) {

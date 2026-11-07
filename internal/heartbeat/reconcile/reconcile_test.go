@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"uuid"
 
 	kit "github.com/containeroo/notifykit/notify"
 	"github.com/stretchr/testify/require"
@@ -24,8 +25,8 @@ import (
 
 type noopNotifier struct{}
 
-func (noopNotifier) Enqueue(_ context.Context, n kit.Notification) (string, error) {
-	return n.ID(), nil
+func (noopNotifier) Enqueue(_ context.Context, n kit.Notification) (uuid.UUID, error) {
+	return uuid.NewV7(), nil
 }
 
 const sampleConfigYAML = `
